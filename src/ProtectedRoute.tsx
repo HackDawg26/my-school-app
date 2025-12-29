@@ -1,29 +1,36 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 
-interface Props {
-  allowedRoles: string[];
-}
 
-const ProtectedRoute = ({ allowedRoles }: Props) => {
-  const location = useLocation();
-  
-  // In a real app, you get this from your Auth Context or Redux store
-  const user = { 
-    isLoggedIn: true, 
-    role: 'STUDENT' // Example: This would come from your decoded JWT token
-  };
+import { useAuth } from './context/AuthContext';
 
-  if (!user.isLoggedIn) {
-    // If not logged in, send them to login but remember where they tried to go
-    return <Navigate to="/login" state={{ from: location }} replace />;
+const ProtectedRoute = ({ allowedRoles }: { allowedRoles: string[] }) => {
+  const { user, isLoading } = useAuth();
+
+  // 1. VERY IMPORTANT: Wait for the "Brain" to wake up
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
   }
 
+  // 2. If no user is logged in at all
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // 3. If user exists but their role isn't in the list
+  // Note: console.log here to debug!
+  console.log("Current User Role:", user.role);
+  console.log("Allowed Roles:", allowedRoles);
+
+
   if (!allowedRoles.includes(user.role)) {
-    // If they have the wrong role, send to unauthorized page
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // If all is good, render the "child" routes (the Outlet)
+
   return <Outlet />;
 };
 
