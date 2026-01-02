@@ -1,11 +1,11 @@
 
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Resource } from "@/lib/types";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card";
+import type { Resource } from "../lib/types";
 import { FileText, Link as LinkIcon, Video, Download } from "lucide-react";
-import { Button } from "../ui/button";
-import Link from "next/link";
+import { Button } from "./button";
+import {Link} from "react-router-dom";
 
 const ResourceIcon = ({ type }: { type: Resource['type'] }) => {
     switch (type) {
@@ -29,7 +29,7 @@ function ResourceItem({ resource }: { resource: Resource }) {
                 </div>
             </CardHeader>
             <CardContent>
-                <Link href={resource.url} target="_blank" rel="noopener noreferrer">
+                <Link to={resource.url} target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" size="sm" className="w-full">
                         <Download className="mr-2 h-4 w-4" />
                         {resource.type === 'Link' || resource.type === 'Video' ? 'Open Link' : 'Download File'}

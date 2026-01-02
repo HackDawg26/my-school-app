@@ -2,14 +2,14 @@
 'use client';
 
 import { useEffect, useState, useMemo } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
+import { Badge } from "./badge";
 import { format } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { TaskSubmitForm } from "@/components/subjects/task-submit-form";
+import { Button } from "./button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./dialog";
+import { TaskSubmitForm } from "./task-submit-form";
 import { Upload } from "lucide-react";
-import type { Assignment as Task } from "@/lib/types";
+import type { Assignment as Task } from "../lib/types";
 
 function TaskRow({ task }: { task: Task }) {
     const [open, setOpen] = useState(false);

@@ -1,10 +1,10 @@
 
-import { Card, CardContent } from "@/components/ui/card";
-import { resources, subjects } from "@/lib/data";
-import Link from "next/link";
+import { Card, CardContent } from "../../../components/components/card";
+import { resources, subjects } from "../../../components/lib/data";
+import {Link} from "react-router-dom";
 import { Folder } from "lucide-react";
-import type { Resource } from "@/lib/types";
-import { cn, getSubjectColors } from "@/lib/utils";
+import type { Resource } from "../../../components/lib/types";
+import { cn, getSubjectColors } from "../../../components/lib/utils";
 
 export default function MaterialsPage() {
 
@@ -30,7 +30,7 @@ export default function MaterialsPage() {
                      const { textColor } = getSubjectColors(subject.color);
                      const resourceCount = resourcesBySubject[subject.id].length;
                     return (
-                    <Link href={`/materials/${subject.id}`} key={subject.id} className="group flex">
+                    <Link to={`/materials/${subject.id}`} key={subject.id} className="group flex">
                         <Card className="w-full transition-all group-hover:shadow-md group-hover:-translate-y-0.5">
                            <CardContent className="p-4 flex items-center gap-4 h-full">
                              <Folder className={cn("h-10 w-10 shrink-0", textColor)} />

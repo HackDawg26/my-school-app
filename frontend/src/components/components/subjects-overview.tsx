@@ -1,11 +1,11 @@
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { subjects } from "@/lib/data";
-import Link from "next/link";
-import { Button } from "../ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./card";
+import { Progress } from "./progress";
+import { subjects } from "../lib/data";
+import { Link } from "react-router-dom";
+import { Button } from "./button";
 import { ArrowRight } from "lucide-react";
-import { cn, getSubjectColors } from "@/lib/utils";
+import { cn, getSubjectColors } from "../lib/utils";
 
 export function SubjectsOverview() {
   return (
@@ -19,7 +19,7 @@ export function SubjectsOverview() {
           {subjects.slice(0, 3).map((subject) => {
             const { borderColor, textColor } = getSubjectColors(subject.color);
             return (
-              <Link href={`/subjects/${subject.id}`} key={subject.id} className="group">
+              <Link to={`/subjects/${subject.id}`} key={subject.id} className="group">
                 <Card className={cn("flex h-full flex-col transition-all group-hover:shadow-lg group-hover:-translate-y-1 border-t-4", borderColor)}>
                   <CardHeader className="pb-4">
                       <div>
@@ -45,7 +45,7 @@ export function SubjectsOverview() {
           )})}
         </div>
         <div className="mt-6 flex justify-end">
-            <Link href="/subjects">
+            <Link to="/subjects">
                 <Button variant="outline">
                     View All Subjects <ArrowRight className="ml-2" />
                 </Button>

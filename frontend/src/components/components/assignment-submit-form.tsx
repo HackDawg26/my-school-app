@@ -3,12 +3,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import type { Assignment } from "@/lib/types";
+import { Button } from "./button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./form";
+import { Input } from "./input";
+import { Textarea } from "./textarea";
+import { useToast } from "../../hooks/use-toast";
+import type { Assignment } from "../lib/types";
 
 const formSchema = z.object({
   file: z.any().refine(files => files?.length > 0, "File is required."),

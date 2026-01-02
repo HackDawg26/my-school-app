@@ -2,14 +2,14 @@
 'use client';
 
 import { useState } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
+import { Badge } from "./badge";
 import { format } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AssignmentSubmitForm } from "@/components/subjects/assignment-submit-form";
+import { Button } from "./button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./dialog";
+import { AssignmentSubmitForm } from "./assignment-submit-form";
 import { Upload } from "lucide-react";
-import type { Assignment } from "@/lib/types";
+import type { Assignment } from "../lib/types";
 
 function AssignmentRow({ assignment }: { assignment: Assignment }) {
     const [open, setOpen] = useState(false);

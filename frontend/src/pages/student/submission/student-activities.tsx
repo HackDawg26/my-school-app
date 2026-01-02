@@ -1,7 +1,7 @@
 
-import { ActivityList } from "@/components/subjects/activity-list";
-import { quizzes as activities } from "@/lib/data";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ActivityList } from "../../../components/components/activity-list";
+import { quizzes as activities } from "../../../components/lib/data";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../../components/components/card";
 
 export default function ActivitiesPage() {
     return (

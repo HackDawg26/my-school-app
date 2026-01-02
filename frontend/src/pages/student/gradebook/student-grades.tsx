@@ -1,10 +1,10 @@
 
 'use client';
 
-import { GradeReport } from "@/components/grades/grade-report";
-import { student, subjectGrades } from "@/lib/data";
-import { SubjectPerformanceChart } from "@/components/grades/subject-performance-chart";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { GradeReport } from "../../../components/components/grade-report";
+import { student, subjectGrades } from "../../../components/lib/data";
+import { SubjectPerformanceChart } from "../../../components/components/subject-performance-chart";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../../components/components/card";
 
 
 export default function GradesPage() {

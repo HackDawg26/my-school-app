@@ -1,10 +1,10 @@
 
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { assignments, Assignment } from "@/lib/data";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table";
+import { Badge } from "./badge";
+import { assignments, type Assignment } from "../lib/data";
 import { formatDistanceToNow } from "date-fns";
 import { useEffect, useState } from "react";
 
@@ -65,7 +65,7 @@ export function UpcomingDeadlines() {
                                     <div className="text-sm text-muted-foreground">{task.subjectName}</div>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Badge variant={getBadgeVariant(task.dueDate)} className="whitespace-nowrap">
+                                    <Badge className={`whitespace-nowrap ${getBadgeVariant(task.dueDate)}`}>
                                         {formatDistanceToNow(new Date(task.dueDate), { addSuffix: true })}
                                     </Badge>
                                 </TableCell>

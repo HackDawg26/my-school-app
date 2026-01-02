@@ -1,11 +1,11 @@
 
 'use client';
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { subjects } from "@/lib/data";
-import type { Teacher, Section } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./card";
+import { subjects } from "../lib/data";
+import type { Teacher, Section } from '../lib/types';
 import { PlusCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "./button";
 import {
     Dialog,
     DialogContent,
@@ -14,13 +14,13 @@ import {
     DialogTitle,
     DialogTrigger,
     DialogFooter
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
+} from './dialog';
+import { Input } from './input';
+import { Label } from './label';
+import { useToast } from '../../hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
+import { Popover, PopoverContent, PopoverTrigger } from './popover';
+import { Checkbox } from './checkbox';
 
 export const AddFacultyDialog = ({ onAddTeacher, sections }: { onAddTeacher: (teacher: Omit<Teacher, 'id'>) => void, sections: Section[] }) => {
     const { toast } = useToast();
@@ -43,10 +43,15 @@ export const AddFacultyDialog = ({ onAddTeacher, sections }: { onAddTeacher: (te
         onAddTeacher({
             firstName,
             lastName,
-            email: `${firstName.charAt(0).toLowerCase()}.${lastName.toLowerCase().replace(/ /g, '')}@claroed.edu`,
+            // Safely format the email
+            email: `${firstName.trim().charAt(0).toLowerCase()}.${lastName.trim().toLowerCase().replace(/\s+/g, '')}@claroed.edu`,
+            
+            // Generate password
             password: `pw${Math.floor(1000 + Math.random() * 9000)}`,
+            
+            // Ensure arrays and IDs are handled
             subjectIds: subjectIds || [],
-            adviserOfSectionId,
+            adviserOfSectionId: adviserOfSectionId || null,
         });
 
         toast({

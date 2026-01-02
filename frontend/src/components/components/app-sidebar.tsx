@@ -1,8 +1,7 @@
 
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import {Link, useLocation} from 'react-router-dom';
 import {
   Sidebar,
   SidebarBody,
@@ -10,7 +9,7 @@ import {
   SidebarHeader,
   SidebarHeading,
   SidebarInset,
-} from '@/components/ui/sidebar';
+} from './sidebar';
 import {
   LayoutGrid,
   Book,
@@ -19,7 +18,7 @@ import {
   Library,
   GraduationCap,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '../lib/utils';
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
@@ -62,12 +61,12 @@ const NavLink = ({
   label: string;
   icon: React.ElementType;
 }) => {
-  const pathname = usePathname();
-  const isActive = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+  const location = useLocation();
+  const isActive = location.pathname === href || (href !== '/dashboard' && location.pathname.startsWith(href));
 
   return (
     <Link
-      href={href}
+      to={href}
       className={cn(
         'group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
         isActive

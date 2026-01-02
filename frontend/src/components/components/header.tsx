@@ -1,8 +1,7 @@
 
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarTrigger } from './sidebar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,11 +9,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { student } from '@/lib/data';
-import Link from 'next/link';
+} from './dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from './avatar';
+import { Button } from './button';
+import { student } from '../lib/data';
+import {Link} from 'react-router-dom';
 import { LogOut, Settings } from 'lucide-react';
 
 
@@ -53,13 +52,13 @@ export function Header() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <Link href="/settings">
+              <Link to="/settings">
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
                 </DropdownMenuItem>
               </Link>
-              <Link href="/login">
+              <Link to="/login">
                 <DropdownMenuItem>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Logout</span>

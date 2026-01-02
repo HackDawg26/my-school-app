@@ -13,9 +13,9 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from '@/components/ui/chart';
-import type { SubjectGrade } from '@/lib/types';
-import { subjects } from '@/lib/data';
+} from './chart';
+import type { SubjectGrade } from '../lib/types';
+import { subjects } from '../lib/data';
 
 type SubjectPerformanceChartProps = {
   grades: SubjectGrade[];

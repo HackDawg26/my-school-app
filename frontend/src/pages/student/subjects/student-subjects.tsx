@@ -1,9 +1,9 @@
 
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { subjects } from "@/lib/data";
-import Link from "next/link";
-import { cn, getSubjectColors } from "@/lib/utils";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "../../../components/components/card";
+import { Progress } from "../../../components/components/progress";
+import { subjects } from "../../../components/lib/data";
+import {Link} from "react-router-dom";
+import { cn, getSubjectColors } from "../../../components/lib/utils";
 
 export default function SubjectsPage() {
     return (
@@ -16,7 +16,7 @@ export default function SubjectsPage() {
                 {subjects.map((subject) => {
                     const { borderColor, textColor } = getSubjectColors(subject.color);
                     return (
-                        <Link href={`/subjects/${subject.id}`} key={subject.id} className="group">
+                        <Link to={`/subjects/${subject.id}`} key={subject.id} className="group">
                             <Card className={cn("flex h-full flex-col transition-all group-hover:shadow-lg group-hover:-translate-y-1 border-t-4", borderColor)}>
                                 <CardHeader className="pb-4">
                                     <div>

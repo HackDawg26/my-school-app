@@ -1,24 +1,25 @@
 'use client';
 
-import { useParams, notFound } from 'next/navigation';
-import { subjects, assignments, quizzes, resources } from '@/lib/data';
-import { cn, getSubjectColors } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useParams, useNavigate } from 'react-router-dom';
+import { subjects, assignments, quizzes, resources } from '../../../components/lib/data';
+import { cn, getSubjectColors } from '../../../components/lib/utils';
+import { Button } from '../../../components/components/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../components/components/card';
+import { Progress } from '../../../components/components/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/components/tabs';
 import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
-import { TaskList } from '@/components/subjects/task-list';
-import { ActivityList } from '@/components/subjects/activity-list';
-import { ResourceList } from '@/components/subjects/resource-list';
+import {Link} from 'react-router-dom';
+import { TaskList } from '../../../components/components/task-list';
+import { ActivityList } from '../../../components/components/activity-list';
+import { ResourceList } from '../../../components/components/resource-list';
 
 export default function SubjectPage() {
     const params = useParams();
+    const navigate = useNavigate();
     const subject = subjects.find(s => s.id === params.id);
 
     if (!subject) {
-        notFound();
+        return <div>Subject not found</div>;
     }
 
     const { textColor } = getSubjectColors(subject.color);
@@ -30,7 +31,7 @@ export default function SubjectPage() {
     return (
         <main className="p-4 md:p-6">
              <div className="flex items-center gap-4 mb-6">
-                <Link href="/subjects">
+                <Link to="/subjects">
                     <Button variant="outline" size="sm" aria-label="Back to subjects">
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back

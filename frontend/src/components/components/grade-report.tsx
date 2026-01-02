@@ -3,10 +3,10 @@
 "use client"
 
 import * as React from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
-import type { SubjectGrade, Student } from "@/lib/types"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "./table"
+import type { SubjectGrade, Student } from "../lib/types"
+import { Badge } from "./badge"
 
 export function GradeReport({ grades, student }: { grades: SubjectGrade[], student: Student }) {
   const getStatusVariant = (status: 'Passed' | 'Failed' | 'Incomplete') => {

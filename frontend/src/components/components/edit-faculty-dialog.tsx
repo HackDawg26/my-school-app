@@ -1,8 +1,7 @@
-
 'use client';
-import React, { useState, useEffect } from 'react';
-import type { Teacher, Section } from '@/lib/types';
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from 'react';
+import type { Teacher, Section } from '../lib/types';
+import { Button } from "./button";
 import {
     Dialog,
     DialogContent,
@@ -10,10 +9,10 @@ import {
     DialogHeader,
     DialogTitle,
     DialogFooter
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+} from './dialog';
+import { Label } from './label';
+import { useToast } from '../../hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 
 interface EditFacultyDialogProps {
     teacher: Teacher;
@@ -25,16 +24,22 @@ interface EditFacultyDialogProps {
 
 export const EditFacultyDialog = ({ teacher, sections, onUpdateTeacher, isOpen, setIsOpen }: EditFacultyDialogProps) => {
     const { toast } = useToast();
-    const [adviserOfSectionId, setAdviserOfSectionId] = useState<string | undefined>(teacher.adviserOfSectionId);
+    
+    // Initialize with "none" string to ensure Select component value matches properly
+    const [adviserOfSectionId, setAdviserOfSectionId] = useState<string>(teacher.adviserOfSectionId || "none");
 
+    // Re-sync state when teacher changes or dialog opens
     useEffect(() => {
-        setAdviserOfSectionId(teacher.adviserOfSectionId);
-    }, [teacher]);
+        if (isOpen) {
+            setAdviserOfSectionId(teacher.adviserOfSectionId || "none");
+        }
+    }, [teacher, isOpen]);
 
     const handleSubmit = () => {
         onUpdateTeacher({
             ...teacher,
-            adviserOfSectionId: adviserOfSectionId,
+            // Convert "none" back to undefined for your database/backend
+            adviserOfSectionId: adviserOfSectionId === "none" ? undefined : adviserOfSectionId,
         });
 
         toast({
@@ -50,26 +55,39 @@ export const EditFacultyDialog = ({ teacher, sections, onUpdateTeacher, isOpen, 
                 <DialogHeader>
                     <DialogTitle>Edit Advisory Class</DialogTitle>
                     <DialogDescription>
-                        Change the advisory class for {teacher.firstName} {teacher.lastName}.
+                        Assign or change the advisory class for {teacher.firstName} {teacher.lastName}.
                     </DialogDescription>
                 </DialogHeader>
+                
                 <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="adviser" className="text-right">Advisory</Label>
-                        <Select onValueChange={(value) => setAdviserOfSectionId(value === 'none' ? undefined : value)} value={adviserOfSectionId}>
-                            <SelectTrigger className="col-span-3">
+                    <div className="flex flex-col gap-3">
+                        <Label htmlFor="adviser">Advisory Section</Label>
+                        <Select 
+                            onValueChange={setAdviserOfSectionId} 
+                            value={adviserOfSectionId}
+                        >
+                            <SelectTrigger id="adviser" className="w-full">
                                 <SelectValue placeholder="Select a section" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="none">None</SelectItem>
-                                {sections.map(s => <SelectItem key={s.id} value={s.id}>Grade {s.yearLevel} - {s.name}</SelectItem>)}
+                                <SelectItem value="none">None (No Advisory)</SelectItem>
+                                {sections.map(s => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                        Grade {s.yearLevel} - {s.name}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-                    <Button type="submit" onClick={handleSubmit}>Save Changes</Button>
+
+                <DialogFooter className="gap-2 sm:gap-0">
+                    <Button variant="ghost" onClick={() => setIsOpen(false)}>
+                        Cancel
+                    </Button>
+                    <Button type="submit" onClick={handleSubmit}>
+                        Save Changes
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

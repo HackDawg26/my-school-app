@@ -1,7 +1,7 @@
 
-import { TaskList } from "@/components/subjects/task-list";
-import { assignments as tasks } from "@/lib/data";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { TaskList } from "../../../components/components/task-list";
+import { assignments as tasks } from "../../../components/lib/data";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../../components/components/card";
 
 export default function TasksPage() {
     return (

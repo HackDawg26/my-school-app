@@ -1,8 +1,8 @@
 
 'use client';
 
-import {cn} from '@/lib/utils';
-import {useMobile} from '@/hooks/use-mobile';
+import {cn} from '../lib/utils';
+import {useMobile} from '../../hooks/use-mobile';
 import {cva, type VariantProps} from 'class-variance-authority';
 import {
   createContext,
@@ -17,7 +17,7 @@ import {
   DrawerContent,
   DrawerOverlay,
   DrawerPortal,
-} from '@/components/ui/drawer';
+} from './drawer';
 import {Button} from './button';
 import {Menu, X} from 'lucide-react';
 

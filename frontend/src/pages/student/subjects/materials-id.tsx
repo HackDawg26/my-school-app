@@ -1,20 +1,22 @@
 
 'use client';
 
-import { useParams, notFound } from "next/navigation";
-import { subjects, resources as allResources } from "@/lib/data";
-import { ResourceList } from "@/components/subjects/resource-list";
+import { useParams, useNavigate } from "react-router-dom";
+import { subjects, resources as allResources } from "../../../components/lib/data";
+import { ResourceList } from "../../../components/components/resource-list";
 import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import {Link} from "react-router-dom";
+import { Button } from "../../../components/components/button";
+import { cn } from "../../../components/lib/utils";
 
 export default function SubjectMaterialsPage() {
     const params = useParams();
+    const navigate = useNavigate();
     const subject = subjects.find(s => s.id === params.id);
 
     if (!subject) {
-        notFound();
+        navigate("/not-found");
+        return null;
     }
 
     const subjectResources = allResources.filter(r => r.subjectId === subject.id);
@@ -22,7 +24,7 @@ export default function SubjectMaterialsPage() {
     return (
         <main className="p-4 md:p-6">
              <div className="flex items-center gap-4 mb-6">
-                <Link href="/materials">
+                <Link to="/materials">
                     <Button variant="outline" size="sm">
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back

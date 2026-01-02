@@ -1,9 +1,9 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { student } from "@/lib/data";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/components/card";
+import { Button } from "../../../components/components/button";
+import { Input } from "../../../components/components/input";
+import { Label } from "../../../components/components/label";
+import { student } from "../../../components/lib/data";
 
 export default function SettingsPage() {
     return (

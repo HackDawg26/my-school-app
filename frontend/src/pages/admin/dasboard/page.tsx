@@ -1,8 +1,8 @@
 
 'use client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../../components/components/card";
 import { Users, Briefcase, ClipboardList, Link as LinkIcon, UserPlus, Building } from "lucide-react";
-import { teachers, students, gradeLogs as initialGradeLogs, sections, subjects, departments } from "@/lib/data";
+import { teachers, students, gradeLogs as initialGradeLogs, sections, subjects, departments } from "../../../components/lib/data";
 import Link from "next/link";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import type { Student, Teacher, SectionSubjectLink } from "@/lib/types";
