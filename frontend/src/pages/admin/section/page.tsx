@@ -1,15 +1,24 @@
 
 'use client';
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import { sections as initialSections, teachers as initialTeachers } from "@/lib/data";
-import type { Section, Teacher } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Building } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from "../../../components/components/card";
+import { useLocalStorage } from "../../../components/hooks/use-local-storage";
+import {
+  sections as initialSections,
+  teachers as initialTeachers
+} from "../../../components/lib/data";
+import type { Section, Teacher } from "../../../components/lib/types";
+import { Button } from "../../../components/components/button";
+import { ArrowRight, Building } from "lucide-react";
+import { Skeleton } from "../../../components/components/skeleton";
+import { cn } from "../../../components/lib/utils";
 
 export default function SectionsPage() {
     const [sections] = useLocalStorage<Section[]>('sections', initialSections);
