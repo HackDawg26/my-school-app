@@ -1,21 +1,45 @@
 
 'use client';
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { sections as initialSections, students as initialStudents, teachers } from "@/lib/data";
-import type { Student, Section } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, FileUp, FileDown, Users, ArrowRight } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import Link from 'next/link';
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
-
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from "../../../components/components/card";
+import {
+  sections as initialSections,
+  students as initialStudents,
+  teachers
+} from "../../../components/lib/data";
+import type { Student, Section } from "../../../components/lib/types";
+import { Button } from "../../../components/components/button";
+import { PlusCircle, FileUp, FileDown, Users, ArrowRight } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose
+} from "../../../components/components/dialog";
+import { Input } from "../../../components/components/input";
+import { Label } from "../../../components/components/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "../../../components/components/select";
+import { useToast } from "../../../components/hooks/use-toast";
+import { useLocalStorage } from "../../../components/hooks/use-local-storage";
+import { Skeleton } from "../../../components/components/skeleton";
+import { cn } from "../../../components/lib/utils";
 
 const AddStudentDialog = ({ sections, onAddStudent }: { sections: Section[], onAddStudent: (student: Omit<Student, 'id'>) => void }) => {
     const { toast } = useToast();
