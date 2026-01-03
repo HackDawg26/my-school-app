@@ -1,16 +1,26 @@
 
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import { teachers as initialTeachers, subjects, departments } from "@/lib/data";
-import type { Teacher } from '@/lib/types';
-import { AddFacultyDialog } from '@/components/layout/add-faculty-dialog';
-import { sections } from "@/lib/data";
-import Link from 'next/link';
-import { Users, ArrowRight } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from "../../../components/components/card";
+import { useLocalStorage } from "../../../components/hooks/use-local-storage";
+import {
+  teachers as initialTeachers,
+  subjects,
+  departments,
+  sections
+} from "../../../components/lib/data";
+import type { Teacher } from "../../../components/lib/types";
+import { AddFacultyDialog } from "../../../components/components/add-faculty-dialog";
+import { Users, ArrowRight } from "lucide-react";
+import { Skeleton } from "../../../components/components/skeleton";
+import { cn } from "../../../components/lib/utils";
 
 export default function FacultyPage() {
     const [teachers, setTeachers] = useLocalStorage<Teacher[]>('teachers', initialTeachers);
