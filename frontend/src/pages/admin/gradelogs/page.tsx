@@ -1,10 +1,17 @@
 
 'use client';
-import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { cn } from '@/lib/utils';
-import { gradeLogs } from '@/lib/data';
+import React from "react";
+import { Card, CardContent } from "../../../components/components/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "../../../components/components/table";
+import { cn } from "../../../components/lib/utils";
+import { gradeLogs } from "../../../components/lib/data";
 
 export default function GradeLogsPage() {
     const getChangeTypeChipClassName = (changeType: string) => {
