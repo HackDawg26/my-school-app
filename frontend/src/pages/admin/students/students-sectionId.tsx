@@ -1,23 +1,52 @@
 
 'use client';
-import React, { useState, useEffect, use } from 'react';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from '@/components/ui/button';
-import { MoreHorizontal, ArrowLeft, User } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { sections, students as initialStudents } from "@/lib/data";
-import type { Student } from '@/lib/types';
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-
+import React, { useState, useEffect, use } from "react";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from "../../../components/components/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "../../../components/components/table";
+import { Avatar, AvatarFallback } from "../../../components/components/avatar";
+import { Badge } from "../../../components/components/badge";
+import { Button } from "../../../components/components/button";
+import { MoreHorizontal, ArrowLeft, User } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "../../../components/components/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "../../../components/components/alert-dialog";
+import { Switch } from "../../../components/components/switch";
+import { Label } from "../../../components/components/label";
+import {
+  sections,
+  students as initialStudents
+} from "../../../components/lib/data";
+import type { Student } from "../../../components/lib/types";
+import { useLocalStorage } from "../../../components/hooks/use-local-storage";
+import { useToast } from "../../../components/hooks/use-toast";
+import { cn } from "../../../components/lib/utils";
 
 export default function SectionRosterPage({ params }: { params: { sectionId: string }}) {
     const { sectionId } = use(params);
