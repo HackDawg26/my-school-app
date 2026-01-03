@@ -1,20 +1,53 @@
 
 'use client';
-import React, { useState, useEffect, useMemo, use } from 'react';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import { teachers as initialTeachers, subjects, departments, sections } from "@/lib/data";
-import type { Teacher, Section } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { X, ArrowLeft, MoreHorizontal, Edit } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
-import { EditFacultyDialog } from '@/components/layout/edit-faculty-dialog';
+
+import React, { useState, useEffect, useMemo, use } from "react";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from "../../../components/components/card";
+import { useLocalStorage } from "../../../components/hooks/use-local-storage";
+import {
+  teachers as initialTeachers,
+  subjects,
+  departments,
+  sections
+} from "../../../components/lib/data";
+import type { Teacher, Section } from "../../../components/lib/types";
+import { Button } from "../../../components/components/button";
+import { X, ArrowLeft, MoreHorizontal, Edit } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "../../../components/components/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "../../../components/components/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "../../../components/components/dropdown-menu";
+import { useToast } from "../../../components/hooks/use-toast";
+import { Skeleton } from "../../../components/components/skeleton";
+import { cn } from "../../../components/lib/utils";
+import { EditFacultyDialog } from "../../../components/components/edit-faculty-dialog";
 
 export default function DepartmentFacultyPage({ params }: { params: { departmentId: string }}) {
     const { departmentId } = use(params);
