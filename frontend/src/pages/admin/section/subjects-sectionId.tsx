@@ -1,16 +1,34 @@
 
 'use client';
-import React, { useState, useMemo, use } from 'react';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ArrowLeft, Link as LinkIcon, Save, ExternalLink } from 'lucide-react';
-import { sections, subjects, teachers, assignments } from "@/lib/data";
-import type { SectionSubjectLink } from '@/lib/types';
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useMemo, use } from "react";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from "../../../components/components/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "../../../components/components/table";
+import { Button } from "../../../components/components/button";
+import { Input } from "../../../components/components/input";
+import { ArrowLeft, Link as LinkIcon, Save, ExternalLink } from "lucide-react";
+import {
+  sections,
+  subjects,
+  teachers,
+  assignments
+} from "../../../components/lib/data";
+import type { SectionSubjectLink } from "../../../components/lib/types";
+import { useLocalStorage } from "../../../components/hooks/use-local-storage";
+import { useToast } from "../../../components/hooks/use-toast";
 
 export default function SectionSubjectsPage({ params }: { params: { sectionId: string }}) {
     const { sectionId } = use(params);
