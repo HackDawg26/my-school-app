@@ -54,7 +54,7 @@ const INITIAL_SUBJECTS: Subject[] = [
 // --- 5. Provider Component ---
 
 export default function SubjectProvider() {
-    const [subjects, setSubjects] = useState<Subject[]>(INITIAL_SUBJECTS); 
+    const [subjects, setSubjects] = useState(INITIAL_SUBJECTS); 
     const navigate = useNavigate();
 
     const addNewSubject = (newSubjectData: NewSubjectData) => {
@@ -71,7 +71,7 @@ export default function SubjectProvider() {
         };
         
         setSubjects(prevSubjects => [...prevSubjects, newSubject]);
-        navigate('/subject'); 
+        navigate('/teacher/subject'); 
     };
     
     const contextValue: SubjectContextType = {

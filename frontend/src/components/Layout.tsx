@@ -55,7 +55,7 @@ export default function Layout() {
             keeping the Sidebar and Topbar fixed.
         */}
         <main className="flex-1 overflow-y-auto relative focus:outline-none">
-          <div className="p-4 md:p-6 lg:p-8">
+          <div className="p-2">
             <Outlet /> 
           </div>
         </main>

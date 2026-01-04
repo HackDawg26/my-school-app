@@ -53,7 +53,7 @@ export default function SubjectListPage() {
     : 'N/A';
 
   return (
-    <section className="bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-800 dark:text-gray-200 p-4 md:p-8">
+    <section className="bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-800 dark:text-gray-200 p-1 ">
       <header className="flex justify-between items-center pb-6 border-b border-gray-200 dark:border-gray-700 mb-8">
         <div>
           <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">Your Subject Roster</h2>
@@ -70,7 +70,7 @@ export default function SubjectListPage() {
             All Sections ({totalClasses})
           </h2>
           <Link
-            to="/subject/create-subject"
+            to="/teacher/subject/create-subject"
             className='bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150
                        flex items-center space-x-1 dark:bg-blue-500 dark:hover:bg-blue-600'
           >
@@ -83,7 +83,7 @@ export default function SubjectListPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {subjects.map(({ id, subject, section, grade, room, nextClass, students, average, pendingTasks }) => (
             <Link
-              to={`/subject/${id}`}
+              to={`/teacher/subject/${id}`}
               key={id}
               className="block p-5 bg-white border border-gray-200 rounded-lg shadow-md hover:shadow-xl hover:scale-[1.01] transition duration-300 dark:bg-gray-800 dark:border-gray-700"
             >

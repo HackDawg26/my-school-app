@@ -16,7 +16,7 @@ import  StudentSubjectpage  from './pages/student/subjects/student-subjects-id.t
 // teacher imports
 
 
-import { TeacherSubmissions } from './pages/teacher/submissions/TeacherSubmissions.tsx';
+import TeacherSubmissions  from './pages/teacher/submissions/TeacherSubmissions.tsx';
 import AdvisoryClass from './pages/teacher/advisoryClass/AdvisoryClass.tsx';
 import  TeacherDashboard  from './pages/teacher/dashboard/TeacherDashboard.tsx';
 
@@ -28,7 +28,16 @@ import SectionsPage from './pages/admin/section/SectionPage.tsx';
 import { FacultyPage } from './pages/admin/faculty/FacultyPage.tsx';
 import { StudentAccountsPage} from './pages/admin/students/StudentsPage.tsx';
 import GradeLogs from './pages/admin/gradelogs/GradeLogs.tsx';
+import AccountListPage from './pages/admin/accounts/Account-list.tsx';
+
 import Gradebook from './pages/teacher/gradebook/GradeBook.tsx';
+import ExportReportCardPDF from './pages/teacher/advisoryClass/SF9.tsx';
+// import SubjectPage from './pages/teacher/subjects/SubjectPage.tsx';
+import SubjectListPage from './pages/teacher/subjects/subject.tsx';
+import SubjectCreationForm from './pages/teacher/subjects/create-subject.tsx';
+import SubjectProvider from './pages/teacher/subjects/SubjectProvider.tsx';
+import SubjectPage from './pages/teacher/subjects/SubjectPage.tsx';
+import CreateAccountPage from './pages/admin/accounts/Create-account.tsx';
 
 
 
@@ -63,18 +72,40 @@ function App() {
             {/* Teacher Domain */}
             <Route element={<ProtectedRoute allowedRoles={['TEACHER']} />}>
               <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-              {/* <Route path="/teacher/subject" element={< />} /> */}
+              <Route element={<SubjectProvider />}>
+                {/* Subject Routes */}
+                <Route path='teacher/subject'>
+                  {/* Renders the list of subjects */}
+                  <Route index element={<SubjectListPage />} /> 
+                  
+                  {/* Renders the form for creating a new subject */}
+                  <Route path='create-subject' element={<SubjectCreationForm />} />
+                  
+                  {/* Renders the detail page for a specific subject */}
+                  <Route path=':id' element={<SubjectPage />} />
+
+                  {/* Nested activity routes for a specific subject */}
+                  {/* <Route path=':id/assignment' element={<CreateAssignment />}/>
+                  <Route path=':id/quiz' element={<QuizBuilder />}/>
+                  <Route path=':id/exam' element={<Exam />}/>
+                  <Route path=':id/files' element={<SubjectFilesPage />}/>
+                  <Route path=':id/activities' element={<ActivityPage />}/> */}
+                </Route>
+              </Route>
               <Route path="/teacher/gradebook" element={<Gradebook />} />
               <Route path="/teacher/gradebook/:subjectId" element={<Gradebook />} />
               <Route path="/teacher/submissions" element={<TeacherSubmissions />} />
               <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />
-              {/* You can add more teacher pages here like /teacher/analytics */}
+              <Route path="/teacher/advisory-class/sf9/:studentId" element={<ExportReportCardPDF />} />
+              
 
             </Route>
 
             {/* Admin Domain */}
             <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/accounts" element={<AccountListPage />} />
+              <Route path="/admin/accounts/create" element={<CreateAccountPage />} />
               <Route path="/admin/faculty" element={<FacultyPage />} />
               <Route path="/admin/faculty/:department" element={<FacultyList />} />
               <Route path="/admin/students" element={<StudentAccountsPage />} />

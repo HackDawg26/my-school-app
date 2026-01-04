@@ -29,8 +29,8 @@ export default function Advisory(): JSX.Element {
   };
 
   return (
-    <div className="bg-gray-100 min-h-screen">
-      <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="bg-gray-100 ">
+      <div className="mx-auto p-1">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Grade 7 - Diamond</h1>
           <p className="text-gray-600">School Year 2024-2025</p>

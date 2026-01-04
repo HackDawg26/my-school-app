@@ -17,7 +17,7 @@ export default function Gradebook(): JSX.Element {
 
     const handleBack = (): void => {
         // Navigates back to the root gradebook path to clear the subjectId
-        navigate('/gradebook'); 
+        navigate('/teacher/gradebook'); 
     };
 
     if (subjectId) {

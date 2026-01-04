@@ -3,14 +3,9 @@ import { Link } from 'react-router-dom';
 // Ensure these are exported from your GradeMockData file
 import { SUBJECTS, ACTIVITIES_BY_SUBJECT, type Subject, type Activity } from './GradeMockData';
 
-interface SubjectChooserProps {
-    /** * Optional callback for selection. 
-     * Kept for backward compatibility as requested.
-     */
-    onSelect?: (subject: Subject) => void;
-}
 
-export default function SubjectChooser({ onSelect }: SubjectChooserProps): JSX.Element {
+
+export default function SubjectChooser({ onSelect }: any): JSX.Element {
     return (
         <section className="bg-gray-50 min-h-screen p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -35,7 +30,7 @@ export default function SubjectChooser({ onSelect }: SubjectChooserProps): JSX.E
                             
                             <div className="pt-4 border-t border-gray-100 mt-auto">
                                 <Link 
-                                    to={`/gradebook/${s.id}`}
+                                    to={`/teacher/gradebook/${s.id}`}
                                     className="w-full text-center px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition duration-150 block"
                                     onClick={() => onSelect?.(s)}
                                 >

@@ -114,7 +114,7 @@ export default function SubjectPage() {
             <div className="p-10 text-center bg-gray-50 min-h-screen">
                 <h1 className="text-4xl font-extrabold text-gray-900 mb-4">Loading Subject...</h1>
                 <p className="text-lg text-gray-600 mb-6">Could not locate the course with ID: {id}.</p>
-                <Link to="/subject" className="inline-flex items-center px-4 py-2 text-white bg-blue-600 rounded-md">
+                <Link to="/teacher/subject" className="inline-flex items-center px-4 py-2 text-white bg-blue-600 rounded-md">
                     <ArrowLeft size={16} className="mr-2" /> Back to Subject List
                 </Link>
             </div>
@@ -124,11 +124,11 @@ export default function SubjectPage() {
     const gradingCount = (subject.assignments || []).filter(a => a.status === 'Grading').length;
 
     return (
-        <section className="bg-gray-50 min-h-screen p-6">
+        <section className="bg-gray-50 min-h-screen p-1">
             {/* HEADER */}
-            <header className="pb-4 mb-6 border-b border-gray-200">
+            <header className="pb-1 mb-6 border-b border-gray-200">
                 <div className="flex items-center space-x-4 mb-4">
-                    <Link to="/subject" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                    <Link to="/teacher/subject" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                         <ArrowLeft size={26} className="text-gray-700" />
                     </Link>
                     <div>

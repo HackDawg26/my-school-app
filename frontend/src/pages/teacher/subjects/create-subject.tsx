@@ -11,13 +11,11 @@ interface SubjectFormData {
   schedule: string;
 }
 
-interface SubjectCreationFormProps {
-  onSave: (data: SubjectFormData) => void;
-}
+
 
 // --- Component ---
 
-function SubjectCreationForm({ onSave }: SubjectCreationFormProps) {
+function SubjectCreationForm({ onSave }: any) {
   // 1. Initialize typed state
   const [subjectData, setSubjectData] = useState<SubjectFormData>({
     name: '',
