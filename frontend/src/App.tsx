@@ -1,23 +1,36 @@
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { LoginPage } from './pages/auth/LoginPage.tsx';
-import AdminDashboard from './pages/admin/dasboard/AdminDashboard.tsx';
-import { StudentDashboard } from './pages/student/dashboard/StudentDashboard.tsx';
-import { TeacherDashboard } from './pages/teacher/dashboard/TeacherDashboard.tsx';
+
 import ProtectedRoute from './ProtectedRoute.tsx';
 import { Unauthorized } from './pages/auth/Unauthorized.tsx';
 import Layout from '../src/components/Layout.tsx'; // Import your new Layout
 import { useAuth } from '../src/context/AuthContext.tsx'; // Import your auth hook
-import { FacultyPage } from './pages/admin/faculty/FacultyPage.tsx';
-import { StudentsPage } from './pages/admin/students/StudentsPage.tsx';
-import GradeLogs from './pages/admin/gradelogs/GradeLogs.tsx';
-import { SectionPage } from './pages/admin/section/SectionPage.tsx';
-import { StudentSubjectsPage } from './pages/student/subjects/StudentSubjectsPage.tsx';
-import { Gradebook } from './pages/student/gradebook/Gradebook.tsx';
+
+// student imports
+import SubjectsPage from './pages/student/subjects/student-subjects.tsx';
+import GradesPage from './pages/student/gradebook/student-grades.tsx';
 import { StudentSubmissions } from './pages/student/submission/StudentSubmissions.tsx';
-import { TeacherSubjectPage } from './pages/teacher/subjects/TeacherSubjectPage.tsx';
-import TeacherGradebook from './pages/teacher/gradebook/TeacherGradebook.tsx';
+import { StudentDashboard } from './pages/student/dashboard/StudentDashboard.tsx';
+import  StudentSubjectpage  from './pages/student/subjects/student-subjects-id.tsx';
+
+// teacher imports
+
+
 import { TeacherSubmissions } from './pages/teacher/submissions/TeacherSubmissions.tsx';
-import { AdvisoryClass } from './pages/teacher/advisoryClass/AdvisoryClass.tsx';
+import AdvisoryClass from './pages/teacher/advisoryClass/AdvisoryClass.tsx';
+import  TeacherDashboard  from './pages/teacher/dashboard/TeacherDashboard.tsx';
+
+// admin imports
+import AdminDashboard from './pages/admin/dasboard/AdminDashboard.tsx';
+import { FacultyList } from './pages/admin/faculty/departmentId.tsx';
+import { StudentClassList } from './pages/admin/students/Student_classlist.tsx';
+import SectionsPage from './pages/admin/section/SectionPage.tsx';
+import { FacultyPage } from './pages/admin/faculty/FacultyPage.tsx';
+import { StudentAccountsPage} from './pages/admin/students/StudentsPage.tsx';
+import GradeLogs from './pages/admin/gradelogs/GradeLogs.tsx';
+import Gradebook from './pages/teacher/gradebook/GradeBook.tsx';
+
+
 
 function App() {
   const { user } = useAuth();
@@ -40,8 +53,9 @@ function App() {
             {/* Student Domain */}
             <Route element={<ProtectedRoute allowedRoles={['STUDENT']} />}>
               <Route path="/student/dashboard" element={<StudentDashboard />} />
-              <Route path="/student/subjects" element={<StudentSubjectsPage />} />
-              <Route path="/student/gradebook" element={<Gradebook />} />
+              <Route path="/student/subject" element={<SubjectsPage />} />
+              <Route path="/student/subject/:id" element={<StudentSubjectpage />} />
+              <Route path="/student/gradebook" element={<GradesPage />} />
               <Route path="/student/submissions" element={<StudentSubmissions />} />
               {/* You can add more student pages here like /student/grades */}
             </Route>
@@ -49,8 +63,9 @@ function App() {
             {/* Teacher Domain */}
             <Route element={<ProtectedRoute allowedRoles={['TEACHER']} />}>
               <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-              <Route path="/teacher/subject" element={<TeacherSubjectPage />} />
-              <Route path="/teacher/gradebook" element={<TeacherGradebook />} />
+              {/* <Route path="/teacher/subject" element={< />} /> */}
+              <Route path="/teacher/gradebook" element={<Gradebook />} />
+              <Route path="/teacher/gradebook/:subjectId" element={<Gradebook />} />
               <Route path="/teacher/submissions" element={<TeacherSubmissions />} />
               <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />
               {/* You can add more teacher pages here like /teacher/analytics */}
@@ -61,8 +76,10 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/faculty" element={<FacultyPage />} />
-              <Route path="/admin/students" element={<StudentsPage />} />
-              <Route path="/admin/sections" element={<SectionPage />} />
+              <Route path="/admin/faculty/:department" element={<FacultyList />} />
+              <Route path="/admin/students" element={<StudentAccountsPage />} />
+              <Route path="/admin/students/:sectionId" element={<StudentClassList />} />
+              <Route path="/admin/sections" element={<SectionsPage />} />
               <Route path="/admin/gradelogs" element={<GradeLogs />} />
             </Route>
 

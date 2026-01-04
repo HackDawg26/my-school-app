@@ -1,220 +1,94 @@
+import { ArrowLeft, MoreHorizontal } from "lucide-react";
+import { Link, useParams } from "react-router-dom"; // 1. Import useParams
 
-'use client';
+const departments = [
+    { id: 1, name: "Filipino", facultyCount: 2 },
+    { id: 2, name: "English", facultyCount: 3 },
+    { id: 3, name: "Mathematics", facultyCount: 3 },
+    { id: 4, name: "Science", facultyCount: 3 },
+    { id: 5, name: "Araling Panlipunan", facultyCount: 2 },
+    { id: 6, name: "Edukasyon sa Pagpapakatao", facultyCount: 2 },
+    { id: 7, name: "MAPEH", facultyCount: 2 },
+];
 
-import React, { useState, useEffect, useMemo, use } from "react";
-import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription
-} from "../../../components/components/card";
-import { useLocalStorage } from "../../../components/hooks/use-local-storage";
-import {
-  teachers as initialTeachers,
-  subjects,
-  departments,
-  sections
-} from "../../../components/lib/data";
-import type { Teacher, Section } from "../../../components/lib/types";
-import { Button } from "../../../components/components/button";
-import { X, ArrowLeft, MoreHorizontal, Edit } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "../../../components/components/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from "../../../components/components/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "../../../components/components/dropdown-menu";
-import { useToast } from "../../../components/hooks/use-toast";
-import { Skeleton } from "../../../components/components/skeleton";
-import { cn } from "../../../components/lib/utils";
-import { EditFacultyDialog } from "../../../components/components/edit-faculty-dialog";
+const facultyData = [
+  // ... your faculty data
+  {
+    id: 1,
+    lastName: "Aquino",
+    firstName: "Elena",
+    email: "e.aquino@claroed.edu",
+    advisory: "N/A"
+  },
+  {
+    id: 2,
+    lastName: "Reyes",
+    firstName: "Juan",
+    email: "j.reyes@claroed.edu",
+    advisory: "Grade 7 - A"
+  }
+];
 
-export default function DepartmentFacultyPage({ params }: { params: { departmentId: string }}) {
-    const { departmentId } = use(params);
-    const department = useMemo(() => departments.find(d => d.id === departmentId), [departmentId]);
-    
-    const [allTeachers, setAllTeachers] = useLocalStorage<Teacher[]>('teachers', initialTeachers);
-    const [allSections] = useLocalStorage<Section[]>('sections', sections);
+export const FacultyList = () => {
+ // 1. Get the department name from the URL
+  const { department } = useParams();
 
-    const [teacherToRemove, setTeacherToRemove] = useState<Teacher | null>(null);
-    const [teacherToEdit, setTeacherToEdit] = useState<Teacher | null>(null);
-    const { toast } = useToast();
-    const [isClient, setIsClient] = useState(false);
+  // 2. Find the department by reversing the slug logic
+  // We compare "araling-panlipunan" (from URL) with "araling-panlipunan" (generated from data)
+  const currentDepartment = departments.find(dept => 
+    dept.name.toLowerCase().replace(/\s+/g, '-') === department
+  );
+  // 4. Fallback if department isn't found (optional but good practice)
+  if (!currentDepartment) {
+    return <div>Department not found</div>;
+  }
 
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
+  return (
+    <div className="flex-1 p-1 bg-slate-50 min-h-screen">
+      {/* Navigation & Header */}
+      <Link
+        to="/admin/faculty"
+        className="inline-flex items-center text-slate-500 hover:text-slate-700 mb-4 transition-colors group"
+      >
+        <ArrowLeft size={18} className="mr-2 group-hover:-translate-x-1 transition-transform" />
+        Back to All Departments
+      </Link>
 
-    const departmentTeachers = useMemo(() => {
-        if (!departmentId || !Array.isArray(allTeachers)) return [];
-        return allTeachers.filter(teacher => {
-            if (!teacher.subjectIds || !Array.isArray(teacher.subjectIds)) return false;
-            return teacher.subjectIds.some(subjectId => {
-                const subject = subjects.find(s => s.id === subjectId);
-                return subject && subject.departmentId === departmentId;
-            });
-        }).sort((a, b) => a.lastName.localeCompare(b.lastName));
-    }, [allTeachers, departmentId]);
+      <div className="mb-8">
+        {/* 5. Use the found department object here */}
+        <h1 className="text-3xl font-bold text-slate-900">{currentDepartment.name} Department</h1>
+        <p className="text-slate-500">List of faculty members.</p>
+      </div>
 
-    const removeTeacher = (teacherId: string) => {
-        setAllTeachers(prev => prev.filter(t => t.id !== teacherId));
-        toast({
-            title: "Faculty Removed",
-            description: `${teacherToRemove?.firstName} ${teacherToRemove?.lastName} has been removed.`,
-        });
-        setTeacherToRemove(null);
-    };
-
-    const handleUpdateTeacher = (updatedTeacher: Teacher) => {
-        setAllTeachers(prev => prev.map(t => t.id === updatedTeacher.id ? updatedTeacher : t));
-        setTeacherToEdit(null);
-    };
-    
-    const getAdvisorySectionName = (teacher: Teacher) => {
-        if (!teacher.adviserOfSectionId) return 'N/A';
-        const section = allSections.find(s => s.id === teacher.adviserOfSectionId);
-        return section ? `Grade ${section.yearLevel} - ${section.name}` : 'N/A';
-    };
-
-    if (!department) {
-        return (
-            <main className="flex-1 p-4 md:p-6 text-center">
-                <h1 className="font-headline text-2xl font-bold">Department Not Found</h1>
-                <Link href="/dashboard/faculty">
-                    <Button variant="outline" className="mt-4">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Faculty
-                    </Button>
-                </Link>
-            </main>
-        );
-    }
-
-    return (
-        <main className="flex-1 p-4 md:p-6">
-            <div className="mb-6">
-                 <Link href="/dashboard/faculty" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to All Departments
-                </Link>
-                <h1 className="font-headline text-3xl font-bold">{department.name} Department</h1>
-                <p className="text-muted-foreground">List of faculty members.</p>
-            </div>
-            
-            <Card>
-                <CardContent className="pt-6">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Last Name</TableHead>
-                                <TableHead>First Name</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Advisory</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                             {isClient ? (
-                                departmentTeachers.map(teacher => (
-                                    <TableRow key={teacher.id}>
-                                        <TableCell className="font-medium">{teacher.lastName}</TableCell>
-                                        <TableCell>{teacher.firstName}</TableCell>
-                                        <TableCell className="text-muted-foreground">{teacher.email}</TableCell>
-                                        <TableCell className="text-muted-foreground text-xs">{getAdvisorySectionName(teacher)}</TableCell>
-                                        <TableCell className="text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                                        <span className="sr-only">Open menu</span>
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onSelect={() => setTeacherToEdit(teacher)}>
-                                                        <Edit className="mr-2 h-4 w-4" />
-                                                        <span>Edit Advisory</span>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem 
-                                                        onSelect={() => setTeacherToRemove(teacher)} 
-                                                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                                    >
-                                                        <X className="mr-2 h-4 w-4" />
-                                                        <span>Remove</span>
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                             ) : (
-                                [1, 2, 3].map(i => (
-                                    <TableRow key={i}>
-                                        <TableCell><Skeleton className="w-full h-5" /></TableCell>
-                                        <TableCell><Skeleton className="w-full h-5" /></TableCell>
-                                        <TableCell><Skeleton className="w-full h-5" /></TableCell>
-                                        <TableCell><Skeleton className="w-full h-5" /></TableCell>
-                                        <TableCell><Skeleton className="w-full h-5" /></TableCell>
-                                    </TableRow>
-                                ))
-                             )}
-                             {isClient && departmentTeachers.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center">
-                                        No faculty assigned to this department.
-                                    </TableCell>
-                                </TableRow>
-                             )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-
-            <AlertDialog open={!!teacherToRemove} onOpenChange={() => setTeacherToRemove(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This action cannot be undone. This will permanently remove <span className="font-semibold">{teacherToRemove?.firstName} {teacherToRemove?.lastName}</span> from the faculty.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => removeTeacher(teacherToRemove!.id)} variant="destructive">
-                            Yes, remove faculty
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            
-            {teacherToEdit && (
-                <EditFacultyDialog
-                    teacher={teacherToEdit}
-                    sections={allSections}
-                    onUpdateTeacher={handleUpdateTeacher}
-                    isOpen={!!teacherToEdit}
-                    setIsOpen={() => setTeacherToEdit(null)}
-                />
-            )}
-        </main>
-    );
-}
+      {/* Table Container */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-slate-100"> {/* Fixed typo: border-bottom -> border-b */}
+              <th className="px-8 py-5 text-sm font-semibold text-slate-500">Last Name</th>
+              <th className="px-8 py-5 text-sm font-semibold text-slate-500">First Name</th>
+              <th className="px-8 py-5 text-sm font-semibold text-slate-500">Email</th>
+              <th className="px-8 py-5 text-sm font-semibold text-slate-500">Advisory</th>
+              <th className="px-8 py-5 text-sm font-semibold text-slate-500 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {facultyData.map((faculty) => (
+              <tr key={faculty.id} className="hover:bg-slate-50 transition-colors group">
+                <td className="px-8 py-5 text-slate-700 font-medium">{faculty.lastName}</td>
+                <td className="px-8 py-5 text-slate-700">{faculty.firstName}</td>
+                <td className="px-8 py-5 text-slate-500">{faculty.email}</td>
+                <td className="px-8 py-5 text-slate-500">{faculty.advisory}</td>
+                <td className="px-8 py-5 text-right">
+                  <button className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                    <MoreHorizontal size={20} className="text-slate-400" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};

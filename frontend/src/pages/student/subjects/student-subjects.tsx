@@ -1,5 +1,5 @@
 
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "../../../components/components/card";
+import { Card, CardContent, CardFooter, CardHeader } from "../../../components/components/card";
 import { Progress } from "../../../components/components/progress";
 import { subjects } from "../../../components/lib/data";
 import {Link} from "react-router-dom";
@@ -7,7 +7,7 @@ import { cn, getSubjectColors } from "../../../components/lib/utils";
 
 export default function SubjectsPage() {
     return (
-        <main className="flex-1 p-4 md:p-6">
+        <main className="flex-1 p-1">
             <div className="mb-6">
                 <h1 className="font-headline text-3xl font-bold">Subjects</h1>
                 <p className="text-muted-foreground">An overview of all your enrolled subjects.</p>
@@ -16,7 +16,7 @@ export default function SubjectsPage() {
                 {subjects.map((subject) => {
                     const { borderColor, textColor } = getSubjectColors(subject.color);
                     return (
-                        <Link to={`/subjects/${subject.id}`} key={subject.id} className="group">
+                        <Link to={`/student/subject/${subject.id}`} key={subject.id} className="group">
                             <Card className={cn("flex h-full flex-col transition-all group-hover:shadow-lg group-hover:-translate-y-1 border-t-4", borderColor)}>
                                 <CardHeader className="pb-4">
                                     <div>
@@ -24,7 +24,7 @@ export default function SubjectsPage() {
                                         <p className="text-sm text-muted-foreground">{subject.teacher}</p>
                                     </div>
                                 </CardHeader>
-                                <CardContent className="flex-grow">
+                                <CardContent className="grow">
                                     <div className="mb-2 flex justify-between text-sm">
                                         <span className="text-muted-foreground">Progress</span>
                                         <span className="font-medium">{subject.progress}%</span>

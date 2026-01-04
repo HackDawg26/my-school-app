@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../..
 
 export default function GradesPage() {
     return (
-        <main className="flex-1 p-4 md:p-6">
+        <main className="flex-1 p-1">
             <div className="grid gap-6">
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2">

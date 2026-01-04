@@ -13,7 +13,7 @@ import { TaskList } from '../../../components/components/task-list';
 import { ActivityList } from '../../../components/components/activity-list';
 import { ResourceList } from '../../../components/components/resource-list';
 
-export default function SubjectPage() {
+export default function StudentSubjectpage() {
     const params = useParams();
     const navigate = useNavigate();
     const subject = subjects.find(s => s.id === params.id);
@@ -30,9 +30,9 @@ export default function SubjectPage() {
     const subjectResources = resources.filter(r => r.subjectId === subject.id);
 
     return (
-        <main className="p-4 md:p-6">
+        <main className="p-1">
              <div className="flex items-center gap-2 mb-6">
-                <Link to="/subjects">
+                <Link to="/student/subject">
                     <Button variant="outline" size="sm" aria-label="Back to subjects">
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back
