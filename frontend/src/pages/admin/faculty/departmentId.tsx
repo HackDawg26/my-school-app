@@ -64,7 +64,7 @@ export const FacultyList = () => {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-slate-100"> {/* Fixed typo: border-bottom -> border-b */}
+            <tr className="border-b border-slate-100">
               <th className="px-8 py-5 text-sm font-semibold text-slate-500">Last Name</th>
               <th className="px-8 py-5 text-sm font-semibold text-slate-500">First Name</th>
               <th className="px-8 py-5 text-sm font-semibold text-slate-500">Email</th>

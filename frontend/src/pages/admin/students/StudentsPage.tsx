@@ -57,10 +57,6 @@ export const StudentAccountsPage = () => {
             Import Classlist
           </button>
           <button className="flex items-center gap-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md transition-colors text-sm font-medium">
-            <Download size={16} />
-            Export Classlist
-          </button>
-          <button className="flex items-center gap-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md transition-colors text-sm font-medium">
             <PlusCircle size={16} />
             Add Section
           </button>
@@ -97,7 +93,7 @@ export const StudentAccountsPage = () => {
                     to={`/admin/students/${getSlug(section.grade, section.name)}`} 
                     className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors group"
                   >
-                    View Class List
+                    Manage Section
                     <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </div>

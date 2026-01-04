@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, UserPlus, ShieldCheck, Mail, Fingerprint, User } from "lucide-react";
 
-const CreateAccountPage = () => {
+const CreateAdminAccountPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   
@@ -13,7 +13,7 @@ const CreateAccountPage = () => {
     email: "",
     password: "",
     studentId: "",
-    role: "STUDENT", // Default role
+    role: "ADMIN", // Default role
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -49,11 +49,12 @@ const CreateAccountPage = () => {
             <p className="text-sm text-gray-500">Fill in the details to register a new user in the system.</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            <form onSubmit={handleSubmit} className="p-6 space-y-3">
             {/* Role Selection */}
-            <div>
+            <div className="flex space-x-5">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Account Role</label>
-                <select
+                <label className="block text-sm font-semibold text-gray-700 mb-2">{formData.role}</label>
+                {/* <select
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
@@ -62,7 +63,7 @@ const CreateAccountPage = () => {
                 <option value="STUDENT">Student</option>
                 <option value="TEACHER">Teacher</option>
                 <option value="ADMIN">Administrator</option>
-                </select>
+                </select> */}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -176,4 +177,4 @@ const CreateAccountPage = () => {
   );
 };
 
-export default CreateAccountPage;
+export default CreateAdminAccountPage;

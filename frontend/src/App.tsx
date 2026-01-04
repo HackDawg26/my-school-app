@@ -24,7 +24,7 @@ import  TeacherDashboard  from './pages/teacher/dashboard/TeacherDashboard.tsx';
 import AdminDashboard from './pages/admin/dasboard/AdminDashboard.tsx';
 import { FacultyList } from './pages/admin/faculty/departmentId.tsx';
 import { StudentClassList } from './pages/admin/students/Student_classlist.tsx';
-import SectionsPage from './pages/admin/section/SectionPage.tsx';
+// import SectionsPage from './pages/admin/section/SectionPage.tsx';
 import { FacultyPage } from './pages/admin/faculty/FacultyPage.tsx';
 import { StudentAccountsPage} from './pages/admin/students/StudentsPage.tsx';
 import GradeLogs from './pages/admin/gradelogs/GradeLogs.tsx';
@@ -37,7 +37,9 @@ import SubjectListPage from './pages/teacher/subjects/subject.tsx';
 import SubjectCreationForm from './pages/teacher/subjects/create-subject.tsx';
 import SubjectProvider from './pages/teacher/subjects/SubjectProvider.tsx';
 import SubjectPage from './pages/teacher/subjects/SubjectPage.tsx';
-import CreateAccountPage from './pages/admin/accounts/Create-account.tsx';
+import CreateTeacherAccountPage from './pages/admin/accounts/create-accounts/Create-teacher-account.tsx';
+import CreateStudentAccountPage from './pages/admin/accounts/create-accounts/Create-student-account.tsx';
+import CreateAdminAccountPage from './pages/admin/accounts/create-accounts/Create-admin-account.tsx';
 
 
 
@@ -105,12 +107,14 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/accounts" element={<AccountListPage />} />
-              <Route path="/admin/accounts/create" element={<CreateAccountPage />} />
+              <Route path="/admin/accounts/create/teacher" element={<CreateTeacherAccountPage />} />
+              <Route path="/admin/accounts/create/student" element={<CreateStudentAccountPage />} />
+              <Route path="/admin/accounts/create/admin" element={<CreateAdminAccountPage />} />
               <Route path="/admin/faculty" element={<FacultyPage />} />
               <Route path="/admin/faculty/:department" element={<FacultyList />} />
               <Route path="/admin/students" element={<StudentAccountsPage />} />
               <Route path="/admin/students/:sectionId" element={<StudentClassList />} />
-              <Route path="/admin/sections" element={<SectionsPage />} />
+              {/* <Route path="/admin/sections" element={<SectionsPage />} /> */}
               <Route path="/admin/gradelogs" element={<GradeLogs />} />
             </Route>
 
