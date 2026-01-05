@@ -62,10 +62,7 @@ export const StudentAccountsPage = () => {
             <PlusCircle size={16} />
             Add Section
           </button>
-          <button className="flex items-center gap-2 bg-[#3b5998] hover:bg-[#2d4373] text-white px-4 py-2 rounded-md transition-colors text-sm font-medium">
-            <Plus size={16} />
-            Add Student
-          </button>
+          
         </div>
       </div>
 

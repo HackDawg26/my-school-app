@@ -29,7 +29,7 @@ import { FacultyPage } from './pages/admin/faculty/FacultyPage.tsx';
 import { StudentAccountsPage} from './pages/admin/students/StudentsPage.tsx';
 import GradeLogs from './pages/admin/gradelogs/GradeLogs.tsx';
 import AccountListPage from './pages/admin/accounts/Account-list.tsx';
-import CreateSubjectPage from './pages/admin/students/create-subject.tsx';
+import CreateSubjectPage from './pages/admin/students/addFacultyMember.tsx';
 
 import Gradebook from './pages/teacher/gradebook/GradeBook.tsx';
 import ExportReportCardPDF from './pages/teacher/advisoryClass/SF9.tsx';
@@ -41,6 +41,7 @@ import SubjectPage from './pages/teacher/subjects/SubjectPage.tsx';
 import CreateTeacherAccountPage from './pages/admin/accounts/create-accounts/Create-teacher-account.tsx';
 import CreateStudentAccountPage from './pages/admin/accounts/create-accounts/Create-student-account.tsx';
 import CreateAdminAccountPage from './pages/admin/accounts/create-accounts/Create-admin-account.tsx';
+import CreateFacultyPage from './pages/admin/faculty/createFaculty.tsx';
 
 
 
@@ -112,6 +113,7 @@ function App() {
               <Route path="/admin/accounts/create/student" element={<CreateStudentAccountPage />} />
               <Route path="/admin/accounts/create/admin" element={<CreateAdminAccountPage />} />
               <Route path="/admin/faculty" element={<FacultyPage />} />
+              <Route path="/admin/faculty/add-faculty" element={<CreateFacultyPage />} />
               <Route path="/admin/faculty/:department" element={<FacultyList />} />
               <Route path="/admin/students" element={<StudentAccountsPage />} />
               <Route path="/admin/students/add-section" element={<CreateSubjectPage />} />
