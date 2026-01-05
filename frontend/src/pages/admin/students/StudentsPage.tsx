@@ -2,11 +2,10 @@ import {
   ArrowRight, 
   Plus, 
   Users, 
-  Download, 
   Upload, 
   PlusCircle 
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const studentSections = [
   // Grade 7
@@ -26,6 +25,7 @@ const studentSections = [
 ];
 
 export const StudentAccountsPage = () => {
+  const navigate = useNavigate();
 
   // 1. Helper function to turn "Section A" into "section-a" for URLs
   const getSlug = (grade: number, name: string) => 
@@ -56,7 +56,9 @@ export const StudentAccountsPage = () => {
             <Upload size={16} />
             Import Classlist
           </button>
-          <button className="flex items-center gap-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md transition-colors text-sm font-medium">
+          <button
+            onClick={() => {navigate('/admin/students/add-section')}}
+           className="flex items-center gap-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md transition-colors text-sm font-medium">
             <PlusCircle size={16} />
             Add Section
           </button>

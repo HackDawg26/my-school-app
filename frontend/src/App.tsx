@@ -29,6 +29,7 @@ import { FacultyPage } from './pages/admin/faculty/FacultyPage.tsx';
 import { StudentAccountsPage} from './pages/admin/students/StudentsPage.tsx';
 import GradeLogs from './pages/admin/gradelogs/GradeLogs.tsx';
 import AccountListPage from './pages/admin/accounts/Account-list.tsx';
+import CreateSubjectPage from './pages/admin/students/create-subject.tsx';
 
 import Gradebook from './pages/teacher/gradebook/GradeBook.tsx';
 import ExportReportCardPDF from './pages/teacher/advisoryClass/SF9.tsx';
@@ -113,6 +114,7 @@ function App() {
               <Route path="/admin/faculty" element={<FacultyPage />} />
               <Route path="/admin/faculty/:department" element={<FacultyList />} />
               <Route path="/admin/students" element={<StudentAccountsPage />} />
+              <Route path="/admin/students/add-section" element={<CreateSubjectPage />} />
               <Route path="/admin/students/:sectionId" element={<StudentClassList />} />
               {/* <Route path="/admin/sections" element={<SectionsPage />} /> */}
               <Route path="/admin/gradelogs" element={<GradeLogs />} />
