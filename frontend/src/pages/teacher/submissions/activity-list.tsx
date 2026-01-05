@@ -1,4 +1,4 @@
-import { ChevronRight, Filter, Search } from "lucide-react";
+import { ChevronRight, Filter, Search } from "lucide-react/dist/lucide-react";
 import React, { useState, useMemo } from "react";
 
 import { mockActivities, mockSubmissions } from "./sub-mock-data.ts";

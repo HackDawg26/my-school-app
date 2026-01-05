@@ -1,4 +1,4 @@
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react/dist/lucide-react";
 import React, { useMemo } from "react";
 import { mockSubmissions, getStatusClass } from "./sub-mock-data.ts";
 

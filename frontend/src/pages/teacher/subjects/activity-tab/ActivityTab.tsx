@@ -3,7 +3,7 @@ import {
   Plus, BookOpen, FileQuestion, GraduationCap, 
   Calendar, Trash2, ChevronDown, PenTool, CheckSquare, FileText, 
   ChevronLeftIcon, type LucideIcon
-} from 'lucide-react';
+} from 'lucide-react/dist/lucide-react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 
 // --- Interfaces ---

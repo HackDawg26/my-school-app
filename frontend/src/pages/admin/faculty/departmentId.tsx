@@ -1,4 +1,4 @@
-import { ArrowLeft, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, MoreHorizontal } from "lucide-react/dist/lucide-react";
 import { Link, useParams } from "react-router-dom"; // 1. Import useParams
 
 const departments = [

@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card";
 import type { Resource } from "../lib/types";
-import { FileText, Link as LinkIcon, Video, Download } from "lucide-react";
+import { FileText, Link as LinkIcon, Video, Download } from "lucide-react/dist/lucide-react";
 import { Button } from "./button";
 import {Link} from "react-router-dom";
 

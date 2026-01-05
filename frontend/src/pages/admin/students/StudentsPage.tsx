@@ -5,7 +5,7 @@ import {
   Download, 
   Upload, 
   PlusCircle 
-} from "lucide-react";
+} from "lucide-react/dist/lucide-react";
 import { Link } from "react-router-dom";
 
 const studentSections = [

@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react/dist/lucide-react";
 import {
   LayoutDashboard,
   BarChart3,
@@ -9,7 +9,7 @@ import {
   Book,
   Users,
   Banknote,
-} from "lucide-react";
+} from "lucide-react/dist/lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const APP_NAME = "ClaroEd";

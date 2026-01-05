@@ -17,7 +17,7 @@ import {
   FileQuestion,
   Library,
   GraduationCap,
-} from 'lucide-react';
+} from 'lucide-react/dist/lucide-react';
 import { cn } from '../lib/utils';
 
 const menuItems = [

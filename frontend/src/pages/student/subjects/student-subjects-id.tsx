@@ -7,7 +7,7 @@ import { Button } from '../../../components/components/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../components/components/card';
 import { Progress } from '../../../components/components/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/components/tabs';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react/dist/lucide-react';
 import {Link} from 'react-router-dom';
 import { TaskList } from '../../../components/components/task-list';
 import { ActivityList } from '../../../components/components/activity-list';

@@ -5,7 +5,7 @@ import {
   Building2, 
   UserPlus, 
   ClipboardList 
-} from 'lucide-react';
+} from 'lucide-react/dist/lucide-react';
 
 // --- Mock Data ---
 const stats = [

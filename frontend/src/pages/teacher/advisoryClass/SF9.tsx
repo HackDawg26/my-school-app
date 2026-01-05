@@ -1,7 +1,7 @@
 import React, { type JSX } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react/dist/lucide-react";
 import { useNavigate } from 'react-router-dom';
 import deped_logo from '../../../assets/deped_logo.png';
 

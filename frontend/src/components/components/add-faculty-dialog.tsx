@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./card";
 import { subjects } from "../lib/data";
 import type { Teacher, Section } from '../lib/types';
-import { PlusCircle } from "lucide-react";
+import { PlusCircle } from "lucide-react/dist/lucide-react";
 import { Button } from "./button";
 import {
     Dialog,

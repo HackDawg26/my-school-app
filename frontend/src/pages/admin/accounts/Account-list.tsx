@@ -9,7 +9,7 @@ import {
   Mail,
   User,
   Settings
-} from "lucide-react";
+} from "lucide-react/dist/lucide-react";
 import { set } from "date-fns";
 
 // Mock Data Types

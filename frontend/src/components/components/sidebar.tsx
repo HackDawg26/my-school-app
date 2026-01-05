@@ -19,7 +19,7 @@ import {
   DrawerPortal,
 } from './drawer';
 import {Button} from './button';
-import {Menu, X} from 'lucide-react';
+import {Menu, X} from 'lucide-react/dist/lucide-react';
 
 const sidebarVariants = cva(
   'z-50 flex h-full flex-col bg-sidebar text-sidebar-foreground shadow-lg',

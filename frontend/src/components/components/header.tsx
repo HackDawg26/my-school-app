@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './avatar';
 import { Button } from './button';
 import { student } from '../lib/data';
 import {Link} from 'react-router-dom';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react/dist/lucide-react';
 
 
 export function Header() {

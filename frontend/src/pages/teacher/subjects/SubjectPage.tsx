@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { 
     ArrowLeft, Users, FileText, TrendingUp, 
     BookOpen, type LucideIcon 
-} from 'lucide-react';
+} from 'lucide-react/dist/lucide-react';
 import { useSubjects, type Subject } from './SubjectProvider';
 
 // --- Interfaces ---

@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { Button } from "./button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./dialog";
 import { AssignmentSubmitForm } from "./assignment-submit-form";
-import { Upload } from "lucide-react";
+import { Upload } from "lucide-react/dist/lucide-react";
 import type { Assignment } from "../lib/types";
 
 function AssignmentRow({ assignment }: { assignment: Assignment }) {

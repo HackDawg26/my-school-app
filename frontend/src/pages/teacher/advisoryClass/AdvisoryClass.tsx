@@ -1,5 +1,5 @@
 import React, { useState, type JSX } from 'react';
-import { ChevronDown, ChevronRight, FileText } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText } from 'lucide-react/dist/lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {MOCK_STUDENTS}  from './mockStudentGrade.tsx';
 

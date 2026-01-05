@@ -4,7 +4,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { subjects, resources as allResources } from "../../../components/lib/data";
 import { ResourceList } from "../../../components/components/resource-list";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react/dist/lucide-react";
 import {Link} from "react-router-dom";
 import { Button } from "../../../components/components/button";
 import { cn } from "../../../components/lib/utils";

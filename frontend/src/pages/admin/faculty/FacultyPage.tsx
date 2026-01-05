@@ -1,5 +1,5 @@
 
-import { ArrowRight, Plus, Users } from "lucide-react";
+import { ArrowRight, Plus, Users } from "lucide-react/dist/lucide-react";
 import { Link } from "react-router-dom";
 
 const departments = [

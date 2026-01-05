@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Users, BarChart, AlertTriangle, Plus, type LucideIcon } from 'lucide-react';
+import { BookOpen, Users, BarChart, AlertTriangle, Plus, type LucideIcon } from 'lucide-react/dist/lucide-react';
 import { Link } from 'react-router-dom';
 import { useSubjects } from './SubjectProvider';
 

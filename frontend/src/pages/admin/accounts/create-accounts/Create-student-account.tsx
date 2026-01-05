@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, UserPlus, ShieldCheck, Mail, Fingerprint, User } from "lucide-react";
+import { ArrowLeft, UserPlus, ShieldCheck, Mail, Fingerprint, User } from "lucide-react/dist/lucide-react";
 
 const CreateStudentAccountPage = () => {
   const navigate = useNavigate();

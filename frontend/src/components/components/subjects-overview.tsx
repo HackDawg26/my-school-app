@@ -4,7 +4,7 @@ import { Progress } from "./progress";
 import { subjects } from "../lib/data";
 import { Link } from "react-router-dom";
 import { Button } from "./button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react/dist/lucide-react";
 import { cn, getSubjectColors } from "../lib/utils";
 
 export function SubjectsOverview() {

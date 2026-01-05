@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { Button } from "./button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./dialog";
 import { TaskSubmitForm } from "./task-submit-form";
-import { Upload } from "lucide-react";
+import { Upload } from "lucide-react/dist/lucide-react";
 import type { Assignment as Task } from "../lib/types";
 
 function TaskRow({ task }: { task: Task }) {

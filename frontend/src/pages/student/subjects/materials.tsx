@@ -2,7 +2,7 @@
 import { Card, CardContent } from "../../../components/components/card";
 import { resources, subjects } from "../../../components/lib/data";
 import {Link} from "react-router-dom";
-import { Folder } from "lucide-react";
+import { Folder } from "lucide-react/dist/lucide-react";
 import type { Resource } from "../../../components/lib/types";
 import { cn, getSubjectColors } from "../../../components/lib/utils";
 

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {UserPlus, ShieldCheck, Mail, Fingerprint, User } from "lucide-react";
+import {UserPlus, ShieldCheck, Mail, Fingerprint, User } from "lucide-react/dist/lucide-react";
 
 
 const CreateTeacherAccountPage = () => {

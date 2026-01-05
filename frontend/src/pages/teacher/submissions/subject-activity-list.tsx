@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react/dist/lucide-react";
 import React, { useState, type ChangeEvent } from "react";
 
 // --- Interfaces ---

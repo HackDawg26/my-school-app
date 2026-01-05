@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./card";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap } from "lucide-react/dist/lucide-react";
 
 type GpaCardProps = {
     gpa: number;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Sun, Moon, Menu } from "lucide-react";
+import { Sun, Moon, Menu } from "lucide-react/dist/lucide-react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext"; // Import your Auth hook
 
