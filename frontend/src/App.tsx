@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router';
 import { LoginPage } from './pages/auth/LoginPage.tsx';
 
 import ProtectedRoute from './ProtectedRoute.tsx';
@@ -10,7 +10,7 @@ import { useAuth } from '../src/context/AuthContext.tsx'; // Import your auth ho
 import SubjectsPage from './pages/student/subjects/student-subjects.tsx';
 import GradesPage from './pages/student/gradebook/student-grades.tsx';
 import { StudentSubmissions } from './pages/student/submission/StudentSubmissions.tsx';
-import { StudentDashboard } from './pages/student/dashboard/StudentDashboard.tsx';
+import { StudentDashboard } from './pages/student/dashboard/studentdashboard.tsx';
 import  StudentSubjectpage  from './pages/student/subjects/student-subjects-id.tsx';
 
 // teacher imports
