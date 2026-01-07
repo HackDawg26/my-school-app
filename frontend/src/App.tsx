@@ -42,6 +42,7 @@ import CreateTeacherAccountPage from './pages/admin/accounts/create-accounts/Cre
 import CreateStudentAccountPage from './pages/admin/accounts/create-accounts/Create-student-account.tsx';
 import CreateAdminAccountPage from './pages/admin/accounts/create-accounts/Create-admin-account.tsx';
 import CreateFacultyPage from './pages/admin/faculty/createFaculty.tsx';
+import SubmissionReport from './pages/admin/submissions/report.tsx';
 
 
 
@@ -118,7 +119,7 @@ function App() {
               <Route path="/admin/students" element={<StudentAccountsPage />} />
               <Route path="/admin/students/add-section" element={<CreateSubjectPage />} />
               <Route path="/admin/students/:sectionId" element={<StudentClassList />} />
-              {/* <Route path="/admin/sections" element={<SectionsPage />} /> */}
+              <Route path="/admin/submission" element={<SubmissionReport />} />
               <Route path="/admin/gradelogs" element={<GradeLogs />} />
             </Route>
 

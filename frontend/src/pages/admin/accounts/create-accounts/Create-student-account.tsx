@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, UserPlus, ShieldCheck, Mail, Fingerprint, User, GraduationCap } from "lucide-react";
 
 const CreateStudentAccountPage = () => {
+  
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   
@@ -36,6 +37,7 @@ const CreateStudentAccountPage = () => {
   };
 
   return (
+
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
