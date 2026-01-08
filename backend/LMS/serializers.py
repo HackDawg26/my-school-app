@@ -4,30 +4,44 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from LMS.models import Student
 from .models import User
 
+
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
-        user = authenticate(email=data.get("email"), password=data.get("password"))
+        email = data.get("email")
+        password = data.get("password")
+
+        # ✅ Authenticate using email
+        user = authenticate(email=email, password=password)
         if not user:
             raise serializers.ValidationError("Invalid email or password")
 
+        if not user.is_active:
+            raise serializers.ValidationError("User account is disabled")
+
+        # ✅ Create JWT tokens
         refresh = RefreshToken.for_user(user)
 
+        # ✅ Safe full name
         name = f"{user.first_name} {user.last_name}".strip()
         if not name:
             name = user.email
 
-        # Get student profile if exists
+        # ✅ Student profile (ONLY if role == STUDENT)
         student = None
-        if hasattr(user, "student_profile"):
-            student = {
-                "id": user.student_profile.student_id,
-                "gpa": user.student_profile.gpa,
-                "performance": user.student_profile.performance,
-                "name": name
-            }
+        if user.role == "STUDENT":
+            try:
+                student_obj = Student.objects.get(user=user)
+                student = {
+                    "id": student_obj.student_id,
+                    "gpa": student_obj.gpa,
+                    "performance": student_obj.performance,
+                    "name": name,
+                }
+            except Student.DoesNotExist:
+                student = None
 
         return {
             "access": str(refresh.access_token),
@@ -35,7 +49,10 @@ class LoginSerializer(serializers.Serializer):
             "user": {
                 "id": user.id,
                 "email": user.email,
-                "name": name
+                "role": user.role,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "name": name,
             },
             "student": student,
         }
