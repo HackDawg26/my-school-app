@@ -156,7 +156,7 @@ function SubjectCreationForm({ onSave }: any) {
           
           {/* Cancel Link */}
           <Link 
-            to="/subject" 
+            to="/teacher/subject" 
             className="w-full text-center block text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition duration-150 mt-2 font-medium"
           >
             Cancel and Go Back

@@ -15,6 +15,7 @@ import {
 } from './GradeMockData';
 import GradeTrackerUI from './ManualEditGrade';
 import GradeSummaryTable from './GradeSummaryTable';
+import { ChevronLeft, Settings } from 'lucide-react';
 
 // --- Interfaces ---
 
@@ -237,67 +238,102 @@ export const ComplexGradebookTable: React.FC<ComplexGradebookTableProps> = ({ se
     };
 
     return (
-        <section className="bg-gray-100 min-h-screen m-0">
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-2">
-                <div className="flex items-center space-x-3 mb-4 sm:mb-0">
-                    <button className={secondaryButton} onClick={onBack}>← Back to Subjects</button>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                        {subjectInfo?.subject} <span className="text-base font-normal text-gray-500">• {selected}</span>
-                    </h2>
-                    <button className='text-xs bg-green-500 text-white px-2 py-1 rounded' onClick={handleEditClick}>
-                        edit
-                    </button>
+        <section className="bg-slate-50 min-h-screen">
+            {/* Clean, Functional Header */}
+            <header className="bg-white border-b border-slate-200 px-6 py-4 shadow-sm mb-6">
+                <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="flex flex-col gap-1">
+                        <button 
+                            className="flex items-center text-slate-500 hover:text-indigo-600 font-bold text-xs uppercase tracking-wider transition-colors mb-1" 
+                            onClick={onBack}
+                        >
+                            <ChevronLeft size={14} className="mr-1" /> 
+                            Back to Gradebooks
+                        </button>
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                                {subjectInfo?.subject}
+                            </h2>
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-sm font-medium border border-slate-200">
+                                {selected}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {/* Visual Toggle for Edit Mode */}
+                        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                            <button 
+                                onClick={() => isEditing && handleEditClick()} 
+                                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${!isEditing ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                Preview
+                            </button>
+                            <button 
+                                onClick={() => !isEditing && handleEditClick()} 
+                                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${isEditing ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                Edit Mode
+                            </button>
+                        </div>
+                        
+                        {/* Secondary Actions */}
+                        <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
+                            <Settings size={20} />
+                        </button>
+                    </div>
                 </div>
             </header>
 
-            {isEditing ? (
-                <GradeTrackerUI
-                    dynamicStudents={dynamicStudents}
-                    wwActivities={wwActivities}
-                    ptActivities={ptActivities}
-                    qaActivities={qaActivities}
-                    cells={cells}
-                    weights={weights}
-                    weightsSum={weightsSum}
-                    isTotalWeightValid={isTotalWeightValid}
-                    newActivityTitle={newActivityTitle}
-                    newActivityMax={newActivityMax}
-                    newActivitySection={newActivitySection}
-                    FIXED_SECTIONS={FIXED_SECTIONS as FixedSection[]}
-                    wwColSpan={wwColSpan}
-                    ptColSpan={ptColSpan}
-                    qaColSpan={qaColSpan}
-                    style={style}
-                    inputClass={inputClass}
-                    changedInputClass={changedInputClass}
-                    primaryButton={primaryButton}
-                    to2={to2}
-                    computeSectionAverage={computeSectionAverage}
-                    computeFinalGrade={computeFinalGrade}
-                    handleChange={handleChange}
-                    setWeights={setWeights as React.Dispatch<React.SetStateAction<Record<string, number>>>}
-                    setNewActivityTitle={setNewActivityTitle}
-                    setNewActivityMax={setNewActivityMax}
-                    setNewActivitySection={setNewActivitySection}
-                    addNewActivityColumn={addNewActivityColumn}
-                />
-            ) : (
-                <GradeSummaryTable
-                    dynamicStudents={dynamicStudents}
-                    wwActivities={wwActivities}
-                    ptActivities={ptActivities}
-                    qaActivities={qaActivities}
-                    cells={cells}
-                    isTotalWeightValid={isTotalWeightValid}
-                    wwColSpan={wwColSpan}
-                    ptColSpan={ptColSpan}
-                    qaColSpan={qaColSpan}
-                    style={style}
-                    to2={to2}
-                    computeSectionAverage={computeSectionAverage}
-                    computeFinalGrade={computeFinalGrade}
-                />
-            )}
+            {/* Main Content Area */}
+            <div className="px-6 max-w-[1600px] mx-auto">
+                <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-200 overflow-hidden">
+                    {isEditing ? (
+                        <div className="animate-in fade-in duration-300">
+                        <GradeTrackerUI
+                            dynamicStudents={dynamicStudents}
+                            wwActivities={wwActivities}
+                            ptActivities={ptActivities}
+                            qaActivities={qaActivities}
+                            cells={cells}
+                            weights={weights}
+                            weightsSum={weightsSum}
+                            isTotalWeightValid={isTotalWeightValid}
+                            newActivityTitle={newActivityTitle}
+                            newActivityMax={newActivityMax}
+                            newActivitySection={newActivitySection}
+                            FIXED_SECTIONS={FIXED_SECTIONS as FixedSection[]}
+                            wwColSpan={wwColSpan}
+                            ptColSpan={ptColSpan}
+                            qaColSpan={qaColSpan}
+                            style={style}
+                            inputClass={inputClass}
+                            changedInputClass={changedInputClass}
+                            primaryButton={primaryButton}
+                            to2={to2}
+                            computeSectionAverage={computeSectionAverage}
+                            computeFinalGrade={computeFinalGrade}
+                            handleChange={handleChange}
+                            setWeights={setWeights as React.Dispatch<React.SetStateAction<Record<string, number>>>}
+                            setNewActivityTitle={setNewActivityTitle}
+                            setNewActivityMax={setNewActivityMax}
+                            setNewActivitySection={setNewActivitySection}
+                            addNewActivityColumn={addNewActivityColumn}
+                        />
+                        </div>
+                    ) : (
+                        <div className="animate-in slide-in-from-bottom-2 duration-300">
+                            <GradeSummaryTable
+                                {...{
+                                    dynamicStudents, wwActivities, ptActivities, qaActivities,
+                                    cells, isTotalWeightValid, wwColSpan, ptColSpan,
+                                    qaColSpan, style, to2, computeSectionAverage, computeFinalGrade
+                                }}
+                            />
+                        </div>
+                    )}
+                </div>
+            </div>
         </section>
     );
 };

@@ -41,7 +41,6 @@ export const MOCK_STUDENTS: Student[] = [
       { subject: "Art 7", q1: 75, q2: 75, q3: 75, q4: 75, final: 75, remarks: "Passed" },
       { subject: "P. E. 7", q1: 75, q2: 75, q3: 75, q4: 75, final: 75, remarks: "Passed" },
       { subject: "Health 7", q1: 45, q2: 45, q3: 55, q4: 55, final: 65, remarks: "Failed" },
-      { subject: "CAT 7", q1: "", q2: "", q3: "", q4: "", final: "", remarks: "" },
     ]
   },
   {
@@ -65,7 +64,6 @@ export const MOCK_STUDENTS: Student[] = [
       { subject: "Art 7", q1: 75, q2: 75, q3: 75, q4: 75, final: 75, remarks: "Passed" },
       { subject: "P. E. 7", q1: 75, q2: 75, q3: 75, q4: 75, final: 75, remarks: "Passed" },
       { subject: "Health 7", q1: 45, q2: 45, q3: 55, q4: 55, final: 65, remarks: "Failed" },
-      { subject: "CAT 7", q1: "", q2: "", q3: "", q4: "", final: "", remarks: "" },
     ]
   }
   // ... rest of students

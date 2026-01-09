@@ -10,7 +10,7 @@ import { useAuth } from '../src/context/AuthContext.tsx'; // Import your auth ho
 import SubjectsPage from './pages/student/subjects/student-subjects.tsx';
 import GradesPage from './pages/student/gradebook/student-grades.tsx';
 import { StudentSubmissions } from './pages/student/submission/StudentSubmissions.tsx';
-import { StudentDashboard } from './pages/student/dashboard/studentdashboard.tsx';
+
 import  StudentSubjectpage  from './pages/student/subjects/student-subjects-id.tsx';
 
 // teacher imports
@@ -43,6 +43,8 @@ import CreateStudentAccountPage from './pages/admin/accounts/create-accounts/Cre
 import CreateAdminAccountPage from './pages/admin/accounts/create-accounts/Create-admin-account.tsx';
 import CreateFacultyPage from './pages/admin/faculty/createFaculty.tsx';
 import SubmissionReport from './pages/admin/submissions/report.tsx';
+import StudentDashboard from './pages/student/dashboard/StudentDashboard.tsx';
+import SubjectAnalytics from './pages/teacher/analytics/SubjectAnalytics.tsx';
 
 
 
@@ -97,6 +99,7 @@ function App() {
                   <Route path=':id/activities' element={<ActivityPage />}/> */}
                 </Route>
               </Route>
+              <Route path='/teacher/analytics' element={<SubjectAnalytics />} />
               <Route path="/teacher/gradebook" element={<Gradebook />} />
               <Route path="/teacher/gradebook/:subjectId" element={<Gradebook />} />
               <Route path="/teacher/submissions" element={<TeacherSubmissions />} />
