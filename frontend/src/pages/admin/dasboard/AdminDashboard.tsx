@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from "react";
 import { 
   Users, 
   Briefcase, 
@@ -6,21 +6,22 @@ import {
   UserPlus, 
   ClipboardList 
 } from 'lucide-react';
+import { authFetch } from '../../lib/api';
 
-// --- Mock Data ---
+// --- Mock Data --- //
 const stats = [
   { title: "Total Students", value: "30", description: "Click to manage student accounts", Icon: Users },
   { title: "Total Faculty", value: "16", description: "Click to manage faculty accounts", Icon: Briefcase },
   { title: "Total Departments", value: "7", description: "Click to manage departments", Icon: Building2 },
 ];
 
-const recentAccounts = [
-  { name: "Norma Ocampo", email: "n.ocampo@claroed.edu", role: "Teacher" },
-  { name: "Ernesto Mercado", email: "e.mercado@claroed.edu", role: "Teacher" },
-  { name: "Teresa Castro", email: "t.castro@claroed.edu", role: "Teacher" },
-  { name: "Ricardo Villanueva", email: "r.villanueva@claroed.edu", role: "Teacher" },
-  { name: "Miguel Mendoza", email: "m.mendoza@claroed.edu", role: "Teacher" },
-];
+interface UserAccount {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+}
 
 const recentLogs = [
   { admin: "Pedro Garcia", action: "updated grade for", target: "Juan dela Cruz", subject: "Mathematics - Quiz 1", type: "Update" },
@@ -31,6 +32,30 @@ const recentLogs = [
 ];
 
 const AdminDashboard: React.FC = () => {
+  
+  const [users, setUsers] = useState<UserAccount[]>([]);
+  const [loading, setLoading] = useState(true);
+
+   useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const [usersRes] = await Promise.all([
+          authFetch("/api/user/"),
+        ]);
+        setUsers(await usersRes.json());
+      } catch (error) {
+        console.error("Failed to load admin dashboard", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
+  if (loading) return <div className="p-6">Loading dashboard...</div>;
+  if (!stats) return <div className="p-6">Unable to load dashboard</div>;
+
   return (
     <div className="space-y-6">
       {/* 1. Top Stats Row */}
@@ -61,14 +86,14 @@ const AdminDashboard: React.FC = () => {
             <h2 className="text-lg font-bold text-gray-800">Recent Accounts Created</h2>
           </div>
           <div className="p-6 space-y-6">
-            {recentAccounts.map((account, i) => (
-              <div key={i} className="flex justify-between items-center">
+            {users.map((user) => (
+              <div key={user.id} className="flex justify-between items-center">
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900">{account.name}</h4>
-                  <p className="text-xs text-gray-500">{account.email}</p>
+                  <h4 className="text-sm font-semibold text-gray-900">{user.first_name} {user.last_name}</h4>
+                  <p className="text-xs text-gray-500">{user.email}</p>
                 </div>
                 <span className="px-3 py-1 bg-purple-50 text-purple-600 text-[10px] font-bold uppercase rounded-full">
-                  {account.role}
+                  {user.role}
                 </span>
               </div>
             ))}
