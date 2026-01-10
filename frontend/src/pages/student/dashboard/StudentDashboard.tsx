@@ -46,34 +46,22 @@ const StudentDashboard: React.FC = () => {
       
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-10 overflow-y-auto">
+      <main className="flex-1 p-1 overflow-y-auto">
         
         {/* Header */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight">Student Dashboard</h1>
             <p className="text-slate-500 font-medium">Hello Alex, you have <span className="text-blue-600">3 tasks</span> requiring attention.</p>
-          </div>
-          
-          <div className="flex items-center gap-3 bg-white p-1.5 rounded-full border shadow-sm">
-            <div className="flex items-center gap-2 px-3 py-1 text-slate-500">
-               <Search size={18} />
-               <input type="text" placeholder="Search..." className="bg-transparent border-none outline-none text-sm w-32" />
-            </div>
-            <button className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors relative">
-              <Bell size={20} className="text-slate-600" />
-              <span className="absolute top-2 right-2.5 w-2 h-2 bg-orange-500 rounded-full ring-2 ring-white"></span>
-            </button>
-            <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 border border-white shadow-sm cursor-pointer" />
-          </div>
+          </div>  
         </header>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
           <StatCard label="Current GPA" value="3.88" trend="+0.04" type="up" />
           <StatCard label="Attendance" value="96.2%" trend="Stable" type="neutral" />
           <StatCard label="Completed Tasks" value="24/28" trend="85%" type="up" />
-          <StatCard label="Credits Earned" value="102" trend="12 to go" type="neutral" />
+
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
