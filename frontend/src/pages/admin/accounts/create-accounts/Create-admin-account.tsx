@@ -12,7 +12,7 @@ const CreateAdminAccountPage = () => {
     lastName: "",
     email: "",
     password: "",
-    studentId: "",
+    student_id: "",
     role: "ADMIN", // Default role
   });
 
@@ -22,19 +22,44 @@ const CreateAdminAccountPage = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    // Logic to save the account (API call) would go here
-    console.log("Saving Account Data:", formData);
+  try {
+    const accessToken = localStorage.getItem("access");
 
-    // Simulate API delay
-    setTimeout(() => {
-      setLoading(false);
-      alert("Account created successfully!");
-      navigate(-1); // Go back to the list page
-    }, 1000);
-  };
+    const response = await fetch(
+      "http://127.0.0.1:8000/api/user/create/",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          student_id:formData.student_id,
+          role: formData.role,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Failed to create account");
+    }
+
+    alert("Account created successfully!");
+    navigate(-1);
+  } catch (error: any) {
+    alert(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className=" bg-gray-100 dark:bg-gray-900">
@@ -125,9 +150,9 @@ const CreateAdminAccountPage = () => {
                 <input
                     required
                     type="text"
-                    name="studentId"
+                    name="student_id"
                     placeholder="2024-XXXX"
-                    value={formData.studentId}
+                    value={formData.student_id}
                     onChange={handleChange}
                     className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 />

@@ -29,35 +29,26 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="STUDENT")
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    student_id = models.CharField(max_length=50, unique=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
     objects = CustomUserManager()
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["first_name","last_name","role"]
+    REQUIRED_FIELDS = ["first_name","last_name","student_id", "role"]
 
     def __str__(self):
         return f"{self.email} ({self.role})"
     
-    def save(self, *args, **kwargs):
-        is_new = self.pk is None  # checks if user is newly created
-        super().save(*args, **kwargs)
-
-        if is_new and self.role == "STUDENT":
-            Student.objects.create(user=self)
-
-
-    
 class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
-    student_id = models.CharField(max_length=50, unique=True)
     gpa = models.FloatField(default=0)
     performance = models.FloatField(default=0)
 
     def __str__(self):
-        return self.user.get_full_name() or self.user.email
+        return self.user.student_id
 
 
 class Subject(models.Model):
