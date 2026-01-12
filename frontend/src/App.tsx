@@ -9,7 +9,6 @@ import { useAuth } from './context/AuthContext.tsx';
 import SubjectsPage from './pages/student/subjects/student-subjects.tsx';
 import GradesPage from './pages/student/gradebook/student-grades.tsx';
 import { StudentSubmissions } from './pages/student/submission/StudentSubmissions.tsx';
-import { StudentDashboard } from './pages/student/dashboard/studentdashboard.tsx';
 import StudentSubjectpage from './pages/student/subjects/student-subjects-id.tsx';
 
 // teacher imports
@@ -52,7 +51,6 @@ function App() {
 
             {/* Student Routes */}
             <Route element={<ProtectedRoute allowedRoles={['STUDENT']} />}>
-              <Route path="/student/dashboard" element={<StudentDashboard />} />
               <Route path="/student/subject" element={<SubjectsPage />} />
               <Route path="/student/subject/:id" element={<StudentSubjectpage />} />
               <Route path="/student/gradebook" element={<GradesPage />} />
