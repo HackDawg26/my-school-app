@@ -1,114 +1,108 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
+
+# =========================
+# Custom User Manager
+# =========================
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email, password=None, role="STUDENT", **extra_fields):
+    def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("Email address is required")
+
         email = self.normalize_email(email)
-        user = self.model(email=email, role=role, **extra_fields)
+        user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault("role", "ADMIN")
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("role", "ADMIN")
+        extra_fields.setdefault("status", "ACTIVE")
 
         return self.create_user(email, password, **extra_fields)
 
 
+# =========================
+# User Model
+# =========================
 class User(AbstractBaseUser, PermissionsMixin):
+
     ROLE_CHOICES = [
         ("ADMIN", "Admin"),
         ("TEACHER", "Teacher"),
         ("STUDENT", "Student"),
     ]
 
+    STATUS_CHOICES = [
+        ("ACTIVE", "Active"),
+        ("INACTIVE", "Inactive"),
+    ]
+
     email = models.EmailField(unique=True)
+    student_id = models.CharField(max_length=50, unique=True)  # school ID
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
+
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
-    student_id = models.CharField(max_length=50, unique=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="ACTIVE")
+
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
     objects = CustomUserManager()
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["first_name","last_name","student_id", "role"]
+    REQUIRED_FIELDS = ["first_name", "last_name", "student_id", "role"]
 
     def __str__(self):
-        return f"{self.email} ({self.role})"
-    
+        return f"{self.student_id} - {self.email} ({self.role})"
+
+
+# =========================
+# STUDENT PROFILE
+# =========================
 class Student(models.Model):
+
+    GRADE_LEVEL_CHOICES = [
+        ("GRADE_7", "Grade 7"),
+        ("GRADE_8", "Grade 8"),
+        ("GRADE_9", "Grade 9"),
+        ("GRADE_10", "Grade 10"),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
-    gpa = models.FloatField(default=0)
-    performance = models.FloatField(default=0)
+    grade_level=models.CharField(
+        max_length=20,
+        choices=GRADE_LEVEL_CHOICES
+    )
 
     def __str__(self):
-        return self.user.student_id
+        return f"Student: {self.user.student_id} ({self.grade_level})"
 
 
-class Subject(models.Model):
-    subject_id = models.CharField(max_length=50, unique=True)
-    name = models.CharField(max_length=150)
-    teacher = models.CharField(max_length=150)
-    progress = models.FloatField(default=0)
-    grade = models.FloatField(default=0)
-
-    def __str__(self):
-        return self.name
-
-
-class Assignment(models.Model):
-    assignment_id = models.CharField(max_length=50, unique=True)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="assignments")
-    title = models.CharField(max_length=255)
-    due_date = models.DateTimeField()
-    status = models.CharField(max_length=100)
-    difficulty = models.CharField(max_length=50)
-    type = models.CharField(max_length=50)
+# =========================
+# TEACHER PROFILE
+# =========================
+class Teacher(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="teacher_profile")
+    subject = models.CharField(max_length=100)
+    section = models.CharField(max_length=50)
+    advisor = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.title
+        return f"Teacher: {self.user.student_id}"
 
 
-class Quiz(models.Model):
-    quiz_id = models.CharField(max_length=50, unique=True)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="quizzes")
-    title = models.CharField(max_length=255)
-    due_date = models.DateTimeField()
-    time_limit = models.IntegerField(help_text="Minutes")
-    questions = models.IntegerField()
-    status = models.CharField(max_length=50)
-    type = models.CharField(max_length=50)
+# =========================
+# ADMIN PROFILE
+# =========================
+class Admin(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="admin_profile")
 
     def __str__(self):
-        return self.title
-
-
-class Resource(models.Model):
-    resource_id = models.CharField(max_length=50, unique=True)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="resources")
-    title = models.CharField(max_length=255)
-    type = models.CharField(max_length=50)
-    url = models.URLField()
-    description = models.TextField(blank=True)
-
-    def __str__(self):
-        return self.title
-
-
-class Grade(models.Model):
-    grade_id = models.CharField(max_length=50, unique=True)
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="grades")
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="grades")
-    assignment_name = models.CharField(max_length=255)
-    score = models.FloatField()
-    total = models.FloatField()
-    date = models.DateField()
-
-    def __str__(self):
-        return f"{self.student.student_id} - {self.subject.name} - {self.score}/{self.total}"
+        return f"Admin: {self.user.student_id}"

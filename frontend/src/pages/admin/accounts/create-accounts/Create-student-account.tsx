@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, UserPlus, ShieldCheck, Mail, Fingerprint, User } from "lucide-react";
+import { ArrowLeft, UserPlus, ShieldCheck, Mail, Fingerprint, User, GraduationCap  } from "lucide-react";
 
 const CreateStudentAccountPage = () => {
   const navigate = useNavigate();
@@ -13,7 +13,8 @@ const CreateStudentAccountPage = () => {
     email: "",
     password: "",
     student_id: "",
-    role: "STUDENT", 
+    role: "STUDENT",
+    grade_level:"",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -42,6 +43,9 @@ const CreateStudentAccountPage = () => {
         email: formData.email,
         password: formData.password,
         student_id:formData.student_id,
+        student_profile: {
+          grade_level: `GRADE_${formData.grade_level}`,
+        },
         role: "STUDENT",
       }),
     });
@@ -158,7 +162,25 @@ const CreateStudentAccountPage = () => {
                     className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
                 </div>
-
+                <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <GraduationCap size={14} /> Grade Level
+                </label>
+                <select
+                  required
+                  name="grade_level"
+                  value={formData.grade_level}
+                  onChange={handleChange}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer transition-all"
+                >
+                  <option value="">Select Grade</option>
+                  {[7, 8, 9, 10].map((grade) => (
+                    <option key={grade} value={grade}>
+                      Grade {grade}
+                    </option>
+                  ))}
+                </select>
+              </div>
                 {/* Password */}
                 <div className="space-y-1.5">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
