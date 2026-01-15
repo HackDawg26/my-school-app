@@ -15,6 +15,7 @@ type AddStudentModalProps = {
   newStudent: NewStudent;
   setNewStudent: React.Dispatch<React.SetStateAction<NewStudent>>;
   onSubmit: (e: React.FormEvent) => void;
+  students: Array<{ student_id: string }>;
 };
 
 const AddStudentModal = ({
@@ -23,8 +24,22 @@ const AddStudentModal = ({
   newStudent,
   setNewStudent,
   onSubmit,
+  students,
 }: AddStudentModalProps) => {
   if (!isOpen) return null;
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Prevent duplicates
+    const duplicate = students.some(s => s.student_id === newStudent.studentId);
+    if (duplicate) {
+      alert("A student with this ID is already enrolled in this section.");
+      return;
+    }
+
+    onSubmit(e); // Call parent submit
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -53,7 +68,7 @@ const AddStudentModal = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={onSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleFormSubmit} className="p-6 space-y-4">
           {/* ID + Status */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">

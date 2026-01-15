@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
-from LMS.models import Student, Teacher, Admin
+from LMS.models import Student, Teacher, Admin, Section
 
 User = get_user_model()
 
@@ -12,9 +12,16 @@ User = get_user_model()
 # =========================
 
 class StudentSerializer(serializers.ModelSerializer):
+    section = serializers.PrimaryKeyRelatedField(
+        queryset=Section.objects.all(),
+        allow_null=True,
+        required=False
+    )
+
     class Meta:
         model = Student
-        fields = ["grade_level"]
+        fields = ["grade_level", "section"]
+
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
@@ -69,7 +76,8 @@ class UserSerializer(serializers.ModelSerializer):
         if user.role == "STUDENT":
             Student.objects.create(
             user=user,
-            grade_level=student_data["grade_level"] if student_data else None
+            grade_level=student_data["grade_level"] if student_data else None,
+            section=student_data.get("section") if student_data else None
         )
 
         elif user.role == "TEACHER":
@@ -99,12 +107,38 @@ class UserSerializer(serializers.ModelSerializer):
         if student_data and instance.role == "STUDENT":
             Student.objects.update_or_create(
                 user=instance,
-                defaults=student_data
+                defaults={
+                "grade_level": student_data.get("grade_level"),
+                "section": student_data.get("section"),
+            }
             )
 
         return instance
 
+class SectionSerializer(serializers.ModelSerializer):
+    # Accept student IDs when creating a section
+    student_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False
+    )
 
+    class Meta:
+        model = Section
+        fields = ["id", "name", "grade_level", "adviser", "is_active", "student_ids"]
+
+    def create(self, validated_data):
+        student_ids = validated_data.pop("student_ids", [])
+        section = Section.objects.create(**validated_data)
+
+        # Assign selected students
+        if student_ids:
+            Student.objects.filter(id__in=student_ids).update(section=section)
+
+        return section
+    
+
+        
 # =========================
 # LOGIN SERIALIZER
 # =========================

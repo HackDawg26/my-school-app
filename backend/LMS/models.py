@@ -62,7 +62,39 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.student_id} - {self.email} ({self.role})"
 
+class Section(models.Model):
 
+    GRADE_LEVEL_CHOICES = [
+        ("GRADE_7", "Grade 7"),
+        ("GRADE_8", "Grade 8"),
+        ("GRADE_9", "Grade 9"),
+        ("GRADE_10", "Grade 10"),
+    ]
+
+    name = models.CharField(max_length=50)  # Section A, B, C
+    grade_level = models.CharField(
+        max_length=20,
+        choices=GRADE_LEVEL_CHOICES
+    )
+
+    adviser = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="advised_sections",
+        limit_choices_to={"role": "TEACHER"},
+    )
+
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("name", "grade_level")
+        ordering = ["grade_level", "name"]
+
+    def __str__(self):
+        return f"{self.get_grade_level_display()} - {self.name}"
+    
 # =========================
 # STUDENT PROFILE
 # =========================
@@ -79,6 +111,13 @@ class Student(models.Model):
     grade_level=models.CharField(
         max_length=20,
         choices=GRADE_LEVEL_CHOICES
+    )
+    section = models.ForeignKey(
+        Section,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="students"
     )
 
     def __str__(self):
@@ -106,3 +145,5 @@ class Admin(models.Model):
 
     def __str__(self):
         return f"Admin: {self.user.student_id}"
+    
+
