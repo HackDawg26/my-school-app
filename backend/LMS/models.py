@@ -95,6 +95,23 @@ class Section(models.Model):
     def __str__(self):
         return f"{self.get_grade_level_display()} - {self.name}"
     
+class Subject(models.Model):
+    name = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
+
+    teachers = models.ManyToManyField(
+        User,
+        blank=True,
+        limit_choices_to={"role": "TEACHER"},
+        related_name="subjects"
+    )
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+    
 # =========================
 # STUDENT PROFILE
 # =========================

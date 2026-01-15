@@ -1,32 +1,59 @@
+import { ArrowRight, FolderPlus, Users, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
-import { ArrowRight, FolderPlus, Plus, UserPlus, Users, X } from "lucide-react";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-
-const departments = [
-    { id: 1, name: "Filipino", facultyCount: 2 },
-    { id: 2, name: "English", facultyCount: 3 },
-    { id: 3, name: "Mathematics", facultyCount: 3 },
-    { id: 4, name: "Science", facultyCount: 3 },
-    { id: 5, name: "Araling Panlipunan", facultyCount: 2 },
-    { id: 6, name: "Edukasyon sa Pagpapakatao", facultyCount: 2 },
-    { id: 7, name: "MAPEH", facultyCount: 2 },
-];
+interface Subject {
+  id: number;
+  name: string;
+  faculty_count: number;
+}
 
 export const FacultyPage = () => {
-  const navigate = useNavigate();
-  const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
-  const [newDeptName, setNewDeptName] = useState("");
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [issubjectModalOpen, setIssubjectModalOpen] = useState(false);
+  const [newsubjectName, setNewsubjectName] = useState("");
+  const token = localStorage.getItem("access");
 
-  const handleAddDepartment = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("New Department Added:", newDeptName);
-    // Logic to save to your list goes here
-    setIsDeptModalOpen(false);
-    setNewDeptName("");
-  };
-  
-  const getSlug = (name: string) => name.toLowerCase().replace(/\s+/g, '-');
+  useEffect(() => {
+    if (!token) return;
+
+    fetch("http://127.0.0.1:8000/api/subjects/", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => res.json())
+      .then(data => setSubjects(data))
+      .catch(err => console.error("Failed to load subjects", err));
+  }, [token]);
+
+  const getSlug = (name: string) =>
+    name.toLowerCase().replace(/\s+/g, "-");
+
+  const handleAddDepartment = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  const res = await fetch("http://127.0.0.1:8000/api/subjects/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("access")}`,
+    },
+    body: JSON.stringify({ name: newsubjectName }),
+  });
+
+  if (!res.ok) {
+    alert("Failed to create subject");
+    return;
+  }
+
+  const created = await res.json();
+  setSubjects(prev => [...prev, created]);
+
+  setIssubjectModalOpen(false);
+  setNewsubjectName("");
+};
+
   return (    
     <main className="flex-1 p-2">
       {/* Header Section */}
@@ -38,11 +65,11 @@ export const FacultyPage = () => {
         {/* Add Department - Triggers Modal */}
         <div className="flex items-center gap-3">
         <button 
-          onClick={() => setIsDeptModalOpen(true)}
+          onClick={() => setIssubjectModalOpen(true)}
           className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-xl transition-all font-bold text-sm shadow-sm"
         >
           <FolderPlus size={18} className="text-indigo-600" />
-          Add Department
+          Add Subject
         </button>
 
         {/* Add Faculty - Navigates to Page */}
@@ -50,32 +77,32 @@ export const FacultyPage = () => {
         </div>
       </div>
 
-      {isDeptModalOpen && (
+      {issubjectModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop with Blur */}
           <div 
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
-            onClick={() => setIsDeptModalOpen(false)} 
+            onClick={() => setIssubjectModalOpen(false)} 
           />
           
           {/* Modal Content */}
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all border border-slate-100">
             <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-900">Create New Department</h3>
-              <button onClick={() => setIsDeptModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <h3 className="text-lg font-bold text-slate-900">Create New Subject</h3>
+              <button onClick={() => setIssubjectModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X size={20} />
               </button>
             </div>
 
             <form onSubmit={handleAddDepartment} className="p-6 space-y-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Department Name</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subject Name</label>
                 <input 
                   autoFocus
                   required
                   type="text" 
-                  value={newDeptName}
-                  onChange={(e) => setNewDeptName(e.target.value)}
+                  value={newsubjectName}
+                  onChange={(e) => setNewsubjectName(e.target.value)}
                   placeholder="e.g. Social Studies"
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                 />
@@ -84,7 +111,7 @@ export const FacultyPage = () => {
               <div className="flex gap-3 pt-2">
                 <button 
                   type="button"
-                  onClick={() => setIsDeptModalOpen(false)}
+                  onClick={() => setIssubjectModalOpen(false)}
                   className="flex-1 px-4 py-2.5 text-slate-600 font-bold hover:bg-slate-50 rounded-lg transition-colors"
                 >
                   Cancel
@@ -103,24 +130,24 @@ export const FacultyPage = () => {
 
       {/* Grid Section */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {departments.map((dept) => (
+        {subjects.map((subject) => (
           <div 
-            key={dept.id} 
+            key={subject.id} 
             className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group"
           >
             <div className="mb-4">
-              <h2 className="text-xl font-bold text-slate-800">{dept.name}</h2>
+              <h2 className="text-xl font-bold text-slate-800">{subject.name}</h2>
               <p className="text-sm text-slate-400">Department</p>
             </div>
             
             <div className="flex items-center gap-2 text-slate-600 mb-6">
               <Users size={18} className="text-slate-400" />
-              <span>{dept.facultyCount} Faculty</span>
+              <span>{subject.faculty_count} Faculty</span>
             </div>
 
             <div className="flex justify-end">
               <Link 
-                to={`/admin/faculty/${getSlug(dept.name)}`} 
+                to={`/admin/faculty/${subject.id}`} 
                 className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors group"
               >
                 View Faculty List

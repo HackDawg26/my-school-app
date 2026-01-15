@@ -1,64 +1,110 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowLeft, MoreHorizontal, UserPlus,  Trash2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import AddTeacherModal from "./AddTeacherModal";
 
-const departments = [
-  { id: 1, name: "Filipino", facultyCount: 2 },
-  { id: 2, name: "English", facultyCount: 3 },
-  { id: 3, name: "Mathematics", facultyCount: 3 },
-  { id: 4, name: "Science", facultyCount: 3 },
-  { id: 5, name: "Araling Panlipunan", facultyCount: 2 },
-  { id: 6, name: "Edukasyon sa Pagpapakatao", facultyCount: 2 },
-  { id: 7, name: "MAPEH", facultyCount: 2 },
-];
+interface Teacher {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  advisory: string | null;
+}
+
+interface Subject {
+  id: number;
+  name: string;
+}
 
 export const FacultyList = () => {
   const { department } = useParams();
+  const subjectId = Number(department);
+  const token = localStorage.getItem("access");
+
+  const [subject, setSubject] = useState<Subject | null>(null);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [availableTeachers, setAvailableTeachers] = useState<Teacher[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
- 
-  const [facultyMembers, setFacultyMembers] = useState([
-    { id: 1, lastName: "Aquino", firstName: "Elena", email: "e.aquino@claroed.edu", advisory: "N/A" },
-    { id: 2, lastName: "Reyes", firstName: "Juan", email: "j.reyes@claroed.edu", advisory: "Grade 7 - A" }
-  ]);
+  /* ---------------- FETCH SUBJECT ---------------- */
+  useEffect(() => {
+    if (!token || !subjectId) return;
 
-  const [newTeacher, setNewTeacher] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    advisory: "N/A"
-  });
+    fetch(`http://127.0.0.1:8000/api/subjects/${subjectId}/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => res.json())
+      .then(setSubject);
+  }, [subjectId, token]);
 
-  const currentDepartment = departments.find(dept => 
-    dept.name.toLowerCase().replace(/\s+/g, '-') === department
-  );
+  /* ---------------- FETCH ASSIGNED TEACHERS ---------------- */
+  useEffect(() => {
+    if (!token || !subjectId) return;
 
-  if (!currentDepartment) {
-    return <div className="p-10 text-center font-bold">Department not found</div>;
-  }
+    fetch(`http://127.0.0.1:8000/api/subjects/${subjectId}/teachers/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => res.json())
+      .then(setTeachers);
+  }, [subjectId, token]);
 
-  
-  const handleAddTeacher = (e: React.FormEvent) => {
-    e.preventDefault();
-    const teacherToAdd = {
-      ...newTeacher,
-      id: Date.now(), // Unique ID for mock purposes
-    };
+  /* ---------------- FETCH AVAILABLE TEACHERS ---------------- */
+  useEffect(() => {
+    if (!token || !subjectId) return;
 
-    setFacultyMembers([...facultyMembers, teacherToAdd]);
-    setIsModalOpen(false); // Close modal
-    setNewTeacher({ firstName: "", lastName: "", email: "", advisory: "N/A" }); // Reset form
-    console.log("Teacher Added:", teacherToAdd);
+    fetch(`http://127.0.0.1:8000/api/teachers/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => res.json())
+      .then(setAvailableTeachers);
+  }, [subjectId, token]);
+
+  /* ---------------- ASSIGN TEACHER ---------------- */
+  const handleAssignTeacher = async (teacherId: number) => {
+    const res = await fetch(
+      `http://127.0.0.1:8000/api/subjects/${subjectId}/assign-teacher/`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ teacher_id: teacherId }),
+      }
+    );
+
+    if (!res.ok) return alert("Failed to assign teacher");
+
+    const assigned = await res.json();
+    setTeachers(prev => [...prev, assigned]);
+    setAvailableTeachers(prev => prev.filter(t => t.id !== teacherId));
+    setIsModalOpen(false);
   };
 
-  const handleDelete = (id: number) => {
-    setFacultyMembers(prev =>
-      prev.filter(member => member.id !== id)
+  /* ---------------- REMOVE TEACHER FROM SUBJECT ---------------- */
+  const handleRemove = async (teacherId: number) => {
+    const res = await fetch(
+      `http://127.0.0.1:8000/api/subjects/${subjectId}/remove-teacher/`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ teacher_id: teacherId }),
+      }
     );
+
+    if (!res.ok) return alert("Failed to remove teacher");
+
+    setTeachers(prev => prev.filter(t => t.id !== teacherId));
     setOpenMenuId(null);
   };
+
+  if (!subject) {
+    return <div className="p-10 text-center font-bold">Subject not found</div>;
+  }
 
   return (
     <div className="flex-1 p-6 bg-slate-50 min-h-screen relative">
@@ -69,7 +115,7 @@ export const FacultyList = () => {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{currentDepartment.name} Department</h1>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{subject.name} Department</h1>
           <p className="text-slate-500 text-sm">Manage faculty members for this department.</p>
         </div>
         
@@ -94,10 +140,10 @@ export const FacultyList = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {facultyMembers.map((faculty) => (
+            {teachers.map((faculty) => (
               <tr key={faculty.id} className="hover:bg-slate-50 transition-colors group">
                 <td className="px-8 py-5">
-                  <span className="font-bold text-slate-700">{faculty.lastName}</span>, {faculty.firstName}
+                  <span className="font-bold text-slate-700">{faculty.last_name}</span>, {faculty.first_name}
                 </td>
                 <td className="px-8 py-5 text-slate-500 text-sm">{faculty.email}</td>
                 <td className="px-8 py-5">
@@ -119,7 +165,7 @@ export const FacultyList = () => {
                             
                             {/* Delete Button - Works for all because handleDelete checks activeTab */}
                             <button 
-                                onClick={() => handleDelete(faculty.id)}
+                                onClick={() => handleRemove(faculty.id)}
                                 className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
                             >
                                 <Trash2 size={14} /> Remove Account
@@ -138,9 +184,8 @@ export const FacultyList = () => {
       <AddTeacherModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        newTeacher={newTeacher}
-        setNewTeacher={setNewTeacher}
-        onSubmit={handleAddTeacher}
+        teachers={availableTeachers}
+        onSelect={handleAssignTeacher}
       />
     </div>
   );

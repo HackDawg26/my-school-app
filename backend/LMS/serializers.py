@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
-from LMS.models import Student, Teacher, Admin, Section
+from LMS.models import Student, Subject, Teacher, Admin, Section
 
 User = get_user_model()
 
@@ -151,7 +151,19 @@ class SectionSerializer(serializers.ModelSerializer):
 
         return section
     
+class TeacherSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ("id", "first_name", "last_name", "email")
 
+class SubjectSerializer(serializers.ModelSerializer):
+    faculty_count = serializers.IntegerField(source="teachers.count", read_only=True)
+    teachers = TeacherSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Subject
+        fields = ["id", "name", "faculty_count", "teachers"]
+    
         
 # =========================
 # LOGIN SERIALIZER

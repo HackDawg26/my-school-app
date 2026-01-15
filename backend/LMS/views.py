@@ -7,8 +7,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Prefetch
-from .models import Section, Student
-from .serializers import LoginSerializer, UserSerializer, SectionSerializer, StudentSerializer
+from .models import Section, Student, Subject
+from .serializers import LoginSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer
 
 User = get_user_model()
 
@@ -24,6 +24,64 @@ class SectionViewSet(ModelViewSet):
         serializer = StudentSerializer(students, many=True)
         return Response(serializer.data)
 
+class SubjectViewSet(viewsets.ModelViewSet):
+    queryset = Subject.objects.prefetch_related("teachers")
+    serializer_class = SubjectSerializer
+    permission_classes = [IsAuthenticated]
+
+    # ---------------------------
+    # ASSIGN TEACHER TO SUBJECT
+    # ---------------------------
+    @action(detail=True, methods=["post"], url_path="assign-teacher")
+    def assign_teacher(self, request, pk=None):
+        subject = self.get_object()
+        teacher_id = request.data.get("teacher_id")
+
+        if not teacher_id:
+            return Response(
+                {"detail": "teacher_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            teacher = User.objects.get(id=teacher_id, role="TEACHER")
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Teacher not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        subject.teachers.add(teacher)
+        return Response(
+            {"detail": "Teacher assigned successfully"},
+            status=status.HTTP_200_OK,
+        )
+
+    # ---------------------------
+    # REMOVE TEACHER FROM SUBJECT
+    # ---------------------------
+    @action(detail=True, methods=["post","patch"], url_path="remove-teacher")
+    def remove_teacher(self, request, pk=None):
+        subject = self.get_object()
+        teacher_id = request.data.get("teacher_id")
+
+        if not teacher_id:
+            return Response(
+                {"detail": "teacher_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        subject.teachers.remove(teacher_id)
+        return Response(
+            {"detail": "Teacher removed successfully"},
+            status=status.HTTP_200_OK,
+        )
+    @action(detail=True, methods=["get"], url_path="teachers")
+    def list_teachers(self, request, pk=None):
+        subject = self.get_object()
+        teachers = subject.teachers.all()
+        serializer = TeacherSerializer(teachers, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
 @api_view(["POST"])
 def assign_students_to_section(request, section_id):
@@ -95,6 +153,9 @@ class StudentViewSet(ModelViewSet):
             queryset = queryset.filter(section__isnull=True)
 
         return queryset
+class TeacherViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = User.objects.filter(role="TEACHER")
+    serializer_class = TeacherSerializer
 
 
 
