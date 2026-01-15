@@ -12,7 +12,7 @@ const CreateStudentAccountPage = () => {
     lastName: "",
     email: "",
     password: "",
-    student_id: "",
+    school_id: "",
     role: "STUDENT",
     grade_level:"",
   });
@@ -42,7 +42,7 @@ const CreateStudentAccountPage = () => {
         last_name: formData.lastName,
         email: formData.email,
         password: formData.password,
-        student_id:formData.student_id,
+        school_id:formData.school_id,
         student_profile: {
           grade_level: `GRADE_${formData.grade_level}`,
         },
@@ -155,9 +155,9 @@ const CreateStudentAccountPage = () => {
                 <input
                     required
                     type="text"
-                    name="student_id"
+                    name="school_id"
                     placeholder="2024-XXXX"
-                    value={formData.student_id}
+                    value={formData.school_id}
                     onChange={handleChange}
                     className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 />

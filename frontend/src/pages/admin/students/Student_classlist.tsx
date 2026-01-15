@@ -5,7 +5,7 @@ import AddStudentModal from "./AddStudentModal";
 
 interface Student {
   id: number;
-  student_id: string;
+  school_id: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -32,16 +32,21 @@ export const StudentClassList = () => {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newStudent, setNewStudent] = useState({
-    studentId: "",
-    firstName: "",
-    lastName: "",
-    email: "",
-    status: "Active"
-  });
-
   const token = localStorage.getItem("access");
 
+const [availableStudents, setAvailableStudents] = useState<Student[]>([]);
+const [selectedStudentId, setSelectedStudentId] = useState<number | "">("");
+
+useEffect(() => {
+  if (!token || !section) return;
+
+  fetch(
+    `http://127.0.0.1:8000/api/students/?section=null&grade_level=${section.grade_level}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+    .then(res => res.json())
+    .then(data => setAvailableStudents(data));
+}, [section, token]);
   // -------------------
   // Fetch Section Info
   // -------------------
@@ -100,71 +105,64 @@ useEffect(() => {
   // -------------------
   // Add Student
   // -------------------
-   const handleAddStudent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token || !section) return;
+  const handleAddStudent = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!token || !section || !selectedStudentId) return;
 
-    try {
-      const res = await fetch("http://127.0.0.1:8000/api/students/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          student_id: newStudent.studentId,
-          first_name: newStudent.firstName,
-          last_name: newStudent.lastName,
-          email: newStudent.email,
-          status: newStudent.status,
-          grade_level: section.grade_level,
-          section: section.id,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to add student");
-
-      const saved = await res.json();
-      setStudents((prev) => [saved, ...prev]);
-      setIsModalOpen(false);
-      setNewStudent({
-        studentId: "",
-        firstName: "",
-        lastName: "",
-        email: "",
-        status: "Active",
-      });
-    } catch (err) {
-      console.error(err);
-      alert("Failed to add student");
+  const res = await fetch(
+    `http://127.0.0.1:8000/api/students/${selectedStudentId}/`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ section: section.id }),
     }
-  };
+  );
+
+  if (!res.ok) {
+    alert("Failed to assign student");
+    return;
+  }
+
+  const updated = await res.json();
+
+  setStudents(prev => [...prev, updated]);
+  setIsModalOpen(false);
+  setSelectedStudentId("");
+};
 
   // -------------------
   // Remove Student
   // -------------------
-    const handleDelete = async (id: number) => {
-    if (!token) return;
+    const handleRemoveFromSection = async (id: number) => {
+  if (!token) return;
 
-    try {
-      const res = await fetch(
-        `http://127.0.0.1:8000/api/students/${id}/`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+  try {
+    const res = await fetch(
+      `http://127.0.0.1:8000/api/students/${id}/`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ section: null }), // ✅ THIS IS REQUIRED
+      }
+    );
 
-      if (!res.ok) throw new Error("Delete failed");
+    if (!res.ok) throw new Error("Remove failed");
 
-      setStudents((prev) => prev.filter((s) => s.id !== id));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete student");
-    } finally {
-      setOpenMenuId(null);
-    }
-  };
+    // ✅ Update local state: remove only from section view
+    setStudents(prev => prev.filter(student => student.id !== id));
+  } catch (err) {
+    console.error(err);
+    alert("Failed to remove student from section");
+  } finally {
+    setOpenMenuId(null);
+  }
+};
 
   /* ======================
      STATES
@@ -217,21 +215,20 @@ useEffect(() => {
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">School ID</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Email Address</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Advisory Class</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Full Name</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Email</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {students.map((student) => (
                 <tr
-                  key={student.student_id}
+                  key={student.school_id}
                   className="hover:bg-slate-50 transition-colors group"
                 >
                   {/* ID & Status */}
                   <td className="px-6 py-4">
-                    <span className="text-sm font-bold text-slate-700"> {student.student_id} </span>
+                    <span className="text-sm font-bold text-slate-700"> {student.school_id} </span>
                   </td>
                   
                   {/* Full Name */}
@@ -245,17 +242,6 @@ useEffect(() => {
                       <Mail size={14} className="text-slate-300" />
                       <span className="text-sm">{student.email}</span>
                     </div>
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <span
-                        className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          student.status === "Active"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-slate-100 text-slate-600"
-                        }`}
-                      > {student.status}
-                      </span>
                   </td>
 
                   {/* Action */}
@@ -272,7 +258,7 @@ useEffect(() => {
                             
                               {/* Delete Button - Works for all because handleDelete checks activeTab */}
                               <button 
-                                  onClick={() => handleDelete(student.id)}
+                                  onClick={() => handleRemoveFromSection(student.id)}
                                   className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
                               >
                                   <Trash2 size={14} /> Remove Account
@@ -296,10 +282,10 @@ useEffect(() => {
       <AddStudentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        newStudent={newStudent}
-        setNewStudent={setNewStudent}
+        selectedStudentId={selectedStudentId}
+        setSelectedStudentId={setSelectedStudentId}
         onSubmit={handleAddStudent}
-        students={students}
+        availableStudents={availableStudents}
       />
     </div>
   );

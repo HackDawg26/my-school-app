@@ -44,11 +44,11 @@ export default function CreateSectionPage() {
       throw error;
     }
 
-    alert("Section created and students assigned successfully!");
+    alert("Section created successfully!");
     navigate(-1);
   } catch (err) {
     console.error(err);
-    alert("Failed to create section or assign students");
+    alert("Failed to create section");
   } finally {
     setLoading(false);
   }

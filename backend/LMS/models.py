@@ -44,7 +44,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     ]
 
     email = models.EmailField(unique=True)
-    student_id = models.CharField(max_length=50, unique=True)  # school ID
+    school_id = models.CharField(max_length=50, unique=True)  # school ID
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
 
@@ -57,10 +57,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = CustomUserManager()
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["first_name", "last_name", "student_id", "role"]
+    REQUIRED_FIELDS = ["first_name", "last_name", "school_id", "role"]
 
     def __str__(self):
-        return f"{self.student_id} - {self.email} ({self.role})"
+        return f"{self.school_id} - {self.email} ({self.role})"
 
 class Section(models.Model):
 
@@ -121,7 +121,7 @@ class Student(models.Model):
     )
 
     def __str__(self):
-        return f"Student: {self.user.student_id} ({self.grade_level})"
+        return f"Student: {self.user.school_id} ({self.grade_level})"
 
 
 # =========================
@@ -134,7 +134,7 @@ class Teacher(models.Model):
     advisor = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Teacher: {self.user.student_id}"
+        return f"Teacher: {self.user.school_id}"
 
 
 # =========================
@@ -144,6 +144,6 @@ class Admin(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="admin_profile")
 
     def __str__(self):
-        return f"Admin: {self.user.student_id}"
+        return f"Admin: {self.user.school_id}"
     
 

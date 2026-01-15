@@ -62,6 +62,7 @@ export type SubjectGrade = {
 };
 
 export type Student = {
+  student_pk: any;
   id: string;
   name: string;
   gpa: number;

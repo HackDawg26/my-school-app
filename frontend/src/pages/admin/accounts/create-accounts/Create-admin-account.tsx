@@ -12,7 +12,7 @@ const CreateAdminAccountPage = () => {
     lastName: "",
     email: "",
     password: "",
-    student_id: "",
+    school_id: "",
     role: "ADMIN", // Default role
   });
 
@@ -41,7 +41,7 @@ const CreateAdminAccountPage = () => {
           last_name: formData.lastName,
           email: formData.email,
           password: formData.password,
-          student_id:formData.student_id,
+          school_id: formData.school_id,
           role: formData.role,
         }),
       }
@@ -150,9 +150,9 @@ const CreateAdminAccountPage = () => {
                 <input
                     required
                     type="text"
-                    name="student_id"
+                    name="school_id"
                     placeholder="2024-XXXX"
-                    value={formData.student_id}
+                    value={formData.school_id}
                     onChange={handleChange}
                     className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 />

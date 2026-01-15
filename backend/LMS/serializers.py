@@ -12,6 +12,11 @@ User = get_user_model()
 # =========================
 
 class StudentSerializer(serializers.ModelSerializer):
+    school_id = serializers.CharField(source="user.school_id", read_only=True)
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+
     section = serializers.PrimaryKeyRelatedField(
         queryset=Section.objects.all(),
         allow_null=True,
@@ -20,7 +25,16 @@ class StudentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Student
-        fields = ["grade_level", "section"]
+        fields = [
+            "id",
+            "school_id",
+            "first_name",
+            "last_name",
+            "email",
+            "grade_level",
+            "section",
+        ]
+
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -36,14 +50,14 @@ class UserSerializer(serializers.ModelSerializer):
             "last_name",
             "password",
             "role",
-            "student_id",
+            "school_id",
             "status",
             "student_profile",
         ]
 
     def validate(self, data):
         role = data.get("role") or getattr(self.instance, "role", None)
-        student_id = data.get("student_id") or getattr(self.instance, "student_id", None)
+        school_id = data.get("school_id") or getattr(self.instance, "school_id", None)
 
         student_profile = data.get("student_profile", {})
         grade_level = student_profile.get("grade_level")
@@ -51,9 +65,9 @@ class UserSerializer(serializers.ModelSerializer):
         if role not in ["STUDENT", "TEACHER", "ADMIN"]:
             raise serializers.ValidationError({"role": "Invalid role selected."})
 
-        if role == "STUDENT" and not student_id:
+        if role == "STUDENT" and not school_id:
             raise serializers.ValidationError(
-            {"student_id": "School ID is required for students."}
+            {"school_id": "School ID is required for students."}
         )
 
         if role == "STUDENT" and not grade_level and not hasattr(self.instance, "student_profile"):
@@ -117,7 +131,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class SectionSerializer(serializers.ModelSerializer):
     # Accept student IDs when creating a section
-    student_ids = serializers.ListField(
+    school_ids = serializers.ListField(
         child=serializers.IntegerField(),
         write_only=True,
         required=False
@@ -125,15 +139,15 @@ class SectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Section
-        fields = ["id", "name", "grade_level", "adviser", "is_active", "student_ids"]
+        fields = ["id", "name", "grade_level", "adviser", "is_active", "school_ids"]
 
     def create(self, validated_data):
-        student_ids = validated_data.pop("student_ids", [])
+        school_ids = validated_data.pop("school_ids", [])
         section = Section.objects.create(**validated_data)
 
         # Assign selected students
-        if student_ids:
-            Student.objects.filter(id__in=student_ids).update(section=section)
+        if school_ids:
+            Student.objects.filter(id__in=school_ids).update(section=section)
 
         return section
     
@@ -196,7 +210,7 @@ class LoginSerializer(serializers.Serializer):
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "name": name,
-                "student_id": user.student_id,
+                "school_id": user.school_id,
                 "status": user.status,
             },
             "profile": profile,

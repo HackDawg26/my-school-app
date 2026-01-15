@@ -8,34 +8,29 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Prefetch
 from .models import Section, Student
-from .serializers import LoginSerializer, UserSerializer, SectionSerializer
+from .serializers import LoginSerializer, UserSerializer, SectionSerializer, StudentSerializer
 
 User = get_user_model()
+
 
 class SectionViewSet(ModelViewSet):
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
+    permission_classes = [IsAuthenticated]
 
-    @action(detail=True, methods=["post"])
-    def assign_students(self, request, pk=None):
-
-        section = self.get_object()
-        student_ids = request.data.get("student_ids", [])
-
-        if not isinstance(student_ids, list):
-            return Response({"detail": "student_ids must be a list"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Update section for all selected students
-        updated_count = Student.objects.filter(id__in=student_ids).update(section=section)
-        return Response({"message": f"{updated_count} students assigned to {section.name}"}, status=status.HTTP_200_OK)
+    @action(detail=True, methods=["get"], url_path="students")
+    def students(self, request, pk=None):
+        students = Student.objects.filter(section_id=pk)
+        serializer = StudentSerializer(students, many=True)
+        return Response(serializer.data)
 
     
 @api_view(["POST"])
 def assign_students_to_section(request, section_id):
-    student_ids = request.data.get("student_ids", [])
+    school_ids = request.data.get("school_ids", [])
     section = get_object_or_404(Section, id=section_id)
 
-    Student.objects.filter(id__in=student_ids).update(section=section)
+    Student.objects.filter(id__in=school_ids).update(section=section)
 
     return Response({"message": "Students assigned successfully"})
 # =========================
@@ -81,21 +76,25 @@ def list_users(request):
 
     return Response(serializer.data, status=status.HTTP_200_OK)
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def students_by_grade(request):
-    grade_level = request.GET.get("grade_level")
+class StudentViewSet(ModelViewSet):
+    serializer_class = StudentSerializer
+    permission_classes = [IsAuthenticated]
 
-    if not grade_level:
-        return Response({"detail": "grade_level is required"}, status=400)
+    def get_queryset(self):
+        queryset = Student.objects.select_related("user", "section")
 
-    students = User.objects.filter(
-        role="STUDENT",
-        student_profile__grade_level=grade_level
-    ).select_related("student_profile")
+        grade = self.request.query_params.get("grade_level")
+        section = self.request.query_params.get("section")
 
-    serializer = UserSerializer(students, many=True)
-    return Response(serializer.data)
+        # 🔹 Filter by grade level
+        if grade:
+            queryset = queryset.filter(grade_level=grade)
+
+        # 🔹 Unassigned students
+        if section == "null":
+            queryset = queryset.filter(section__isnull=True)
+
+        return queryset
 
 
 
