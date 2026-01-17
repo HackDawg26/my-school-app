@@ -83,14 +83,6 @@ class SubjectViewSet(viewsets.ModelViewSet):
         serializer = TeacherSerializer(teachers, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-@api_view(["POST"])
-def assign_students_to_section(request, section_id):
-    school_ids = request.data.get("school_ids", [])
-    section = get_object_or_404(Section, id=section_id)
-
-    Student.objects.filter(id__in=school_ids).update(section=section)
-
-    return Response({"message": "Students assigned successfully"})
 # =========================
 # CREATE USER (ADMIN ONLY)
 # =========================
@@ -153,11 +145,10 @@ class StudentViewSet(ModelViewSet):
             queryset = queryset.filter(section__isnull=True)
 
         return queryset
+
 class TeacherViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.filter(role="TEACHER")
     serializer_class = TeacherSerializer
-
-
 
 @api_view(["GET", "PATCH", "DELETE"])
 @permission_classes([IsAuthenticated])

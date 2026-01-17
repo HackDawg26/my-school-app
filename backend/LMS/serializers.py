@@ -130,6 +130,7 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
 class SectionSerializer(serializers.ModelSerializer):
+    adviser_name = serializers.SerializerMethodField()
     # Accept student IDs when creating a section
     school_ids = serializers.ListField(
         child=serializers.IntegerField(),
@@ -139,7 +140,7 @@ class SectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Section
-        fields = ["id", "name", "grade_level", "adviser", "is_active", "school_ids"]
+        fields = ["id", "name", "grade_level", "adviser", "adviser_name", "is_active", "school_ids"]
 
     def create(self, validated_data):
         school_ids = validated_data.pop("school_ids", [])
@@ -150,6 +151,11 @@ class SectionSerializer(serializers.ModelSerializer):
             Student.objects.filter(id__in=school_ids).update(section=section)
 
         return section
+    
+    def get_adviser_name(self, obj):
+        if obj.adviser:
+            return f"{obj.adviser.first_name} {obj.adviser.last_name}"
+        return "N/A"
     
 class TeacherSerializer(serializers.ModelSerializer):
     class Meta:

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ArrowLeft, MoreHorizontal, Plus, Mail, Users, Trash2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import AddStudentModal from "./AddStudentModal";
+import AddAdviserModal from "./AddAdviserModal";
 
 interface Student {
   id: number;
@@ -31,11 +32,14 @@ export const StudentClassList = () => {
   const [loading, setLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+  const [isAdviserModalOpen, setIsAdviserModalOpen] = useState(false);
   const token = localStorage.getItem("access");
 
-const [availableStudents, setAvailableStudents] = useState<Student[]>([]);
-const [selectedStudentId, setSelectedStudentId] = useState<number | "">("");
+  const [availableStudents, setAvailableStudents] = useState<Student[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | "">("");
+  const [availableTeachers, setAvailableTeachers] = useState([]);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<number | "">("");
 
 useEffect(() => {
   if (!token || !section) return;
@@ -47,6 +51,17 @@ useEffect(() => {
     .then(res => res.json())
     .then(data => setAvailableStudents(data));
 }, [section, token]);
+
+useEffect(() => {
+  if (!token) return;
+
+  fetch("http://127.0.0.1:8000/api/teachers/", {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then(res => res.json())
+    .then(data => setAvailableTeachers(data));
+}, [token]);
+
   // -------------------
   // Fetch Section Info
   // -------------------
@@ -129,7 +144,7 @@ useEffect(() => {
   const updated = await res.json();
 
   setStudents(prev => [...prev, updated]);
-  setIsModalOpen(false);
+  setIsStudentModalOpen(false);
   setSelectedStudentId("");
 };
 
@@ -164,6 +179,32 @@ useEffect(() => {
   }
 };
 
+const handleAssignAdviser = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!token || !section || !selectedTeacherId) return;
+
+  const res = await fetch(
+    `http://127.0.0.1:8000/api/sections/${section.id}/`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ adviser: selectedTeacherId }),
+    }
+  );
+
+  if (!res.ok) {
+    alert("Failed to assign adviser");
+    return;
+  }
+
+  const updatedSection = await res.json();
+  setSection(updatedSection);
+  setIsAdviserModalOpen(false);
+};
+
   /* ======================
      STATES
   ====================== */
@@ -194,14 +235,23 @@ useEffect(() => {
             <span>Adviser: <span className="font-semibold text-slate-700">{section.adviser_name}</span></span>
           </div>
         </div>
-        
+        <div className="flex items-center gap-3">
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => setIsAdviserModalOpen(true)}
+          className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-100 text-sm font-bold"
+        >
+          <Plus size={18} />
+          Add Adviser
+        </button>
+
+        <button 
+          onClick={() => setIsStudentModalOpen(true)}
           className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-100 text-sm font-bold"
         >
           <Plus size={18} />
           Add New Student
         </button>
+        </div>
       </div>
 
       {/* Table Card */}
@@ -280,13 +330,21 @@ useEffect(() => {
 
       {/* --- ADD STUDENT MODAL --- */}
       <AddStudentModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isStudentModalOpen}
+        onClose={() => setIsStudentModalOpen(false)}
         selectedStudentId={selectedStudentId}
         setSelectedStudentId={setSelectedStudentId}
         onSubmit={handleAddStudent}
         availableStudents={availableStudents}
       />
+      <AddAdviserModal
+      isOpen={isAdviserModalOpen}
+      onClose={() => setIsAdviserModalOpen(false)}
+      selectedTeacherId={selectedTeacherId}
+      setSelectedTeacherId={setSelectedTeacherId}
+      availableTeachers={availableTeachers}
+      onSubmit={handleAssignAdviser}
+/>
     </div>
   );
 };

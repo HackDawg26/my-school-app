@@ -27,9 +27,6 @@ export const FacultyPage = () => {
       .catch(err => console.error("Failed to load subjects", err));
   }, [token]);
 
-  const getSlug = (name: string) =>
-    name.toLowerCase().replace(/\s+/g, "-");
-
   const handleAddDepartment = async (e: React.FormEvent) => {
   e.preventDefault();
 
