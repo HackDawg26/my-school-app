@@ -1,19 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { 
-  Users, 
-  Briefcase, 
-  Building2, 
   UserPlus, 
   ClipboardList 
 } from 'lucide-react';
 import { authFetch } from '../../lib/api';
 
-// --- Mock Data --- //
-const stats = [
-  { title: "Total Students", value: "30", description: "Click to manage student accounts", Icon: Users },
-  { title: "Total Faculty", value: "16", description: "Click to manage faculty accounts", Icon: Briefcase },
-  { title: "Total Departments", value: "7", description: "Click to manage departments", Icon: Building2 },
-];
 
 interface UserAccount {
   id: number;
@@ -35,46 +26,63 @@ const AdminDashboard: React.FC = () => {
   
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+  students: 0,
+  teachers: 0,
+  subjects: 0,
+});
 
-   useEffect(() => {
-    const loadDashboard = async () => {
-      try {
-        const [usersRes] = await Promise.all([
-          authFetch("/api/user/"),
-        ]);
-        setUsers(await usersRes.json());
-      } catch (error) {
-        console.error("Failed to load admin dashboard", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  useEffect(() => {
+  const loadDashboard = async () => {
+    try {
+      const [usersRes, statsRes] = await Promise.all([
+        authFetch("/api/user/"),
+        authFetch("/api/dashboard/stats/"),
+      ]);
 
-    loadDashboard();
-  }, []);
+      setUsers(await usersRes.json());
+      setStats(await statsRes.json());
 
-  if (loading) return <div className="p-6">Loading dashboard...</div>;
-  if (!stats) return <div className="p-6">Unable to load dashboard</div>;
+    } catch (error) {
+      console.error("Failed to load admin dashboard", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadDashboard();
+}, []);
 
   return (
     <div className="space-y-6">
       {/* 1. Top Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((item) => (
-          <div key={item.title} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-500">{item.title}</p>
-                <h3 className="text-3xl font-bold text-gray-900 mt-1">{item.value}</h3>
-                <p className="text-xs text-gray-400 mt-1">{item.description}</p>
-              </div>
-              <div className="p-2 bg-gray-50 rounded-lg group-hover:bg-indigo-50 transition-colors">
-                <item.Icon className="w-5 h-5 text-gray-400 group-hover:text-indigo-600" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+  
+  {/* Students */}
+  <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+    <p className="text-sm font-medium text-gray-500">Total Students</p>
+    <h3 className="text-3xl font-bold text-gray-900 mt-1">
+      {stats.students}
+    </h3>
+  </div>
+
+  {/* Faculty */}
+  <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+    <p className="text-sm font-medium text-gray-500">Total Faculty</p>
+    <h3 className="text-3xl font-bold text-gray-900 mt-1">
+      {stats.teachers}
+    </h3>
+  </div>
+
+  {/* Departments */}
+  <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+    <p className="text-sm font-medium text-gray-500">Total Departments</p>
+    <h3 className="text-3xl font-bold text-gray-900 mt-1">
+      {stats.subjects}
+    </h3>
+  </div>
+
+</div>
 
       {/* 2. Content Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

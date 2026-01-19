@@ -16,7 +16,7 @@ type UserAccount = {
   student_id: string;
   email: string;
   password?: string;
-  department?: string;
+  subjects?: { id: number; name: string }[];
   gradeLevel?: string;
   role: "STUDENT" | "TEACHER" | "ADMIN";
   status: "Active" | "Inactive";
@@ -53,7 +53,7 @@ const AccountListPage: React.FC = () => {
           email: u.email,
           role: u.role,
           gradeLevel: u.student_profile?.grade_level || undefined,
-          department: u.department || undefined,
+          subjects: u.subjects || [],
           status: u.status === "ACTIVE" ? "Active" : "Inactive",
         }));
 
@@ -139,10 +139,6 @@ const handleSaveEdit = async (e: React.FormEvent) => {
     payload.student_profile = {grade_level: selectedItem.gradeLevel,};
   }
 
-  // ✅ TEACHER
-  if (selectedItem.role === "TEACHER") {
-    payload.department = selectedItem.department;
-  }
 
   // ✅ PASSWORD (only if provided)
   if (selectedItem.password?.trim()) {
@@ -232,7 +228,9 @@ const handleSaveEdit = async (e: React.FormEvent) => {
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 font-medium text-gray-900">{user.firstname} {user.lastname}</td>
                   <td className="px-6 py-4 text-gray-600 flex items-center gap-2"><Mail size={14} className="text-gray-400" />{user.email}</td>
-                  <td className="px-6 py-4 text-gray-600">{user.department || user.gradeLevel || (user.role === "ADMIN" ? "System Admin" : "N/A")}</td>
+                  <td className="px-6 py-4 text-gray-600">{user.role === "TEACHER"
+    ? user.subjects?.map(s => s.name).join(", ") || "No Subject"
+    : user.gradeLevel || (user.role === "ADMIN" ? "System Admin" : "N/A")}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{user.status}</span>
                   </td>

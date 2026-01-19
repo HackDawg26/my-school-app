@@ -6,12 +6,20 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from django.db.models import Prefetch
 from .models import Section, Student, Subject
 from .serializers import LoginSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer
 
 User = get_user_model()
 
+class AdminDashboardStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            "students": User.objects.filter(role="STUDENT").count(),
+            "teachers": User.objects.filter(role="TEACHER").count(),
+            "subjects": Subject.objects.count(),
+        })
 
 class SectionViewSet(ModelViewSet):
     queryset = Section.objects.all()
