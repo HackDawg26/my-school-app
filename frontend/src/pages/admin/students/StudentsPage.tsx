@@ -71,6 +71,31 @@ if (loading) {
     );
   }
 
+const handleDeleteSection = async (sectionId: number) => {
+  if (!window.confirm("Are you sure you want to delete this section?")) return;
+
+  const token = localStorage.getItem("access");
+
+  try {
+    const res = await fetch(
+      `http://127.0.0.1:8000/api/sections/${sectionId}/`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!res.ok) throw new Error("Failed to delete section");
+
+    // ✅ Remove from UI instantly
+    setSections((prev) => prev.filter((s) => s.id !== sectionId));
+  } catch (err) {
+    console.error(err);
+    alert("Failed to delete section");
+  }
+};
   return (
     <main className="flex-1 p-1 bg-slate-50 min-h-screen">
       {/* Header Section */}
@@ -123,15 +148,21 @@ if (loading) {
                   <span>{section.student_count} Students</span>
                 </div>
 
-                <div className="flex justify-end">
-                  <Link
+                <div className="flex justify-between items-center">
+                  <button
+                  onClick={() => handleDeleteSection(section.id)}
+                  className="text-sm font-medium text-red-600 hover:text-red-800 transition-colors"
+                  >
+                    Delete Section
+                    </button>
+                    <Link
                     to={`/admin/students/${section.id}`}
                     className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
-                  >
-                    Manage Section
-                    <ArrowRight size={16} />
-                  </Link>
-                </div>
+                    >
+                      Manage Section
+                      <ArrowRight size={16} />
+                      </Link>
+                      </div>
               </div>
             ))}
           </div>

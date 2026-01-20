@@ -40,6 +40,7 @@ class StudentSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
     student_profile = StudentSerializer(required=False)
+    subjects = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -53,8 +54,13 @@ class UserSerializer(serializers.ModelSerializer):
             "school_id",
             "status",
             "student_profile",
+            "subjects",
         ]
-
+    def get_subjects(self, obj):
+        if obj.role != "TEACHER":
+            return []
+        return obj.subjects.values("id", "name")
+    
     def validate(self, data):
         role = data.get("role") or getattr(self.instance, "role", None)
         school_id = data.get("school_id") or getattr(self.instance, "school_id", None)
@@ -137,10 +143,11 @@ class SectionSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
+    student_count = serializers.IntegerField(source="students.count", read_only=True)
 
     class Meta:
         model = Section
-        fields = ["id", "name", "grade_level", "adviser", "adviser_name", "is_active", "school_ids"]
+        fields = ["id", "name", "grade_level", "adviser", "adviser_name", "is_active", "school_ids", "student_count"]
 
     def create(self, validated_data):
         school_ids = validated_data.pop("school_ids", [])
@@ -158,9 +165,15 @@ class SectionSerializer(serializers.ModelSerializer):
         return "N/A"
     
 class TeacherSerializer(serializers.ModelSerializer):
+    advisory = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ("id", "first_name", "last_name", "email")
+        fields = ("id", "first_name", "last_name", "email", "advisory")
+
+    def get_advisory(self, obj):
+        section = obj.advised_sections.first()
+        return f"{section.get_grade_level_display()} - {section.name}" if section else "N/A"
 
 class SubjectSerializer(serializers.ModelSerializer):
     faculty_count = serializers.IntegerField(source="teachers.count", read_only=True)
@@ -191,29 +204,20 @@ class LoginSerializer(serializers.Serializer):
 
         refresh = RefreshToken.for_user(user)
 
-        name = f"{user.first_name} {user.last_name}".strip() or user.email
-
         profile = None
 
         if user.role == "STUDENT":
-            try:
-                student = user.student_profile
-                profile = {
-                    "grade_level": student.grade_level
-                }
-            except Student.DoesNotExist:
-                profile = None
+            student = getattr(user, "student_profile", None)
+            profile = {
+                "grade_level": student.grade_level if student else None,
+                "section": student.section_id if student else None,
+            }
 
         elif user.role == "TEACHER":
-            try:
-                teacher = user.teacher_profile
-                profile = {
-                    "subject": teacher.subject,
-                    "section": teacher.section,
-                    "advisor": teacher.advisor,
-                }
-            except Teacher.DoesNotExist:
-                profile = None
+            profile = {
+                "subjects": user.subjects.values("id", "name"),
+                "advisory_sections": user.advised_sections.values("id", "name"),
+            }
 
         elif user.role == "ADMIN":
             profile = {"admin": True}
@@ -227,7 +231,6 @@ class LoginSerializer(serializers.Serializer):
                 "role": user.role,
                 "first_name": user.first_name,
                 "last_name": user.last_name,
-                "name": name,
                 "school_id": user.school_id,
                 "status": user.status,
             },

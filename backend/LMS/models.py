@@ -110,7 +110,7 @@ class Subject(models.Model):
         ordering = ["name"]
 
     def __str__(self):
-        return f"{self.code} - {self.name}"
+        return self.name
     
 # =========================
 # STUDENT PROFILE
@@ -146,9 +146,6 @@ class Student(models.Model):
 # =========================
 class Teacher(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="teacher_profile")
-    subject = models.CharField(max_length=100)
-    section = models.CharField(max_length=50)
-    advisor = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Teacher: {self.user.school_id}"
