@@ -1,7 +1,14 @@
+<<<<<<< HEAD
 import React, { type JSX } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ArrowLeft } from "lucide-react";
+=======
+import React, { useState, type JSX } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { ArrowLeft, FileText, ShieldCheck } from "lucide-react";
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
 import { useNavigate } from 'react-router-dom';
 import deped_logo from '../../../assets/deped_logo.png';
 
@@ -53,6 +60,13 @@ const MONTHS = ['','AUG', 'SEPT','OCT','NOV', 'DEC', 'JAN', 'FEB', 'MAR', 'APR',
 
 export default function ExportReportCardPDF(): JSX.Element {
     const navigate = useNavigate();
+<<<<<<< HEAD
+=======
+    
+    // Add a state to toggle the preview if you want, or just show it by default
+    const [showPreview, setShowPreview] = useState(true);
+    const [activePage, setActivePage] = useState(1);
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
 
     // Replicating your JSX Image Helper with Types
     const getBase64ImageFromURL = (url: string): Promise<string> => {
@@ -328,6 +342,7 @@ export default function ExportReportCardPDF(): JSX.Element {
     };
 
     return (
+<<<<<<< HEAD
         <div className="flex flex-col gap-4 p-8">
             <div className="flex items-center gap-4">
                 <button
@@ -349,6 +364,330 @@ export default function ExportReportCardPDF(): JSX.Element {
             <p className="text-sm text-gray-500 italic">
                 The output will be a 2-page landscape PDF compliant with DepEd SF9 standards.
             </p>
+=======
+        <div className="flex flex-col gap-6 p-8 bg-white rounded-3xl border border-slate-200 shadow-sm mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* Navigation Group */}
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => navigate('/teacher/advisory-class')}
+                        className="group flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-slate-900 transition-all font-bold text-sm"
+                    >
+                        <div className="p-2 bg-slate-50 group-hover:bg-slate-100 rounded-full transition-colors">
+                            <ArrowLeft size={20} />
+                        </div>
+                        <span>Back to Masterlist</span>
+                    </button>
+                </div>
+
+                {/* Action Group */}
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleExport}
+                        className="relative flex items-center gap-2 px-8 py-3 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 hover:-translate-y-0.5 transition-all shadow-xl shadow-slate-200 active:translate-y-0"
+                    >
+                        <FileText size={18} className="opacity-70" />
+                        Export Report Card (SF9)
+                    </button>
+                </div>
+            </div>
+
+            {/* Informational Footer */}
+            <div className="flex items-start gap-3 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
+                <div className="p-1 bg-indigo-100 text-indigo-600 rounded-lg"><ShieldCheck size={16} /></div>
+                <div className="flex-1">
+                    <p className="text-[11px] font-black text-indigo-900 uppercase tracking-tight mb-0.5">Standard Compliance Check</p>
+                    <p className="text-xs text-indigo-700/70 font-medium">Verified DepEd SF9-2024 Standards. <button onClick={() => setShowPreview(!showPreview)} className="ml-1 font-bold underline cursor-pointer">{showPreview ? "Hide Preview" : "Show Preview"}</button></p>
+                </div>
+                {showPreview && (
+                    <div className="flex bg-white p-1 rounded-xl border border-indigo-100 shadow-sm">
+                        <button onClick={() => setActivePage(1)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${activePage === 1 ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-indigo-600'}`}>Page 1</button>
+                        <button onClick={() => setActivePage(2)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${activePage === 2 ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-indigo-600'}`}>Page 2</button>
+                    </div>
+                )}
+            </div>
+
+            {showPreview && (
+                <div className="mt-6 border-t border-slate-200 pt-8 animate-in fade-in zoom-in duration-300">
+                    <div className="flex items-center justify-between mb-4 px-2">
+                    <div className="flex flex-col">
+                        <h3 className="text-sm font-black text-slate-700 uppercase tracking-tight">Live SF9 Preview</h3>
+                        <p className="text-[10px] text-slate-500 font-medium">Draft generated from current entry data</p>
+                    </div>
+                    <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                        <button onClick={() => setActivePage(1)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${activePage === 1 ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>Page 1: Grades & Values</button>
+                        <button onClick={() => setActivePage(2)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${activePage === 2 ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>Page 2: Attendance & Cover</button>
+                    </div>
+                    </div>
+
+                    {/* SCALE WRAPPER: This ensures the card fits the screen while maintaining A4 proportions */}
+                    <div className="bg-slate-200/50 rounded-3xl p-10 overflow-hidden flex justify-center border border-slate-200">
+                    <div className="bg-white shadow-[0_20px_50px_rgba(0,0,0,0.15)] w-[1122px] min-w-[1122px] h-[794px] p-12 origin-top transform scale-[0.55] md:scale-[0.75] lg:scale-[0.85] xl:scale-100 my-[-15%] xl:my-0 text-black font-sans">
+                        
+                        {activePage === 1 ? (
+                        <div className="grid grid-cols-2 gap-12 h-full">
+                            {/* --- LEFT SIDE: LEARNING PROGRESS --- */}
+                            <div className="border-r border-slate-100 pr-12">
+                            <div className="text-center mb-6">
+                                <h1 className="text-lg font-bold">REPORT ON LEARNING PROGRESS</h1>
+                                <h1 className="text-lg font-bold">AND ACHIEVEMENT</h1>
+                            </div>
+
+                            <table className="w-full border-[1.5px] border-black text-[11px] border-collapse">
+                                <thead>
+                                <tr className="font-bold">
+                                    <th className="border border-black p-2 text-center" rowSpan={2}>LEARNING AREAS</th>
+                                    <th className="border border-black p-1 text-center" colSpan={4}>QUARTER</th>
+                                    <th className="border border-black p-1 text-center" rowSpan={2}>FINAL GRADE</th>
+                                    <th className="border border-black p-1 text-center" rowSpan={2}>REMARKS</th>
+                                </tr>
+                                <tr className="font-bold text-center">
+                                    {["1", "2", "3", "4"].map(q => <th key={q} className="border border-black p-1 w-10">{q}</th>)}
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {/* Subject Data Mapping from your handleExport */}
+                                {[
+                                    ["Filipino 7", "75", "75", "75", "75", "75", "Passed"],
+                                    ["English 7", "75", "75", "75", "75", "75", "Passed"],
+                                    ["Mathematics 7", "75", "75", "75", "75", "75", "Passed"],
+                                    ["Science 7", "75", "75", "75", "75", "75", "Passed"],
+                                    ["Araling Panlipunan (AP) 7", "75", "75", "75", "75", "75", "Passed"],
+                                    ["Edukasyon sa Pagpapakatao (EsP) 7", "75", "75", "75", "75", "75", "Passed"],
+                                    ["Health 7", "45", "45", "55", "55", "65", "Failed"],
+                                    ["CAT 7", "", "", "", "", "", ""]
+                                ].map((row, i) => (
+                                    <tr key={i} className={row[6] === "Failed" ? "bg-red-50" : ""}>
+                                    <td className="border border-black p-2 font-medium">{row[0]}</td>
+                                    <td className="border border-black p-1 text-center">{row[1]}</td>
+                                    <td className="border border-black p-1 text-center">{row[2]}</td>
+                                    <td className="border border-black p-1 text-center">{row[3]}</td>
+                                    <td className="border border-black p-1 text-center">{row[4]}</td>
+                                    <td className="border border-black p-1 text-center font-bold">{row[5]}</td>
+                                    <td className={`border border-black p-1 text-center text-[10px] font-bold uppercase ${row[6] === 'Passed' ? 'text-emerald-700' : 'text-red-700'}`}>{row[6]}</td>
+                                    </tr>
+                                ))}
+                                <tr className="font-bold bg-slate-50">
+                                    <td className="border border-black p-2 text-right" colSpan={5}>General Average</td>
+                                    <td className="border border-black p-1 text-center underline">71</td>
+                                    <td className="border border-black p-1 text-center text-red-700 uppercase">Failed</td>
+                                </tr>
+                                </tbody>
+                            </table>
+
+                            <div className="mt-8">
+                                <table className="w-full text-[10px] border-none">
+                                <thead><tr className="font-bold italic"><td>Descriptors</td><td>Grading Scale</td><td>Remarks</td></tr></thead>
+                                <tbody className="italic text-slate-600">
+                                    <tr><td>Outstanding Performance</td><td>90-100 Excellent</td><td>Passed</td></tr>
+                                    <tr><td>Very Satisfactory</td><td>85-89 Very Good</td><td>Passed</td></tr>
+                                    <tr><td>Did Not Meet Expectations</td><td>Below 75</td><td>Failed</td></tr>
+                                </tbody>
+                                </table>
+                            </div>
+                            </div>
+
+                            {/* --- RIGHT SIDE: OBSERVED VALUES --- */}
+                            <div>
+                            <div className="text-center mb-6">
+                                <h1 className="text-lg font-bold">REPORT ON LEARNER'S OBSERVED VALUES</h1>
+                            </div>
+
+                            <table className="w-full border-[1.5px] border-black text-[10px] border-collapse">
+                                <thead>
+                                <tr className="font-bold">
+                                    <th className="border border-black p-2 text-center" rowSpan={2}>Core Values</th>
+                                    <th className="border border-black p-2 text-center" rowSpan={2}>Behavior Statement</th>
+                                    <th className="border border-black p-1 text-center" colSpan={4}>Quarter</th>
+                                </tr>
+                                <tr className="font-bold text-center">
+                                    {["1", "2", "3", "4"].map(q => <th key={q} className="border border-black p-1 w-8">{q}</th>)}
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {CORE_VALUES_DATA.map((val, idx) => (
+                                    <React.Fragment key={idx}>
+                                    {val.statements.map((stmt, sIdx) => (
+                                        <tr key={sIdx}>
+                                        {sIdx === 0 && (
+                                            <td className="border border-black p-2 font-bold w-32" rowSpan={val.statements.length}>{val.value}</td>
+                                        )}
+                                        <td className="border border-black p-2 leading-tight">{stmt}</td>
+                                        {["1","2","3","4"].map(q => <td key={q} className="border border-black p-1 text-center font-medium">AO</td>)}
+                                        </tr>
+                                    ))}
+                                    </React.Fragment>
+                                ))}
+                                </tbody>
+                            </table>
+
+                            <div className="mt-8 grid grid-cols-2 text-[10px] gap-4">
+                                <div className="flex flex-col gap-1">
+                                <p className="font-bold uppercase">Marking Code:</p>
+                                <p>AO - Always Observed</p>
+                                <p>SO - Sometimes Observed</p>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                <p>RO - Rarely Observed</p>
+                                <p>NO - Not Observed</p>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        ) : (
+                        /* --- PAGE 2 PREVIEW (OMITTED FOR BREVITY BUT USES SAME A4 BOX) --- */
+                        <div className="grid grid-cols-2 gap-12 h-full">
+                                {/* --- LEFT SIDE: ATTENDANCE & SIGNATURES --- */}
+                                <div className="border-r border-slate-100 pr-12">
+                                <div className="text-center mb-8">
+                                    <h2 className="text-lg font-bold uppercase tracking-tight">Attendance Record</h2>
+                                </div>
+
+                                <table className="w-full border-[1.5px] border-black text-[9px] border-collapse text-center">
+                                    <thead>
+                                    <tr className="font-bold">
+                                        <th className="border border-black p-1 text-left bg-slate-50">Month</th>
+                                        {MONTHS.slice(1).map((m) => (
+                                        <th key={m} className="border border-black p-1">{m}</th>
+                                        ))}
+                                        <th className="border border-black p-1">Total</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr>
+                                        <td className="border border-black p-2 text-left font-bold bg-slate-50">No. of School Days</td>
+                                        {Array(12).fill(0).map((_, i) => (
+                                        <td key={i} className="border border-black p-1">20</td>
+                                        ))}
+                                        <td className="border border-black p-1 font-bold">240</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-black p-2 text-left font-bold bg-slate-50">No. of Days Present</td>
+                                        {Array(12).fill(0).map((_, i) => (
+                                        <td key={i} className="border border-black p-1">20</td>
+                                        ))}
+                                        <td className="border border-black p-1 font-bold">240</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-black p-2 text-left font-bold bg-slate-50">No. of Days Absent</td>
+                                        {Array(12).fill(0).map((_, i) => (
+                                        <td key={i} className="border border-black p-1">0</td>
+                                        ))}
+                                        <td className="border border-black p-1 font-bold">0</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+
+                                {/* PARENT SIGNATURE SECTION */}
+                                <div className="mt-16">
+                                    <h3 className="text-center font-bold text-[11px] mb-8 uppercase tracking-widest border-b border-black pb-2">
+                                    Parent / Guardian's Signature
+                                    </h3>
+                                    <div className="space-y-8">
+                                    {["1st Quarter", "2nd Quarter", "3rd Quarter", "4th Quarter"].map((q) => (
+                                        <div key={q} className="flex items-center gap-4">
+                                        <span className="text-[10px] font-bold w-20">{q}:</span>
+                                        <div className="flex-1 border-b border-black"></div>
+                                        </div>
+                                    ))}
+                                    </div>
+                                </div>
+                                </div>
+
+                                {/* --- RIGHT SIDE: THE OFFICIAL COVER --- */}
+                                <div className="flex flex-col items-center px-8">
+                                {/* Header with Logo */}
+                                <div className="flex items-center justify-center gap-6 mb-8 w-full">
+                                    <img src={deped_logo} alt="DepEd" className="w-20 h-20 object-contain" />
+                                    <div className="text-center">
+                                    <p className="text-[11px] font-medium italic">Republic of the Philippines</p>
+                                    <p className="text-[14px] font-black uppercase leading-tight">Department of Education</p>
+                                    <p className="text-[11px] font-bold">Region IV-A CALABARZON</p>
+                                    <p className="text-[11px]">Division of Antipolo City</p>
+                                    </div>
+                                </div>
+
+                                {/* School Info Block */}
+                                <div className="w-full space-y-3 text-[12px] mb-12">
+                                    <div className="flex border-b border-black pb-1">
+                                    <span className="font-bold w-24">School:</span>
+                                    <span className="uppercase">Antipolo National High School</span>
+                                    </div>
+                                    <div className="flex gap-4">
+                                    <div className="flex border-b border-black pb-1 flex-1">
+                                        <span className="font-bold w-24">District:</span>
+                                        <span>Antipolo II</span>
+                                    </div>
+                                    </div>
+                                </div>
+
+                                {/* Report Card Title */}
+                                <div className="text-center my-10 space-y-2">
+                                    <h1 className="text-2xl font-black tracking-tighter uppercase">Learner's Progress Report Card</h1>
+                                    <p className="text-sm font-bold">(SF 9 - ES)</p>
+                                    <p className="text-md font-bold mt-4 underline decoration-2 underline-offset-4">School Year: 2025-2026</p>
+                                </div>
+
+                                {/* Student Profile */}
+                                <div className="w-full space-y-5 text-[12px] mt-6">
+                                    <div className="flex border-b border-black pb-1">
+                                    <span className="font-bold w-16">Name:</span>
+                                    <span className="uppercase font-black text-sm tracking-wide">Juan Dela Cruz</span>
+                                    </div>
+                                    <div className="flex gap-10">
+                                    <div className="flex border-b border-black pb-1 flex-1">
+                                        <span className="font-bold w-12">Age:</span>
+                                        <span>13</span>
+                                    </div>
+                                    <div className="flex border-b border-black pb-1 flex-1">
+                                        <span className="font-bold w-12">Sex:</span>
+                                        <span>Male</span>
+                                    </div>
+                                    </div>
+                                    <div className="flex gap-4">
+                                    <div className="flex border-b border-black pb-1 flex-1">
+                                        <span className="font-bold w-16">Grade:</span>
+                                        <span>7</span>
+                                    </div>
+                                    <div className="flex border-b border-black pb-1 flex-1">
+                                        <span className="font-bold w-16">Section:</span>
+                                        <span>Rizal</span>
+                                    </div>
+                                    </div>
+                                    <div className="flex border-b border-black pb-1">
+                                    <span className="font-bold w-16">LRN:</span>
+                                    <span className="tracking-[3px]">123456789012</span>
+                                    </div>
+                                </div>
+
+                                {/* Certificate of Transfer */}
+                                <div className="mt-12 w-full p-4 border-[1.5px] border-black text-center">
+                                    <h4 className="text-[11px] font-black uppercase mb-4">Certificate of Transfer</h4>
+                                    <div className="text-[10px] text-left space-y-4">
+                                    <p>Admitted to Grade: ________ Section: ________ Room: ________</p>
+                                    <p>Eligible for Admission to Grade: _____________________________</p>
+                                    <div className="flex justify-between pt-6">
+                                        <div className="text-center">
+                                        <div className="w-32 border-b border-black"></div>
+                                        <p className="mt-1 font-bold">Principal</p>
+                                        </div>
+                                        <div className="text-center">
+                                        <div className="w-32 border-b border-black"></div>
+                                        <p className="mt-1 font-bold">Teacher</p>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        
+                    </div>
+                    </div>
+                </div>
+            )}
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
         </div>
     );
 }

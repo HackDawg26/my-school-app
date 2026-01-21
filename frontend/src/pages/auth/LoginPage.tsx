@@ -1,6 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useState } from "react";
+<<<<<<< HEAD
+=======
+import axios from 'axios';
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
 
 // Separated into a small sub-component for readability
 const SchoolLogo = () => (
@@ -46,6 +50,7 @@ export const LoginPage = () => {
     setError('');
 
     try {
+<<<<<<< HEAD
       // Simulate a network delay (Senior Devs always handle the "Loading" state)
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -73,16 +78,51 @@ export const LoginPage = () => {
       login(response);
 
       // 4. Navigation Logic
+=======
+      // Call the Django backend API for authentication
+      const response = await axios.post('http://127.0.0.1:8000/api/token/', {
+        email: email,
+        password: password
+      });
+
+      // Extract data from response
+      const { access, user } = response.data;
+      
+      // Create user object with token
+      const userData = {
+        id: user.id.toString(),
+        email: user.email,
+        role: user.role || 'STUDENT', // Default to STUDENT if role not provided
+        token: access  // JWT access token
+      };
+
+      // Update global Auth context
+      login(userData);
+
+      // Navigation based on role
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
       const dashboardMap = {
         ADMIN: '/admin/dashboard',
         TEACHER: '/teacher/dashboard',
         STUDENT: '/student/dashboard',
       };
 
+<<<<<<< HEAD
       navigate(dashboardMap[role]);
       
     } catch (err) {
       setError('Invalid email or password. Please try again.');
+=======
+      navigate(dashboardMap[userData.role]);
+      
+    } catch (err: any) {
+      console.error('Login error:', err);
+      if (err.response?.status === 401) {
+        setError('Invalid email or password. Please try again.');
+      } else {
+        setError('An error occurred during login. Please try again later.');
+      }
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
     } finally {
       setIsLoading(false);
     }
