@@ -5,8 +5,9 @@ import { Save, Plus, Edit2, Trash2, BookOpen, X } from 'lucide-react';
 
 interface Student {
   id: number;
-  student_id: string;
-  name: string;
+  school_id: string;
+  first_name: string;
+  last_name: string;
 }
 
 interface QuarterlyGrade {
@@ -14,7 +15,7 @@ interface QuarterlyGrade {
   student: number;
   student_id?: string;
   student_name?: string;
-  subject: number;
+  SubjectOffering: number;
   quarter: string;
   written_work_score: number;
   written_work_total: number;
@@ -30,11 +31,11 @@ interface QuarterlyGrade {
 }
 
 interface TeacherQuarterlyGradesProps {
-  subjectId: number;
+  subjectoffering_id: number;
   subjectName: string;
 }
 
-export default function TeacherQuarterlyGrades({ subjectId, subjectName }: TeacherQuarterlyGradesProps) {
+export default function TeacherQuarterlyGrades({ subjectoffering_id, subjectName }: TeacherQuarterlyGradesProps) {
   const navigate = useNavigate();
   const [students, setStudents] = useState<Student[]>([]);
   const [grades, setGrades] = useState<QuarterlyGrade[]>([]);
@@ -44,7 +45,7 @@ export default function TeacherQuarterlyGrades({ subjectId, subjectName }: Teach
   const [editingGrade, setEditingGrade] = useState<QuarterlyGrade | null>(null);
   const [formData, setFormData] = useState<QuarterlyGrade>({
     student: 0,
-    subject: subjectId,
+    SubjectOffering: subjectoffering_id,
     quarter: selectedQuarter,
     written_work_score: 0,
     written_work_total: 100,
@@ -61,7 +62,7 @@ export default function TeacherQuarterlyGrades({ subjectId, subjectName }: Teach
   useEffect(() => {
     fetchStudents();
     fetchGrades();
-  }, [subjectId, selectedQuarter]);
+  }, [subjectoffering_id, selectedQuarter]);
 
   useEffect(() => {
     setFormData(prev => ({ ...prev, quarter: selectedQuarter }));
@@ -69,9 +70,9 @@ export default function TeacherQuarterlyGrades({ subjectId, subjectName }: Teach
 
   const fetchStudents = async () => {
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
-      const response = await axios.get('http://127.0.0.1:8000/api/students/', {
+      const response = await axios.get(`http://127.0.0.1:8000/api/subject-offerings/${subjectoffering_id}/students/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStudents(response.data);
@@ -83,10 +84,10 @@ export default function TeacherQuarterlyGrades({ subjectId, subjectName }: Teach
   const fetchGrades = async () => {
     try {
       setLoading(true);
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       const response = await axios.get(
-        `http://127.0.0.1:8000/api/quarterly-grades/?subject_id=${subjectId}&quarter=${selectedQuarter}`,
+        `http://127.0.0.1:8000/api/quarterly-grades/?SubjectOffering_id=${subjectoffering_id}&quarter=${selectedQuarter}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setGrades(response.data);
@@ -101,7 +102,7 @@ export default function TeacherQuarterlyGrades({ subjectId, subjectName }: Teach
     setEditingGrade(null);
     setFormData({
       student: 0,
-      subject: subjectId,
+      SubjectOffering: subjectoffering_id,
       quarter: selectedQuarter,
       written_work_score: 0,
       written_work_total: 100,
@@ -144,7 +145,7 @@ export default function TeacherQuarterlyGrades({ subjectId, subjectName }: Teach
     if (!editingGrade) {
       const existingGrade = grades.find(
         g => g.student === formData.student && 
-             g.subject === subjectId && 
+             g.SubjectOffering === subjectoffering_id && 
              g.quarter === selectedQuarter
       );
       
@@ -156,7 +157,7 @@ export default function TeacherQuarterlyGrades({ subjectId, subjectName }: Teach
 
     const payload = {
       student: formData.student,
-      subject: subjectId,
+      SubjectOffering: subjectoffering_id,
       quarter: selectedQuarter,
       written_work_score: formData.written_work_score,
       written_work_total: formData.written_work_total,
@@ -171,11 +172,11 @@ export default function TeacherQuarterlyGrades({ subjectId, subjectName }: Teach
     };
 
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
 
       console.log('Submitting payload:', JSON.stringify(payload, null, 2));
-      console.log('SubjectId prop value:', subjectId);
+      console.log('SubjectId prop value:', subjectoffering_id);
 
       if (editingGrade?.id) {
         await axios.put(
@@ -224,7 +225,7 @@ export default function TeacherQuarterlyGrades({ subjectId, subjectName }: Teach
     if (!confirm('Delete this grade entry?')) return;
 
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       await axios.delete(
         `http://127.0.0.1:8000/api/quarterly-grades/${gradeId}/`,
@@ -397,7 +398,7 @@ export default function TeacherQuarterlyGrades({ subjectId, subjectName }: Teach
                   <option value={0}>Select a student</option>
                   {students.map((student) => (
                     <option key={student.id} value={student.id}>
-                      {student.name} ({student.student_id})
+                      {student.first_name} {student.last_name} ({student.school_id})
                     </option>
                   ))}
                 </select>
