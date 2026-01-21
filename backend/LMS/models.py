@@ -134,7 +134,7 @@ class SubjectOffering(models.Model):
         unique_together = ("name", "section")
         
     def __str__(self):
-        return f"{self.subject_name} — {self.section.name}"
+        return f"{self.name} — {self.section.name}"
 
 # =========================
 # STUDENT PROFILE

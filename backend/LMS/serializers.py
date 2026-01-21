@@ -184,23 +184,28 @@ class SubjectOfferingSerializer(serializers.ModelSerializer):
     average = serializers.SerializerMethodField()
     pendingTasks = serializers.SerializerMethodField()
     section = serializers.CharField(source='section.name', read_only=True)
+    teacher_id = serializers.IntegerField(source="teacher.id", read_only=True)
 
     class Meta:
         model = SubjectOffering
-        fields = ["id", "name", "section", "room_number", "schedule", "section_id", "grade", "students", "nextClass", "average", "pendingTasks"]
+        fields = ["id", "name", "section", "room_number", "schedule", "section_id", "grade", "students", "nextClass", "average", "pendingTasks", "teacher_id"]
         read_only_fields = ["id", "section"]
 
     def create(self, validated_data):
+        request = self.context.get("request")
+        teacher = getattr(request, "user", None)
         section_id = validated_data.pop("section_id")
         section = Section.objects.get(id=section_id)
+        
         offering, created = SubjectOffering.objects.get_or_create(
             section=section,
             name=validated_data["name"],
             defaults={
-                "room_number": validated_data.get("room_number", "TBA"),
-                "schedule": validated_data.get("schedule", "TBA"),
-            }
-        )
+            "room_number": validated_data.get("room_number", "TBA"),
+            "schedule": validated_data.get("schedule", "TBA"),
+            "teacher": teacher,  # ✅ set teacher on create
+        },
+    )
         return offering
     def get_students(self, obj):
         return obj.section.students.count()

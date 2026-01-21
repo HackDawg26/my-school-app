@@ -133,7 +133,7 @@ class SubjectOfferingViewSet(viewsets.ModelViewSet):
         if not section_id:
             raise serializers.ValidationError({"section_id": "This field is required."})
         section = Section.objects.get(id=section_id)
-        serializer.save(section=section)
+        serializer.save(section=section, teacher=self.request.user)
 # =========================
 # CREATE USER (ADMIN ONLY)
 # =========================

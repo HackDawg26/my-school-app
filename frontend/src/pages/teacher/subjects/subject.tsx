@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { BookOpen, Users, BarChart, Plus, AlertCircle } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { BookOpen, Users, BarChart, Plus, AlertCircle, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 /* ---------- Types ---------- */
-
 interface SubjectOffering {
   id: number;
-  name: string;         // Subject name only
+  name: string;
   section: string;
   grade: string;
   room_number: string;
@@ -17,10 +16,10 @@ interface SubjectOffering {
 }
 
 /* ---------- Component ---------- */
-
 export default function SubjectListPage() {
   const [offerings, setOfferings] = useState<SubjectOffering[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const token = localStorage.getItem("access");
 
@@ -32,15 +31,45 @@ export default function SubjectListPage() {
     }
 
     fetch("http://127.0.0.1:8000/api/subject-offerings/", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
       .then(setOfferings)
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [token]);
+
+  /* ---------- Delete ---------- */
+  const handleDelete = async (id: number) => {
+    if (!token) return alert("Not authenticated");
+
+    const ok = window.confirm("Delete this subject offering? This cannot be undone.");
+    if (!ok) return;
+
+    try {
+      setDeletingId(id);
+
+      const res = await fetch(`http://127.0.0.1:8000/api/subject-offerings/${id}/`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("Delete failed:", err);
+        alert("Failed to delete offering");
+        return;
+      }
+
+      // remove from UI
+      setOfferings((prev) => prev.filter((o) => o.id !== id));
+    } catch (e) {
+      console.error(e);
+      alert("Network error while deleting");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   /* ---------- Loading / Empty States ---------- */
   if (loading) {
@@ -76,9 +105,7 @@ export default function SubjectListPage() {
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-black">Subject Offerings</h1>
-          <p className="text-slate-500">
-            Manage your assigned subject offerings
-          </p>
+          <p className="text-slate-500">Manage your assigned subject offerings</p>
         </div>
 
         <Link
@@ -92,8 +119,8 @@ export default function SubjectListPage() {
 
       {/* Summary */}
       <div className="mb-6 text-slate-600">
-        <strong>{totalClasses}</strong> offerings •{" "}
-        <strong>{totalStudents}</strong> students
+        <strong>{totalClasses}</strong> offerings • <strong>{totalStudents}</strong>{" "}
+        students
       </div>
 
       {/* Grid */}
@@ -104,15 +131,33 @@ export default function SubjectListPage() {
             to={`/teacher/subject/${o.id}`}
             className="bg-white border rounded-2xl p-4 hover:shadow-xl transition relative group"
           >
-            {/* Title */}
-            <div className="flex justify-between mb-2">
-              <div>
-                <h3 className="text-xl font-bold">{o.name}</h3>
-                <p className="text-sm text-slate-400 uppercase">
+            {/* Top Row: Title + Icons */}
+            <div className="flex justify-between mb-2 items-start gap-3">
+              <div className="min-w-0">
+                <h3 className="text-xl font-bold truncate">{o.name}</h3>
+                <p className="text-sm text-slate-400 uppercase truncate">
                   {o.grade} • Section {o.section}
                 </p>
               </div>
-              <BookOpen className="text-indigo-500" />
+
+              <div className="flex items-center gap-2">
+                <BookOpen className="text-indigo-500" />
+
+                {/* Delete button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault(); // stop Link navigation
+                    e.stopPropagation();
+                    handleDelete(o.id);
+                  }}
+                  disabled={deletingId === o.id}
+                  className="p-2 rounded-lg hover:bg-rose-50 text-rose-600 disabled:opacity-60"
+                  title="Delete offering"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Room & Schedule */}
@@ -142,9 +187,7 @@ export default function SubjectListPage() {
                   <BarChart size={16} />
                   Average
                 </span>
-                <strong
-                  className={o.average < 85 ? "text-rose-500" : "text-emerald-600"}
-                >
+                <strong className={o.average < 85 ? "text-rose-500" : "text-emerald-600"}>
                   {o.average}%
                 </strong>
               </div>
@@ -157,6 +200,10 @@ export default function SubjectListPage() {
                 <strong>{o.pendingTasks}</strong>
               </div>
             </div>
+
+            {deletingId === o.id && (
+              <div className="mt-3 text-xs text-slate-500">Deleting...</div>
+            )}
           </Link>
         ))}
       </div>
