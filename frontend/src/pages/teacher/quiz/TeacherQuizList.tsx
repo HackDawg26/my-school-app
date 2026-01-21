@@ -26,7 +26,7 @@ export default function TeacherQuizList() {
 
   const fetchQuizzes = async () => {
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       const response = await axios.get('http://127.0.0.1:8000/api/teacher/quizzes/', {
         headers: { Authorization: `Bearer ${token}` }
@@ -43,7 +43,7 @@ export default function TeacherQuizList() {
     if (!confirm('Are you sure you want to delete this quiz?')) return;
     
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       await axios.delete(`http://127.0.0.1:8000/api/teacher/quizzes/${id}/`, {
         headers: { Authorization: `Bearer ${token}` }
