@@ -2,140 +2,120 @@ import React, { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
 /* ---------- Types ---------- */
-
-interface Subject {
-  id: number;
-  name: string;
-}
-
 interface Section {
   id: number;
   name: string;
   grade_level: string;
 }
 
-interface AssignSubjectFormData {
-  subjectId: number | "";
-  sectionId: number | "";
+interface SubjectOfferingFormData {
+  name: string;
+  section: number | ""; // Matches Django's ForeignKey 'section'
+  room_number: string;
+  schedule: string;
 }
 
 /* ---------- Component ---------- */
-
-export default function AssignSubject() {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+export default function AssignSubjectOffering() {
   const [sections, setSections] = useState<Section[]>([]);
-  const [formData, setFormData] = useState<AssignSubjectFormData>({
-    subjectId: "",
-    sectionId: "",
+  const [formData, setFormData] = useState<SubjectOfferingFormData>({
+    name: "",
+    section: "",
+    room_number: "",
+    schedule: "",
   });
 
-  /* ---------- Fetch Existing Data ---------- */
-
-  useEffect(() => {
   const token = localStorage.getItem("access");
 
-  if (!token) return;
+  /* ---------- Fetch Sections ---------- */
+  useEffect(() => {
+    if (!token) return;
 
-  fetch("http://127.0.0.1:8000/api/subjects/", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-    .then((res) => res.json())
-    .then(setSubjects)
-    .catch(console.error);
+    fetch("http://127.0.0.1:8000/api/sections/", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then(setSections)
+      .catch(console.error);
+  }, [token]);
 
-  fetch("http://127.0.0.1:8000/api/sections/", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-    .then((res) => res.json())
-    .then(setSections)
-    .catch(console.error);
-}, []);
+  /* ---------- Handlers ---------- */
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!formData.name) return alert("Please enter a subject name");
+    if (!formData.section) return alert("Please select a section");
+    if (!formData.room_number) return alert("Please enter a room number");
+    if (!formData.schedule) return alert("Please enter a schedule");
+    if (!token) return alert("Not authenticated");
 
-  /* ---------- Helpers ---------- */
+    const payload = {
+      name: formData.name,
+      section_id: formData.section, // Must match serializer field
+      room_number: formData.room_number,
+      schedule: formData.schedule,
+    };
+
+    const res = await fetch("http://127.0.0.1:8000/api/subject-offerings/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      console.error(err);
+      alert("Failed to create subject offering");
+      return;
+    }
+
+    alert("Subject offering created successfully");
+    setFormData({ name: "", section: "", room_number: "", schedule: "" });
+  };
 
   const selectedSection = sections.find(
-    (section) => section.id === formData.sectionId
+    (section) => section.id === formData.section
   );
 
-  /* ---------- Submit ---------- */
-
-  const handleSubmit = (e: FormEvent) => {
-  e.preventDefault();
-
-  if (!formData.subjectId) return alert("Please select a subject");
-  if (!formData.sectionId) return alert("Please select a section");
-
-  const token = localStorage.getItem("access");
-  if (!token) return;
-
-
-  // POST to the correct endpoint
-  fetch(`http://127.0.0.1:8000/api/subjects/${formData.subjectId}/assign-section/`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  },
-  body: JSON.stringify({ section_id: formData.sectionId })
-})
-    .then((res) => {
-      if (!res.ok) throw new Error("Failed to assign subject");
-      alert("Subject assigned successfully");
-      setFormData({ subjectId: "", sectionId: "" });
-    })
-    .catch(console.error);
-};
   /* ---------- Styles ---------- */
-
   const inputClasses =
     "w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white";
-
   const labelClasses =
     "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
 
   /* ---------- Render ---------- */
-
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
       <div className="w-full max-w-xl bg-white dark:bg-gray-800 p-8 rounded-xl shadow-xl">
-
         <h2 className="text-3xl font-bold text-center mb-6 dark:text-white">
-          Assign Subject
+          Assign Subject Offering
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Subject */}
+          {/* Subject Name */}
           <div>
-            <label className={labelClasses}>Subject</label>
-            <select
-              value={formData.subjectId}
+            <label className={labelClasses}>Subject Name</label>
+            <input
+              type="text"
+              value={formData.name}
               onChange={(e) =>
-                setFormData({ ...formData, subjectId: Number(e.target.value) })
+                setFormData({ ...formData, name: e.target.value })
               }
               className={inputClasses}
               required
-            >
-              <option value="">Select Subject</option>
-              {subjects.map((subject) => (
-                <option key={subject.id} value={subject.id}>
-                  {subject.name}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
-          {/* Section */}
+          {/* Section Selector */}
           <div>
             <label className={labelClasses}>Section</label>
             <select
-              value={formData.sectionId}
+              value={formData.section}
               onChange={(e) =>
-                setFormData({ ...formData, sectionId: Number(e.target.value) })
+                setFormData({ ...formData, section: Number(e.target.value) })
               }
               className={inputClasses}
               required
@@ -158,12 +138,41 @@ export default function AssignSubject() {
             </div>
           )}
 
+          {/* Room Number */}
+          <div>
+            <label className={labelClasses}>Room Number</label>
+            <input
+              type="text"
+              value={formData.room_number}
+              onChange={(e) =>
+                setFormData({ ...formData, room_number: e.target.value })
+              }
+              className={inputClasses}
+              required
+            />
+          </div>
+
+          {/* Schedule */}
+          <div>
+            <label className={labelClasses}>Schedule</label>
+            <input
+              type="text"
+              value={formData.schedule}
+              onChange={(e) =>
+                setFormData({ ...formData, schedule: e.target.value })
+              }
+              className={inputClasses}
+              placeholder="e.g., M/W/F 1:00 PM - 2:30 PM"
+              required
+            />
+          </div>
+
           {/* Submit */}
           <button
             type="submit"
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg"
           >
-            Assign Subject
+            Assign Subject Offering
           </button>
 
           {/* Cancel */}

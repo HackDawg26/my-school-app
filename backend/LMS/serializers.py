@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
-from LMS.models import Student, Subject, Teacher, Admin, Section
+from LMS.models import Student, Subject, SubjectOffering, Teacher, Admin, Section
 
 User = get_user_model()
 
@@ -174,6 +174,42 @@ class TeacherSerializer(serializers.ModelSerializer):
     def get_advisory(self, obj):
         section = obj.advised_sections.first()
         return f"{section.get_grade_level_display()} - {section.name}" if section else "N/A"
+    
+class SubjectOfferingSerializer(serializers.ModelSerializer):
+    section_id = serializers.IntegerField(write_only=True)
+    name = serializers.CharField()
+    grade = serializers.CharField(source='section.grade_level', read_only=True)
+    students = serializers.SerializerMethodField()
+    nextClass = serializers.CharField(source='schedule', read_only=True)
+    average = serializers.SerializerMethodField()
+    pendingTasks = serializers.SerializerMethodField()
+    section = serializers.CharField(source='section.name', read_only=True)
+
+    class Meta:
+        model = SubjectOffering
+        fields = ["id", "name", "section", "room_number", "schedule", "section_id", "grade", "students", "nextClass", "average", "pendingTasks"]
+        read_only_fields = ["id", "section"]
+
+    def create(self, validated_data):
+        section_id = validated_data.pop("section_id")
+        section = Section.objects.get(id=section_id)
+        offering, created = SubjectOffering.objects.get_or_create(
+            section=section,
+            name=validated_data["name"],
+            defaults={
+                "room_number": validated_data.get("room_number", "TBA"),
+                "schedule": validated_data.get("schedule", "TBA"),
+            }
+        )
+        return offering
+    def get_students(self, obj):
+        return obj.section.students.count()
+    def get_average(self, obj):
+        # TODO: Implement actual average calculation
+        return 88
+    def get_pendingTasks(self, obj):
+        # TODO: Implement actual pending tasks logic
+        return 3
 
 class SubjectSerializer(serializers.ModelSerializer):
     faculty_count = serializers.IntegerField(source="teachers.count", read_only=True)
@@ -182,8 +218,50 @@ class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
         fields = ["id", "name", "faculty_count", "teachers"]
-    
-        
+
+from rest_framework import serializers
+from .models import SubjectOffering
+
+
+class SubjectListSerializer(serializers.ModelSerializer):
+    subject = serializers.CharField(source="subject.name")
+    section = serializers.CharField(source="section.name")
+    grade = serializers.SerializerMethodField()
+    room = serializers.CharField(source="room_number")
+    nextClass = serializers.CharField(source="schedule")
+    students = serializers.SerializerMethodField()
+    average = serializers.SerializerMethodField()
+    pendingTasks = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SubjectOffering
+        fields = [
+            "id",
+            "subject",
+            "section",
+            "grade",
+            "room",
+            "students",
+            "nextClass",
+            "average",
+            "pendingTasks",
+        ]
+
+    def get_grade(self, obj):
+        return obj.section.get_grade_level_display().replace("Grade ", "")
+
+    def get_students(self, obj):
+        # TODO: Replace with real enrollment count
+        return 35
+
+    def get_average(self, obj):
+        # TODO: Replace with real grade computation
+        return 88
+
+    def get_pendingTasks(self, obj):
+        # TODO: Replace with real grading logic
+        return 3
+
 # =========================
 # LOGIN SERIALIZER
 # =========================

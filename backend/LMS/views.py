@@ -1,13 +1,13 @@
 from rest_framework import viewsets,status
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from .models import Section, Student, Subject
-from .serializers import LoginSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer
+from .models import Section, Student, Subject, SubjectOffering
+from .serializers import LoginSerializer, SubjectListSerializer, SubjectOfferingSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer
 
 User = get_user_model()
 
@@ -90,7 +90,50 @@ class SubjectViewSet(viewsets.ModelViewSet):
         teachers = subject.teachers.all()
         serializer = TeacherSerializer(teachers, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
+class TeacherSubjectListViewSet(ReadOnlyModelViewSet):
+    serializer_class = SubjectListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        return (
+            SubjectOffering.objects
+            .select_related("subject", "section")
+            .filter(
+                teacher=user,
+                subject__is_active=True,
+                section__is_active=True
+            )
+            .order_by("section__grade_level", "section__name")
+        )
+class SubjectOfferingViewSet(viewsets.ModelViewSet):
+    """
+    A ViewSet for managing SubjectOfferings.
+    """
+    queryset = SubjectOffering.objects.all()
+    serializer_class = SubjectOfferingSerializer
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=["get"], url_path="by-section/(?P<section_id>[^/.]+)")
+    def by_section(self, request, section_id=None):
+        """
+        List all SubjectOfferings for a specific section.
+        """
+        offerings = self.queryset.filter(section_id=section_id)
+        serializer = self.get_serializer(offerings, many=True)
+        return Response(serializer.data)
+
+    def perform_create(self, serializer):
+        """
+        Allow creation of SubjectOffering using section_id in request data.
+        """
+        section_id = self.request.data.get("section_id")
+        if not section_id:
+            raise serializers.ValidationError({"section_id": "This field is required."})
+        section = Section.objects.get(id=section_id)
+        serializer.save(section=section)
 # =========================
 # CREATE USER (ADMIN ONLY)
 # =========================

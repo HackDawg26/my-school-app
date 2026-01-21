@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.db.models.signals import post_save
@@ -111,7 +112,30 @@ class Subject(models.Model):
 
     def __str__(self):
         return self.name
-    
+
+class SubjectOffering(models.Model):
+    name = models.CharField(max_length=100)
+    section = models.ForeignKey(
+        Section,
+        on_delete=models.CASCADE,
+        related_name="offerings"
+    )
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        limit_choices_to={"role": "TEACHER"}
+    )
+    room_number = models.CharField(max_length=50)
+    schedule = models.CharField(max_length=100)
+
+    class Meta:
+        unique_together = ("name", "section")
+        
+    def __str__(self):
+        return f"{self.subject_name} — {self.section.name}"
+
 # =========================
 # STUDENT PROFILE
 # =========================
