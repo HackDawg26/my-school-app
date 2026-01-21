@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React from 'react';
 <<<<<<< HEAD
 import { BookOpen, Users, BarChart, AlertTriangle, Plus, type LucideIcon } from 'lucide-react';
@@ -6,82 +7,175 @@ import { BookOpen, Users, BarChart, AlertTriangle, Plus, type LucideIcon, AlertC
 >>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
 import { Link } from 'react-router-dom';
 import { useSubjects } from './SubjectProvider';
+=======
+import React, { useEffect, useState } from "react";
+import { BookOpen, Users, BarChart, Plus, AlertCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+>>>>>>> Backup
 
-// --- Interfaces ---
+/* ---------- Types ---------- */
 
-export interface Subject {
-  id: number | string;
-  subject: string;
+interface SubjectOffering {
+  id: number;
+  name: string;         // Subject name only
   section: string;
-  grade: number | string;
-  room: string;
+  grade: string;
+  room_number: string;
+  schedule: string;
   students: number;
-  nextClass: string;
   average: number;
   pendingTasks: number;
 }
 
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  icon: LucideIcon;
-  colorClass: string;
-}
-
-// --- Sub-component ---
-
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, colorClass }) => (
-  <div className={`p-4 rounded-xl shadow-md flex items-center space-x-3 ${colorClass}`}>
-    <div className="p-1 rounded-full bg-opacity-20 ">
-      <Icon size={28} className="h-7 w-7" />
-    </div>
-    <div className="flex flex-col">
-      <p className="text-sm md:text-xl lg:text-3xl font-extrabold">{value}</p>
-      <h2 className="text-xs md:text-sm lg:text-lg font-medium opacity-80">{title}</h2>
-    </div>
-  </div>
-);
-
-// --- Main Component ---
+/* ---------- Component ---------- */
 
 export default function SubjectListPage() {
-  // We cast the hook return to ensure TypeScript knows the shape of 'subjects'
-  const { subjects } = useSubjects() as { subjects: Subject[] };
+  const [offerings, setOfferings] = useState<SubjectOffering[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // --- Computed Statistics ---
-  const totalClasses = subjects.length;
-  const totalStudents = subjects.reduce((sum, subject) => sum + subject.students, 0);
-  const totalPendingTasks = subjects.reduce((sum, subject) => sum + subject.pendingTasks, 0);
-  const overallAvg = totalClasses > 0
-    ? (subjects.reduce((sum, s) => sum + s.average, 0) / totalClasses).toFixed(1)
-    : 'N/A';
+  const token = localStorage.getItem("access");
 
+  /* ---------- Fetch Subject Offerings ---------- */
+  useEffect(() => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    fetch("http://127.0.0.1:8000/api/subject-offerings/", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then(setOfferings)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  /* ---------- Loading / Empty States ---------- */
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-slate-500">
+        Loading subject offerings...
+      </div>
+    );
+  }
+
+  if (offerings.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <p className="text-slate-500 text-lg">No subject offerings assigned yet</p>
+        <Link
+          to="/teacher/subject/create-subject"
+          className="bg-indigo-600 text-white px-6 py-2 rounded-lg"
+        >
+          Create Subject Offering
+        </Link>
+      </div>
+    );
+  }
+
+  /* ---------- Computed Stats ---------- */
+  const totalClasses = offerings.length;
+  const totalStudents = offerings.reduce((sum, o) => sum + o.students, 0);
+
+  /* ---------- Render ---------- */
   return (
+<<<<<<< HEAD
 <<<<<<< HEAD
     <section className="bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-800 dark:text-gray-200 p-1 ">
       <header className="flex justify-between items-center pb-6 border-b border-gray-200 dark:border-gray-700 mb-8">
+=======
+    <section className="bg-slate-50 min-h-screen p-4">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+>>>>>>> Backup
         <div>
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">Your Subject Roster</h2>
-          <p className="text-md mt-1 text-gray-500 dark:text-gray-400">
-            Quick overview of your teaching load and metrics.
+          <h1 className="text-3xl font-black">Subject Offerings</h1>
+          <p className="text-slate-500">
+            Manage your assigned subject offerings
           </p>
         </div>
+
+        <Link
+          to="/teacher/subject/create-subject"
+          className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl shadow"
+        >
+          <Plus size={18} />
+          New Offering
+        </Link>
       </header>
 
-      <div className="space-y-4">
-        {/* Header Actions */}
-        <div className='flex justify-between items-center mb-6'>
-          <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
-            All Sections ({totalClasses})
-          </h2>
+      {/* Summary */}
+      <div className="mb-6 text-slate-600">
+        <strong>{totalClasses}</strong> offerings •{" "}
+        <strong>{totalStudents}</strong> students
+      </div>
+
+      {/* Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {offerings.map((o) => (
           <Link
-            to="/teacher/subject/create-subject"
-            className='bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-md transition duration-150
-                       flex items-center space-x-1 dark:bg-blue-500 dark:hover:bg-blue-600'
+            key={o.id}
+            to={`/teacher/subject/${o.id}`}
+            className="bg-white border rounded-2xl p-4 hover:shadow-xl transition relative group"
           >
-            <Plus className="w-5 h-5" />
-            <span>Create</span>
+            {/* Title */}
+            <div className="flex justify-between mb-2">
+              <div>
+                <h3 className="text-xl font-bold">{o.name}</h3>
+                <p className="text-sm text-slate-400 uppercase">
+                  {o.grade} • Section {o.section}
+                </p>
+              </div>
+              <BookOpen className="text-indigo-500" />
+            </div>
+
+            {/* Room & Schedule */}
+            <div className="bg-slate-50 rounded-xl p-3 mb-3 grid grid-cols-2 gap-2">
+              <div>
+                <span className="text-xs text-slate-400 uppercase">Room</span>
+                <p className="font-semibold">{o.room_number}</p>
+              </div>
+              <div>
+                <span className="text-xs text-slate-400 uppercase">Schedule</span>
+                <p className="font-semibold">{o.schedule}</p>
+              </div>
+            </div>
+
+            {/* Metrics */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <Users size={16} />
+                  Students
+                </span>
+                <strong>{o.students}</strong>
+              </div>
+
+              <div className="flex justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <BarChart size={16} />
+                  Average
+                </span>
+                <strong
+                  className={o.average < 85 ? "text-rose-500" : "text-emerald-600"}
+                >
+                  {o.average}%
+                </strong>
+              </div>
+
+              <div className="flex justify-between text-sm text-amber-700">
+                <span className="flex items-center gap-2">
+                  <AlertCircle size={16} />
+                  Pending
+                </span>
+                <strong>{o.pendingTasks}</strong>
+              </div>
+            </div>
           </Link>
+<<<<<<< HEAD
         </div>
 
         {/* Subject Grid */}
@@ -216,6 +310,9 @@ export default function SubjectListPage() {
             </Link>
           ))}
         </div>
+=======
+        ))}
+>>>>>>> Backup
       </div>
     </section>
   );

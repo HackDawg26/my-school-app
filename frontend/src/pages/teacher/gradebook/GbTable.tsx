@@ -16,9 +16,13 @@ import {
 import GradeTrackerUI from './ManualEditGrade';
 import GradeSummaryTable from './GradeSummaryTable';
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import { ChevronLeft, Settings } from 'lucide-react';
 >>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+import { ChevronLeft, Settings } from 'lucide-react';
+>>>>>>> Backup
 
 // --- Interfaces ---
 
@@ -242,6 +246,7 @@ export const ComplexGradebookTable: React.FC<ComplexGradebookTableProps> = ({ se
 
     return (
 <<<<<<< HEAD
+<<<<<<< HEAD
         <section className="bg-gray-100 min-h-screen m-0">
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-2">
                 <div className="flex items-center space-x-3 mb-4 sm:mb-0">
@@ -351,6 +356,55 @@ export const ComplexGradebookTable: React.FC<ComplexGradebookTableProps> = ({ se
                 </div>
             </header>
 
+=======
+        <section className="bg-slate-50 min-h-screen">
+            {/* Clean, Functional Header */}
+            <header className="bg-white border-b border-slate-200 px-6 py-4 shadow-sm mb-6">
+                <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="flex flex-col gap-1">
+                        <button 
+                            className="flex items-center text-slate-500 hover:text-indigo-600 font-bold text-xs uppercase tracking-wider transition-colors mb-1" 
+                            onClick={onBack}
+                        >
+                            <ChevronLeft size={14} className="mr-1" /> 
+                            Back to Gradebooks
+                        </button>
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                                {subjectInfo?.subject}
+                            </h2>
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-sm font-medium border border-slate-200">
+                                {selected}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {/* Visual Toggle for Edit Mode */}
+                        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                            <button 
+                                onClick={() => isEditing && handleEditClick()} 
+                                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${!isEditing ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                Preview
+                            </button>
+                            <button 
+                                onClick={() => !isEditing && handleEditClick()} 
+                                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${isEditing ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                Edit Mode
+                            </button>
+                        </div>
+                        
+                        {/* Secondary Actions */}
+                        <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
+                            <Settings size={20} />
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+>>>>>>> Backup
             {/* Main Content Area */}
             <div className="px-6 max-w-[1600px] mx-auto">
                 <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-200 overflow-hidden">
@@ -400,7 +454,10 @@ export const ComplexGradebookTable: React.FC<ComplexGradebookTableProps> = ({ se
                     )}
                 </div>
             </div>
+<<<<<<< HEAD
 >>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+>>>>>>> Backup
         </section>
     );
 };

@@ -13,9 +13,13 @@
     "@hookform/resolvers": "^5.2.2",
     "@tailwindcss/vite": "^4.1.18",
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     "axios": "^1.13.2",
 >>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+    "axios": "^1.13.2",
+>>>>>>> Backup
     "chart.js": "^4.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

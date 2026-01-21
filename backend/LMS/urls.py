@@ -1,11 +1,25 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 from django.urls import path
+=======
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
+>>>>>>> Backup
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import current_user, LoginView
+from .views import StudentViewSet, SubjectOfferingViewSet, SubjectViewSet, TeacherSubjectListViewSet, TeacherViewSet, list_users, LoginView, create_user, user_detail, SectionViewSet, AdminDashboardStatsView
+
+router = DefaultRouter()
+router.register(r"sections", SectionViewSet, basename="section")
+router.register(r"students", StudentViewSet, basename="student")
+router.register("subjects", SubjectViewSet, basename="subjects")
+router.register(r"teachers", TeacherViewSet, basename="teacher")
+router.register("teacher/subjects", TeacherSubjectListViewSet, basename="teacher-subjects")
+router.register(r"subject-offerings", SubjectOfferingViewSet, basename="subject-offering")
 
 urlpatterns = [
     path('token/', LoginView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+<<<<<<< HEAD
     path('user/', current_user, name="current_user")
 ]
 =======
@@ -73,3 +87,12 @@ urlpatterns = [
 # path('ai/feedback/', provide_feedback, name='provide_feedback'),
 # path('ai/study-plan/', generate_study_plan, name='generate_study_plan'),
 >>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+    path('user/', list_users, name="list_users"),
+    path("user/create/", create_user, name="create_user"),
+    path("user/<int:pk>/", user_detail),
+    path("", include(router.urls)),
+    path("dashboard/stats/", AdminDashboardStatsView.as_view()),
+    
+]
+>>>>>>> Backup

@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+<<<<<<< HEAD
 import { useState } from "react";
 <<<<<<< HEAD
 =======
 import axios from 'axios';
 >>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+>>>>>>> Backup
 
-// Separated into a small sub-component for readability
+// Logo Component
 const SchoolLogo = () => (
   <div className="flex items-center gap-3">
     <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[hsla(221,44%,40%)]">
@@ -26,57 +30,68 @@ const SchoolLogo = () => (
       </svg>
     </div>
     <div className="flex flex-col text-left">
-      <h2 className="font-headline text-3xl font-semibold text-[hsla(222,47%,11%)] leading-none">
+      <h2 className="font-headline text-3xl font-semibold leading-none">
         ClaroEd
       </h2>
-      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Management System</span>
+      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+        Management System
+      </span>
     </div>
   </div>
 );
 
 export const LoginPage = () => {
-  const { login } = useAuth();
   const navigate = useNavigate();
-  
-  // States for form handling
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { login } = useAuth();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
 <<<<<<< HEAD
+<<<<<<< HEAD
       // Simulate a network delay (Senior Devs always handle the "Loading" state)
       await new Promise((resolve) => setTimeout(resolve, 1000));
+=======
+      const response = await fetch("http://127.0.0.1:8000/api/token/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+>>>>>>> Backup
 
-      // 1. Determine role based on email logic
-      let role: 'TEACHER' | 'ADMIN' | 'STUDENT';
-      const lowerEmail = email.toLowerCase();
-
-      if (lowerEmail.includes('admin')) {
-        role = 'ADMIN';
-      } else if (lowerEmail.includes('teacher')) {
-        role = 'TEACHER';
-      } else {
-        role = 'STUDENT';
+      if (!response.ok) {
+        throw new Error("Invalid email or password");
       }
 
-      // 2. Create mock response (In reality, this comes from your API)
-      const response = { 
-        id: Math.random().toString(36).substr(2, 9), 
-        role, 
-        email: lowerEmail, 
-        token: 'mock-jwt-token-xyz' 
+      const data = await response.json();
+
+      if (!data.user || !data.user.role) {
+        throw new Error("User role not defined");
+      }
+
+      // Normalize role to uppercase
+      const role = data.user.role.toUpperCase();
+
+      // Create User object for AuthContext
+      const user = {
+        id: data.user.id,
+        email: data.user.email,
+        role: role as "STUDENT" | "TEACHER" | "ADMIN",
+        token: data.access,
       };
 
-      // 3. Update global Auth context
-      login(response);
+      // Update AuthContext
+      login(user);
 
+<<<<<<< HEAD
       // 4. Navigation Logic
 =======
       // Call the Django backend API for authentication
@@ -123,6 +138,23 @@ export const LoginPage = () => {
         setError('An error occurred during login. Please try again later.');
       }
 >>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+      // Persist user and tokens in localStorage
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("access", data.access);
+      localStorage.setItem("refresh", data.refresh);
+
+      // Redirect to dashboard based on role
+      const dashboardMap: Record<string, string> = {
+        ADMIN: "/admin/dashboard",
+        TEACHER: "/teacher/dashboard",
+        STUDENT: "/student/dashboard",
+      };
+
+      navigate(dashboardMap[role] || "/login");
+    } catch (err: any) {
+      setError(err.message || "Login failed");
+>>>>>>> Backup
     } finally {
       setIsLoading(false);
     }
@@ -130,74 +162,48 @@ export const LoginPage = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-2xl shadow-xl border border-gray-100">
-        
-        {/* Header Section */}
+      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-2xl shadow-xl">
         <div className="text-center flex flex-col items-center">
           <SchoolLogo />
-          <h2 className="mt-8 text-2xl font-bold tracking-tight text-gray-900">
-            Sign in to your account
-          </h2>
+          <h2 className="mt-8 text-2xl font-bold">Sign in to your account</h2>
           <p className="mt-2 text-sm text-gray-600">
             Enter your credentials to access your dashboard
           </p>
         </div>
 
-        {/* Error Alert */}
         {error && (
-          <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-100">
+          <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg">
             {error}
           </div>
         )}
 
-        <form className="mt-8 space-y-5" onSubmit={handleLogin}>
+        <form className="space-y-5" onSubmit={handleLogin}>
           <div className="space-y-4">
-            <div>
-              <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                required
-                className="block w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all sm:text-sm"
-                placeholder="e.g. teacher@claroed.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="block w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all sm:text-sm"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+            <input
+              type="email"
+              required
+              placeholder="Email"
+              className="w-full px-4 py-3 border rounded-xl"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <input
+              type="password"
+              required
+              placeholder="Password"
+              className="w-full px-4 py-3 border rounded-xl"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="group relative flex justify-center w-full px-4 py-3 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full py-3 font-semibold text-white bg-indigo-600 rounded-xl disabled:opacity-70"
           >
-            {isLoading ? (
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : (
-              'Sign in'
-            )}
+            {isLoading ? "Signing in..." : "Sign in"}
           </button>
         </form>
       </div>

@@ -4,7 +4,10 @@ import {UserPlus, ShieldCheck, Mail, Fingerprint, User } from "lucide-react";
 
 
 const CreateTeacherAccountPage = () => {
+<<<<<<< HEAD
 
+=======
+>>>>>>> Backup
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     
@@ -14,6 +17,7 @@ const CreateTeacherAccountPage = () => {
         lastName: "",
         email: "",
         password: "",
+<<<<<<< HEAD
         studentId: "",
         role: "TEACHER",
         department: "",
@@ -26,6 +30,10 @@ const CreateTeacherAccountPage = () => {
             section: "" , 
             yearLevel: "",
         }],
+=======
+        school_id: "",
+        role: "TEACHER", // Default role
+>>>>>>> Backup
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -37,6 +45,7 @@ const CreateTeacherAccountPage = () => {
         e.preventDefault();
         setLoading(true);
 
+<<<<<<< HEAD
         // Logic to save the account (API call) would go here
         console.log("Saving Account Data:", formData);
 
@@ -80,6 +89,43 @@ const CreateTeacherAccountPage = () => {
         //         }))
         //     }));
         // };  
+=======
+        try {
+    const accessToken = localStorage.getItem("access");
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/api/user/create/",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          school_id: formData.school_id,
+          role: formData.role,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Failed to create account");
+    }
+
+    alert("Account created successfully!");
+    navigate(-1);
+  } catch (error: any) {
+    alert(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+>>>>>>> Backup
         
     return (
         <div className=" bg-gray-100 dark:bg-gray-900">
@@ -95,6 +141,7 @@ const CreateTeacherAccountPage = () => {
                     </div>
 
                     <form onSubmit={handleSubmit} className="p-1 space-y-3">
+<<<<<<< HEAD
                         {/* Role Selection */}
                         <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100">
                             <div 
@@ -230,6 +277,42 @@ const CreateTeacherAccountPage = () => {
                             </div>
                         </div>
 
+=======
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* First Name */}
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                    <User size={14} /> First Name
+                                </label>
+                                <input
+                                    required
+                                    type="text"
+                                    name="firstName"
+                                    placeholder="e.g. Juan"
+                                    value={formData.firstName}
+                                    onChange={handleChange}
+                                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+
+                            {/* Last Name */}
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                    Last Name
+                                </label>
+                                <input
+                                    required
+                                    type="text"
+                                    name="lastName"
+                                    placeholder="e.g. Dela Cruz"
+                                    value={formData.lastName}
+                                    onChange={handleChange}
+                                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+                        </div>
+
+>>>>>>> Backup
                         {/* Email Address */}
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -255,9 +338,15 @@ const CreateTeacherAccountPage = () => {
                                 <input
                                     required
                                     type="text"
+<<<<<<< HEAD
                                     name="studentId"
                                     placeholder="2024-XXXX"
                                     value={formData.studentId}
+=======
+                                    name="school_id"
+                                    placeholder="2024-XXXX"
+                                    value={formData.school_id}
+>>>>>>> Backup
                                     onChange={handleChange}
                                     className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                 />
@@ -280,6 +369,7 @@ const CreateTeacherAccountPage = () => {
                             </div>
                         </div>
 
+<<<<<<< HEAD
                         <div className="space-y-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
                             <div className="flex justify-between items-center">
                                 <h3 className="text-sm font-bold text-gray-700 uppercase">Assigned Classes</h3>
@@ -338,6 +428,8 @@ const CreateTeacherAccountPage = () => {
                             ))}
                         </div>
 
+=======
+>>>>>>> Backup
                         {/* Action Buttons */}
                         <div className="pt-4 flex items-center gap-3">
                             <button

@@ -1,54 +1,78 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
+
+# =========================
+# Custom User Manager
+# =========================
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email, password=None, role="STUDENT", **extra_fields):
+    def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("Email address is required")
+
         email = self.normalize_email(email)
-        user = self.model(email=email, role=role, **extra_fields)
+        user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault("role", "ADMIN")
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault("role", "ADMIN")
+        extra_fields.setdefault("status", "ACTIVE")
 
         return self.create_user(email, password, **extra_fields)
 
 
+# =========================
+# User Model
+# =========================
 class User(AbstractBaseUser, PermissionsMixin):
+
     ROLE_CHOICES = [
         ("ADMIN", "Admin"),
         ("TEACHER", "Teacher"),
         ("STUDENT", "Student"),
     ]
 
+    STATUS_CHOICES = [
+        ("ACTIVE", "Active"),
+        ("INACTIVE", "Inactive"),
+    ]
+
     email = models.EmailField(unique=True)
+    school_id = models.CharField(max_length=50, unique=True)  # school ID
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="STUDENT")
+
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="ACTIVE")
+
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
     objects = CustomUserManager()
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["first_name","last_name","role"]
+    REQUIRED_FIELDS = ["first_name", "last_name", "school_id", "role"]
 
     def __str__(self):
-        return f"{self.email} ({self.role})"
-    
-    def save(self, *args, **kwargs):
-        is_new = self.pk is None  # checks if user is newly created
-        super().save(*args, **kwargs)
+        return f"{self.school_id} - {self.email} ({self.role})"
 
-        if is_new and self.role == "STUDENT":
-            Student.objects.create(user=self)
+class Section(models.Model):
 
+    GRADE_LEVEL_CHOICES = [
+        ("GRADE_7", "Grade 7"),
+        ("GRADE_8", "Grade 8"),
+        ("GRADE_9", "Grade 9"),
+        ("GRADE_10", "Grade 10"),
+    ]
 
+<<<<<<< HEAD
     
 class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
@@ -86,30 +110,102 @@ class Student(models.Model):
 >>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
 
 
+=======
+    name = models.CharField(max_length=50)  # Section A, B, C
+    grade_level = models.CharField(
+        max_length=20,
+        choices=GRADE_LEVEL_CHOICES
+    )
+
+    adviser = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="advised_sections",
+        limit_choices_to={"role": "TEACHER"},
+    )
+
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("name", "grade_level")
+        ordering = ["grade_level", "name"]
+
+    def __str__(self):
+        return f"{self.get_grade_level_display()} - {self.name}"
+    
+>>>>>>> Backup
 class Subject(models.Model):
-    subject_id = models.CharField(max_length=50, unique=True)
-    name = models.CharField(max_length=150)
-    teacher = models.CharField(max_length=150)
-    progress = models.FloatField(default=0)
-    grade = models.FloatField(default=0)
+    name = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
+
+    teachers = models.ManyToManyField(
+        User,
+        blank=True,
+        limit_choices_to={"role": "TEACHER"},
+        related_name="subjects"
+    )
+
+    class Meta:
+        ordering = ["name"]
 
     def __str__(self):
         return self.name
 
+class SubjectOffering(models.Model):
+    name = models.CharField(max_length=100)
+    section = models.ForeignKey(
+        Section,
+        on_delete=models.CASCADE,
+        related_name="offerings"
+    )
+    teacher = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        limit_choices_to={"role": "TEACHER"}
+    )
+    room_number = models.CharField(max_length=50)
+    schedule = models.CharField(max_length=100)
 
-class Assignment(models.Model):
-    assignment_id = models.CharField(max_length=50, unique=True)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="assignments")
-    title = models.CharField(max_length=255)
-    due_date = models.DateTimeField()
-    status = models.CharField(max_length=100)
-    difficulty = models.CharField(max_length=50)
-    type = models.CharField(max_length=50)
+    class Meta:
+        unique_together = ("name", "section")
+        
+    def __str__(self):
+        return f"{self.subject_name} — {self.section.name}"
+
+# =========================
+# STUDENT PROFILE
+# =========================
+class Student(models.Model):
+
+    GRADE_LEVEL_CHOICES = [
+        ("GRADE_7", "Grade 7"),
+        ("GRADE_8", "Grade 8"),
+        ("GRADE_9", "Grade 9"),
+        ("GRADE_10", "Grade 10"),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
+    grade_level=models.CharField(
+        max_length=20,
+        choices=GRADE_LEVEL_CHOICES
+    )
+    section = models.ForeignKey(
+        Section,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="students"
+    )
 
     def __str__(self):
-        return self.title
+        return f"Student: {self.user.school_id} ({self.grade_level})"
 
 
+<<<<<<< HEAD
 class Quiz(models.Model):
 <<<<<<< HEAD
     quiz_id = models.CharField(max_length=50, unique=True)
@@ -235,19 +331,29 @@ class QuizAnswer(models.Model):
     def __str__(self):
         return f"{self.attempt.student.user.email} - Q{self.question.order}"
 >>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
-
-
-class Resource(models.Model):
-    resource_id = models.CharField(max_length=50, unique=True)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="resources")
-    title = models.CharField(max_length=255)
-    type = models.CharField(max_length=50)
-    url = models.URLField()
-    description = models.TextField(blank=True)
+=======
+# =========================
+# TEACHER PROFILE
+# =========================
+class Teacher(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="teacher_profile")
 
     def __str__(self):
-        return self.title
+        return f"Teacher: {self.user.school_id}"
+>>>>>>> Backup
 
+
+# =========================
+# ADMIN PROFILE
+# =========================
+class Admin(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="admin_profile")
+
+    def __str__(self):
+        return f"Admin: {self.user.school_id}"
+    
+
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 =======
@@ -404,3 +510,5 @@ class QuarterlyGrade(models.Model):
     def __str__(self):
         return f"{self.student.user.email} - {self.subject.name} - {self.quarter}: {self.final_grade:.2f}%"
 >>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+>>>>>>> Backup
