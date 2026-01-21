@@ -112,9 +112,22 @@ class SubjectOfferingViewSet(viewsets.ModelViewSet):
     """
     A ViewSet for managing SubjectOfferings.
     """
-    queryset = SubjectOffering.objects.all()
     serializer_class = SubjectOfferingSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+
+        # Teachers only see their own offerings
+        if user.role == "TEACHER":
+            return SubjectOffering.objects.filter(teacher=user)
+
+        # Admins can see all (optional)
+        if user.role == "ADMIN":
+            return SubjectOffering.objects.all()
+
+        # Others see none
+        return SubjectOffering.objects.none()
 
     @action(detail=False, methods=["get"], url_path="by-section/(?P<section_id>[^/.]+)")
     def by_section(self, request, section_id=None):
