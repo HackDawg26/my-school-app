@@ -16,7 +16,6 @@ import  StudentSubjectpage  from './pages/student/subjects/student-subjects-id.t
 // teacher imports
 
 
-import TeacherSubmissions  from './pages/teacher/submissions/TeacherSubmissions.tsx';
 import AdvisoryClass from './pages/teacher/advisoryClass/AdvisoryClass.tsx';
 import  TeacherDashboard  from './pages/teacher/dashboard/TeacherDashboard.tsx';
 
@@ -119,7 +118,6 @@ function App() {
               <Route path="/teacher/gradebook" element={<Gradebook />} />
               <Route path="/teacher/gradebook/:subjectId" element={<Gradebook />} />
               <Route path="/teacher/grades/quarterly" element={<QuarterlyGradesPage />} />
-              <Route path="/teacher/submissions" element={<TeacherSubmissions />} />
               <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />
               <Route path="/teacher/advisory-class/sf9/:studentId" element={<ExportReportCardPDF />} />
               <Route path="/teacher/quiz" element={<TeacherQuizList />} />

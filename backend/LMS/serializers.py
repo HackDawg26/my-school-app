@@ -173,7 +173,15 @@ class TeacherSerializer(serializers.ModelSerializer):
 
     def get_advisory(self, obj):
         section = obj.advised_sections.first()
-        return f"{section.get_grade_level_display()} - {section.name}" if section else "N/A"
+        if not section:
+            return None
+        # return structured data so frontend can use section.id
+        return {
+            "id": section.id,
+            "name": section.name,
+            "grade_level": section.grade_level,
+            "adviser_name": f"{obj.first_name} {obj.last_name}",
+        }
     
 class SubjectOfferingSerializer(serializers.ModelSerializer):
     section_id = serializers.IntegerField(write_only=True)
@@ -185,10 +193,11 @@ class SubjectOfferingSerializer(serializers.ModelSerializer):
     pendingTasks = serializers.SerializerMethodField()
     section = serializers.CharField(source='section.name', read_only=True)
     teacher_id = serializers.IntegerField(source="teacher.id", read_only=True)
+    teacher_name = serializers.SerializerMethodField()
 
     class Meta:
         model = SubjectOffering
-        fields = ["id", "name", "section", "room_number", "schedule", "section_id", "grade", "students", "nextClass", "average", "pendingTasks", "teacher_id"]
+        fields = ["id", "name", "section", "room_number", "schedule", "section_id", "grade", "students", "nextClass", "average", "pendingTasks", "teacher_id", "teacher_name"]
         read_only_fields = ["id", "section"]
 
     def create(self, validated_data):
@@ -213,8 +222,16 @@ class SubjectOfferingSerializer(serializers.ModelSerializer):
         # TODO: Implement actual average calculation
         return 88
     def get_pendingTasks(self, obj):
-        # TODO: Implement actual pending tasks logic
-        return 3
+        # pending quizzes = all quizzes not CLOSED
+        return obj.quizzes.exclude(status="CLOSED").count()
+    def get_teacher_name(self, obj):
+        if obj.teacher:
+            return f"{obj.teacher.first_name} {obj.teacher.last_name}".strip()
+        return ""
+
+    def get_quiz_count(self, obj):
+        # all quizzes under this subject offering
+        return obj.quizzes.count()
 
 class SubjectSerializer(serializers.ModelSerializer):
     faculty_count = serializers.IntegerField(source="teachers.count", read_only=True)

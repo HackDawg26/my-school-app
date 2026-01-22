@@ -117,6 +117,7 @@ class TeacherSubjectListViewSet(ReadOnlyModelViewSet):
             )
             .order_by("section__grade_level", "section__name")
         )
+
 class SubjectOfferingViewSet(viewsets.ModelViewSet):
     """
     A ViewSet for managing SubjectOfferings.
@@ -169,6 +170,38 @@ class SubjectOfferingViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError({"section_id": "This field is required."})
         section = Section.objects.get(id=section_id)
         serializer.save(section=section, teacher=self.request.user)
+
+    @action(detail=True, methods=["get"], url_path="quizzes")
+    def quizzes(self, request, pk=None):
+        # IMPORTANT: FK field is SubjectOffering / SubjectOffering_id (NOT subject_offering)
+        qs = Quiz.objects.filter(SubjectOffering_id=pk).order_by("-posted_at", "-created_at")
+        return Response(QuizSerializer(qs, many=True).data)
+
+    @action(detail=True, methods=["get"], url_path="recent-quiz-grades")
+    def recent_quiz_grades(self, request, pk=None):
+        attempts = (
+            QuizAttempt.objects
+            .filter(quiz__SubjectOffering_id=pk)
+            .select_related("student__user", "quiz")
+            .order_by("-submitted_at")[:10]
+        )
+
+        data = []
+        for a in attempts:
+            total = a.quiz.total_points or 0
+            percent = round((a.score / total) * 100, 2) if total else 0
+            student_name = f"{a.student.user.first_name} {a.student.user.last_name}".strip()
+
+            data.append({
+                "student": student_name,
+                "quiz": a.quiz.title,
+                "score": a.score,
+                "total": total,
+                "percent": percent,
+                "submitted_at": a.submitted_at,
+            })
+
+        return Response(data)
 # =========================
 # CREATE USER (ADMIN ONLY)
 # =========================
@@ -231,7 +264,48 @@ class StudentViewSet(ModelViewSet):
             queryset = queryset.filter(section__isnull=True)
 
         return queryset
+    @action(detail=True, methods=["get"], url_path="quarterly-summary")
+    def quarterly_summary(self, request, pk=None):
+        student = self.get_object()
 
+        grades = (
+            QuarterlyGrade.objects
+            .filter(student=student)
+            .select_related("SubjectOffering")
+            .order_by("SubjectOffering_id", "quarter")
+        )
+
+        # group by offering
+        by_offering = {}
+        for g in grades:
+            oid = g.SubjectOffering_id
+            if oid not in by_offering:
+                by_offering[oid] = {
+                    "subject_offering_id": oid,
+                    "subject": g.SubjectOffering.name,
+                    "q1": None,
+                    "q2": None,
+                    "q3": None,
+                    "q4": None,
+                    "final": None,
+                }
+
+            if g.quarter == "Q1":
+                by_offering[oid]["q1"] = g.final_grade
+            elif g.quarter == "Q2":
+                by_offering[oid]["q2"] = g.final_grade
+            elif g.quarter == "Q3":
+                by_offering[oid]["q3"] = g.final_grade
+            elif g.quarter == "Q4":
+                by_offering[oid]["q4"] = g.final_grade
+
+        # compute final average (if at least one quarter exists)
+        for item in by_offering.values():
+            vals = [item["q1"], item["q2"], item["q3"], item["q4"]]
+            vals = [v for v in vals if v is not None]
+            item["final"] = round(sum(vals) / len(vals), 2) if vals else None
+
+        return Response(list(by_offering.values()))
 class TeacherViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.filter(role="TEACHER")
     serializer_class = TeacherSerializer

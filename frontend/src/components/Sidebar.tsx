@@ -9,6 +9,7 @@ import {
   Book,
   Users,
   Banknote,
+  ClipboardList,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -32,15 +33,15 @@ const adminLinks: NavItem[] = [
   {name: "Accounts", to: "/admin/accounts", Icon: Users },
   { name: "Faculty", to: "/admin/faculty", Icon: Users },
   { name: "Students", to: "/admin/students", Icon: Users },
-  // { name: "Sections", to: "/admin/sections", Icon: Users },
+  { name: "Submission", to: "/admin/submission", Icon: Users },
   { name: "Grade Logs", to: "/admin/gradelogs", Icon: Users },
 ];
 
 const teacherLinks: NavItem[] = [
   { name: "Dashboard", to: "/teacher/dashboard", Icon: LayoutDashboard },
   { name: "Subjects", to: "/teacher/subject", Icon: BookCopy },
+  { name: "Quizzes", to: "/teacher/quiz", Icon: ClipboardList },
   { name: "Analytics", to: "/teacher/analytics", Icon: BarChart3 },
-  { name: "Submissions", to: "/teacher/submissions", Icon: CheckSquare },
   { name: "Gradebook", to: "/teacher/gradebook", Icon: Book },
   { name: "Advisory Class", to: "/teacher/advisory-class", Icon: Banknote },
 ];
@@ -48,6 +49,7 @@ const teacherLinks: NavItem[] = [
 const studentLinks: NavItem[] = [
   { name: "Dashboard", to: "/student/dashboard", Icon: LayoutDashboard },
   { name: "Subjects", to: "/student/subject", Icon: BookCopy },
+  { name: "Quizzes", to: "/student/quiz", Icon: ClipboardList },
   { name: "Submissions", to: "/student/submissions", Icon: CheckSquare },
   { name: "Gradebook", to: "/student/gradebook", Icon: Book },
 ];
