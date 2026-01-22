@@ -1,7 +1,21 @@
+<<<<<<< HEAD
+<<<<<<< HEAD
+import React, { type JSX } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { ArrowLeft } from "lucide-react";
+=======
 import React, { useState, type JSX } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ArrowLeft, FileText, ShieldCheck } from "lucide-react";
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+import React, { useState, type JSX } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { ArrowLeft, FileText, ShieldCheck } from "lucide-react";
+>>>>>>> Backup
 import { useNavigate } from 'react-router-dom';
 import deped_logo from '../../../assets/deped_logo.png';
 
@@ -53,10 +67,19 @@ const MONTHS = ['','AUG', 'SEPT','OCT','NOV', 'DEC', 'JAN', 'FEB', 'MAR', 'APR',
 
 export default function ExportReportCardPDF(): JSX.Element {
     const navigate = useNavigate();
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> Backup
     
     // Add a state to toggle the preview if you want, or just show it by default
     const [showPreview, setShowPreview] = useState(true);
     const [activePage, setActivePage] = useState(1);
+<<<<<<< HEAD
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+>>>>>>> Backup
 
     // Replicating your JSX Image Helper with Types
     const getBase64ImageFromURL = (url: string): Promise<string> => {
@@ -332,6 +355,30 @@ export default function ExportReportCardPDF(): JSX.Element {
     };
 
     return (
+<<<<<<< HEAD
+<<<<<<< HEAD
+        <div className="flex flex-col gap-4 p-8">
+            <div className="flex items-center gap-4">
+                <button
+                    onClick={() => navigate('/teacher/advisory-class')}
+                    className="p-2 hover:bg-gray-100 rounded-full inline-flex items-center"
+                >
+                    <ArrowLeft size={24} />
+                    <span className="ml-2">Back</span>
+                </button>
+                
+                <button
+                    onClick={handleExport}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition duration-200"
+                >
+                    Export Report Card PDF
+                </button>
+            </div>
+            
+            <p className="text-sm text-gray-500 italic">
+                The output will be a 2-page landscape PDF compliant with DepEd SF9 standards.
+            </p>
+=======
         <div className="flex flex-col gap-6 p-8 bg-white rounded-3xl border border-slate-200 shadow-sm mb-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 {/* Navigation Group */}
@@ -358,6 +405,34 @@ export default function ExportReportCardPDF(): JSX.Element {
                     </button>
                 </div>
             </div>
+=======
+        <div className="flex flex-col gap-6 p-8 bg-white rounded-3xl border border-slate-200 shadow-sm mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* Navigation Group */}
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => navigate('/teacher/advisory-class')}
+                        className="group flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-slate-900 transition-all font-bold text-sm"
+                    >
+                        <div className="p-2 bg-slate-50 group-hover:bg-slate-100 rounded-full transition-colors">
+                            <ArrowLeft size={20} />
+                        </div>
+                        <span>Back to Masterlist</span>
+                    </button>
+                </div>
+
+                {/* Action Group */}
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleExport}
+                        className="relative flex items-center gap-2 px-8 py-3 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 hover:-translate-y-0.5 transition-all shadow-xl shadow-slate-200 active:translate-y-0"
+                    >
+                        <FileText size={18} className="opacity-70" />
+                        Export Report Card (SF9)
+                    </button>
+                </div>
+            </div>
+>>>>>>> Backup
 
             {/* Informational Footer */}
             <div className="flex items-start gap-3 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
@@ -654,6 +729,10 @@ export default function ExportReportCardPDF(): JSX.Element {
                     </div>
                 </div>
             )}
+<<<<<<< HEAD
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+>>>>>>> Backup
         </div>
     );
 }

@@ -10,7 +10,15 @@ import { useAuth } from '../src/context/AuthContext.tsx'; // Import your auth ho
 import SubjectsPage from './pages/student/subjects/student-subjects.tsx';
 import GradesPage from './pages/student/gradebook/student-grades.tsx';
 import { StudentSubmissions } from './pages/student/submission/StudentSubmissions.tsx';
+<<<<<<< HEAD
+<<<<<<< HEAD
+import { StudentDashboard } from './pages/student/dashboard/studentdashboard.tsx';
+=======
 
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+
+>>>>>>> Backup
 import  StudentSubjectpage  from './pages/student/subjects/student-subjects-id.tsx';
 
 // teacher imports
@@ -29,9 +37,20 @@ import { FacultyPage } from './pages/admin/faculty/FacultyPage.tsx';
 import { StudentAccountsPage} from './pages/admin/students/StudentsPage.tsx';
 import GradeLogs from './pages/admin/gradelogs/GradeLogs.tsx';
 import AccountListPage from './pages/admin/accounts/Account-list.tsx';
+<<<<<<< HEAD
 import CreateSubjectPage from './pages/admin/students/addFacultyMember.tsx';
 
 import Gradebook from './pages/teacher/gradebook/GradeBook.tsx';
+<<<<<<< HEAD
+=======
+import QuarterlyGradesPage from './pages/teacher/gradebook/QuarterlyGradesPage.tsx';
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+import CreateSectionPage from './pages/admin/students/create-subject.tsx';
+
+import Gradebook from './pages/teacher/gradebook/GradeBook.tsx';
+import QuarterlyGradesPage from './pages/teacher/gradebook/QuarterlyGradesPage.tsx';
+>>>>>>> Backup
 import ExportReportCardPDF from './pages/teacher/advisoryClass/SF9.tsx';
 // import SubjectPage from './pages/teacher/subjects/SubjectPage.tsx';
 import SubjectListPage from './pages/teacher/subjects/subject.tsx';
@@ -43,9 +62,32 @@ import CreateStudentAccountPage from './pages/admin/accounts/create-accounts/Cre
 import CreateAdminAccountPage from './pages/admin/accounts/create-accounts/Create-admin-account.tsx';
 import CreateFacultyPage from './pages/admin/faculty/createFaculty.tsx';
 import SubmissionReport from './pages/admin/submissions/report.tsx';
+<<<<<<< HEAD
+<<<<<<< HEAD
+
+=======
 import StudentDashboard from './pages/student/dashboard/StudentDashboard.tsx';
 import SubjectAnalytics from './pages/teacher/analytics/SubjectAnalytics.tsx';
 
+=======
+import StudentDashboard from './pages/student/dashboard/StudentDashboard.tsx';
+import SubjectAnalytics from './pages/teacher/analytics/SubjectAnalytics.tsx';
+
+>>>>>>> Backup
+// Quiz imports
+import TeacherQuizList from './pages/teacher/quiz/TeacherQuizList.tsx';
+import CreateQuiz from './pages/teacher/quiz/CreateQuiz.tsx';
+import ManageQuiz from './pages/teacher/quiz/ManageQuiz.tsx';
+import QuizItemAnalysis from './pages/teacher/quiz/QuizItemAnalysis.tsx';
+import StudentQuizList from './pages/student/quiz/StudentQuizList.tsx';
+import TakeQuiz from './pages/student/quiz/TakeQuiz.tsx';
+import QuizResult from './pages/student/quiz/QuizResult.tsx';
+import StudentGradeForecast from './pages/student/gradeForecast/StudentGradeForecast.tsx';
+import StudentQuarterlyGrades from './pages/student/grades/StudentQuarterlyGrades.tsx';
+<<<<<<< HEAD
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+>>>>>>> Backup
 
 
 function App() {
@@ -72,7 +114,24 @@ function App() {
               <Route path="/student/subject" element={<SubjectsPage />} />
               <Route path="/student/subject/:id" element={<StudentSubjectpage />} />
               <Route path="/student/gradebook" element={<GradesPage />} />
+<<<<<<< HEAD
+<<<<<<< HEAD
               <Route path="/student/submissions" element={<StudentSubmissions />} />
+=======
+              <Route path="/student/grades/quarterly" element={<StudentQuarterlyGrades />} />
+              <Route path="/student/submissions" element={<StudentSubmissions />} />
+=======
+              <Route path="/student/grades/quarterly" element={<StudentQuarterlyGrades />} />
+              <Route path="/student/submissions" element={<StudentSubmissions />} />
+>>>>>>> Backup
+              <Route path="/student/quiz" element={<StudentQuizList />} />
+              <Route path="/student/quiz/:id/take" element={<TakeQuiz />} />
+              <Route path="/student/quiz/result" element={<QuizResult />} />
+              <Route path="/student/grade-forecast" element={<StudentGradeForecast />} />
+<<<<<<< HEAD
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+>>>>>>> Backup
               {/* You can add more student pages here like /student/grades */}
             </Route>
 
@@ -99,12 +158,36 @@ function App() {
                   <Route path=':id/activities' element={<ActivityPage />}/> */}
                 </Route>
               </Route>
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
               <Route path='/teacher/analytics' element={<SubjectAnalytics />} />
+>>>>>>> Backup
               <Route path="/teacher/gradebook" element={<Gradebook />} />
               <Route path="/teacher/gradebook/:subjectId" element={<Gradebook />} />
+              <Route path="/teacher/grades/quarterly" element={<QuarterlyGradesPage />} />
               <Route path="/teacher/submissions" element={<TeacherSubmissions />} />
               <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />
               <Route path="/teacher/advisory-class/sf9/:studentId" element={<ExportReportCardPDF />} />
+<<<<<<< HEAD
+=======
+              <Route path='/teacher/analytics' element={<SubjectAnalytics />} />
+              <Route path="/teacher/gradebook" element={<Gradebook />} />
+              <Route path="/teacher/gradebook/:subjectId" element={<Gradebook />} />
+              <Route path="/teacher/grades/quarterly" element={<QuarterlyGradesPage />} />
+              <Route path="/teacher/submissions" element={<TeacherSubmissions />} />
+              <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />
+              <Route path="/teacher/advisory-class/sf9/:studentId" element={<ExportReportCardPDF />} />
+=======
+>>>>>>> Backup
+              <Route path="/teacher/quiz" element={<TeacherQuizList />} />
+              <Route path="/teacher/quiz/create" element={<CreateQuiz />} />
+              <Route path="/teacher/quiz/:id" element={<ManageQuiz />} />
+              <Route path="/teacher/quiz/:id/item-analysis" element={<QuizItemAnalysis />} />
+<<<<<<< HEAD
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+>>>>>>> Backup
               
 
             </Route>
@@ -120,7 +203,11 @@ function App() {
               <Route path="/admin/faculty/add-faculty" element={<CreateFacultyPage />} />
               <Route path="/admin/faculty/:department" element={<FacultyList />} />
               <Route path="/admin/students" element={<StudentAccountsPage />} />
+<<<<<<< HEAD
               <Route path="/admin/students/add-section" element={<CreateSubjectPage />} />
+=======
+              <Route path="/admin/students/add-section" element={<CreateSectionPage />} />
+>>>>>>> Backup
               <Route path="/admin/students/:sectionId" element={<StudentClassList />} />
               <Route path="/admin/submission" element={<SubmissionReport />} />
               <Route path="/admin/gradelogs" element={<GradeLogs />} />

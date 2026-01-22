@@ -1,4 +1,12 @@
+<<<<<<< HEAD
+<<<<<<< HEAD
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+=======
 import { AlertCircle, Calendar, ChevronLeft, ChevronRight, Inbox, Search } from "lucide-react";
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+import { AlertCircle, Calendar, ChevronLeft, ChevronRight, Inbox, Search } from "lucide-react";
+>>>>>>> Backup
 import React, { useState, type ChangeEvent } from "react";
 
 // --- Interfaces ---
@@ -42,6 +50,34 @@ const SubjectActivityList = ({ subject, onSelectActivity, onBack }: SubjectActiv
     );
 
     return (
+<<<<<<< HEAD
+<<<<<<< HEAD
+        <div className=" bg-gray-50 min-h-full">
+            <header className="flex flex-col sm:flex-row sm:justify-between sm:items-end mb-6 border-b pb-4">
+                <div className="space-y-1 mb-4 sm:mb-0">
+                    <button 
+                        className="flex items-center text-blue-600 hover:text-blue-800 transition duration-150 text-sm font-medium" 
+                        onClick={onBack}
+                    >
+                        <ChevronLeft size={18} className="mr-1" /> Back to Subjects
+                    </button>
+                    <h1 className="text-3xl font-bold text-gray-900">{subject.name} Activities</h1>
+                    <p className="text-sm text-gray-500">{activitiesWithCounts.length} Total Assignments/Quizzes</p>
+                </div>
+                
+                {/* Search Toolbar */}
+                <div className="toolbar w-full sm:w-64 relative">
+                    <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input 
+                        type="text" 
+                        placeholder="Search activities..." 
+                        className={inputClass} 
+                        value={activityQuery}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setActivityQuery(e.target.value)}
+                    />
+=======
+=======
+>>>>>>> Backup
         <div className="bg-slate-50/50 min-h-full p-1">
             {/* Navigation & Header */}
             <header className="flex flex-col gap-6 mb-8">
@@ -76,6 +112,10 @@ const SubjectActivityList = ({ subject, onSelectActivity, onBack }: SubjectActiv
                             onChange={(e) => setActivityQuery(e.target.value)}
                         />
                     </div>
+<<<<<<< HEAD
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+>>>>>>> Backup
                 </div>
             </header>
 
@@ -84,13 +124,28 @@ const SubjectActivityList = ({ subject, onSelectActivity, onBack }: SubjectActiv
                 {filteredActivities.length > 0 ? (
                     filteredActivities.map((act) => {
                         const submittedPercent = (act.submittedCount / act.totalCount) * 100;
+<<<<<<< HEAD
+<<<<<<< HEAD
+                        const progressColor = submittedPercent < 50 ? 'bg-red-500' : (submittedPercent < 100 ? 'bg-yellow-500' : 'bg-green-500');
+=======
                         // Refined Color Palette
                         const barColor = submittedPercent < 50 ? 'bg-rose-500' : (submittedPercent < 100 ? 'bg-amber-500' : 'bg-emerald-500');
                         const isUrgent = act.submittedCount > 0 && submittedPercent < 100;
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+                        // Refined Color Palette
+                        const barColor = submittedPercent < 50 ? 'bg-rose-500' : (submittedPercent < 100 ? 'bg-amber-500' : 'bg-emerald-500');
+                        const isUrgent = act.submittedCount > 0 && submittedPercent < 100;
+>>>>>>> Backup
 
                         return (
                             <div 
                                 key={act.id} 
+<<<<<<< HEAD
+<<<<<<< HEAD
+                                className="bg-white rounded-xl shadow-lg p-5 border border-gray-200 hover:shadow-xl hover:border-blue-300 transition duration-300 cursor-pointer flex flex-col justify-between" 
+=======
+>>>>>>> Backup
                                 onClick={() => onSelectActivity(act)}
                                 className="group flex flex-col bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300 cursor-pointer relative"
                             >
@@ -104,6 +159,27 @@ const SubjectActivityList = ({ subject, onSelectActivity, onBack }: SubjectActiv
                                         <span className="text-xs font-bold tracking-tight">{act.dueDate}</span>
                                     </div>
                                 </div>
+<<<<<<< HEAD
+                                
+                                <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                                    <p className="text-sm text-gray-500">Total Students: {act.totalCount}</p>
+                                    <ChevronRight size={18} className="text-gray-400" />
+=======
+                                onClick={() => onSelectActivity(act)}
+                                className="group flex flex-col bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300 cursor-pointer relative"
+                            >
+                                {/* Type Indicator & Date */}
+                                <div className="flex justify-between items-start mb-4">
+                                    <span className="px-2 py-1 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded">
+                                        {'Assignment'}
+                                    </span>
+                                    <div className="flex items-center gap-1 text-slate-400">
+                                        <Calendar size={14} />
+                                        <span className="text-xs font-bold tracking-tight">{act.dueDate}</span>
+                                    </div>
+                                </div>
+=======
+>>>>>>> Backup
 
                                 <h4 className="text-lg font-bold text-slate-800 mb-6 group-hover:text-indigo-600 transition-colors leading-snug">
                                     {act.title}
@@ -140,17 +216,32 @@ const SubjectActivityList = ({ subject, onSelectActivity, onBack }: SubjectActiv
                                 <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
                                     <span className="text-xs font-bold text-indigo-600">Review Activity</span>
                                     <ChevronRight size={16} className="text-indigo-600" strokeWidth={3} />
+<<<<<<< HEAD
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+>>>>>>> Backup
                                 </div>
                             </div>
                         );
                     })
                 ) : (
+<<<<<<< HEAD
+<<<<<<< HEAD
+                    <div className="col-span-full p-10 text-center bg-white rounded-xl shadow-lg text-gray-500">
+                        No activities match your search query in this subject.
+=======
+=======
+>>>>>>> Backup
                     <div className="col-span-full py-20 flex flex-col items-center justify-center bg-white rounded-3xl border border-slate-200 text-slate-400 shadow-inner">
                         <div className="bg-slate-50 p-6 rounded-full mb-4">
                             <Inbox size={48} className="opacity-20" />
                         </div>
                         <p className="text-lg font-bold text-slate-600">No matching activities</p>
                         <p className="text-sm">Try adjusting your search terms for this subject.</p>
+<<<<<<< HEAD
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+>>>>>>> Backup
                     </div>
                 )}
             </div>

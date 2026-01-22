@@ -46,9 +46,21 @@ export const useSubjects = () => {
 // --- 4. Initial Data ---
 
 const INITIAL_SUBJECTS: Subject[] = [
+<<<<<<< HEAD
+<<<<<<< HEAD
+    { id: 1, subject: "Math", section: "1", grade: 7, room: "201", students: 28, nextClass: "Mon 9:00 AM", average: 84, pendingTasks: 3 },
+    { id: 2, subject: "Algebra", section: "2", grade: 8, room: "204", students: 26, nextClass: "Tue 10:30 AM", average: 88, pendingTasks: 2 },
+    { id: 3, subject: "Geometry", section: "1", grade: 9, room: "305", students: 30, nextClass: "Wed 11:15 AM", average: 81, pendingTasks: 4 },
+=======
     { id: 1, subject: "Math", section: "1", grade: 7, room: "201", students: 28, nextClass: "Mon 9:00 AM", average: 84, pendingTasks: 6 },
     { id: 2, subject: "Algebra", section: "2", grade: 8, room: "204", students: 26, nextClass: "Tue 10:30 AM", average: 88, pendingTasks: 7 },
     { id: 3, subject: "Geometry", section: "1", grade: 9, room: "305", students: 30, nextClass: "Wed 11:15 AM", average: 81, pendingTasks: 7 },
+>>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+=======
+    { id: 1, subject: "Math", section: "1", grade: 7, room: "201", students: 28, nextClass: "Mon 9:00 AM", average: 84, pendingTasks: 6 },
+    { id: 2, subject: "Algebra", section: "2", grade: 8, room: "204", students: 26, nextClass: "Tue 10:30 AM", average: 88, pendingTasks: 7 },
+    { id: 3, subject: "Geometry", section: "1", grade: 9, room: "305", students: 30, nextClass: "Wed 11:15 AM", average: 81, pendingTasks: 7 },
+>>>>>>> Backup
 ];
 
 // --- 5. Provider Component ---

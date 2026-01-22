@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+<<<<<<< HEAD
 import { ArrowLeft, UserPlus, ShieldCheck, Mail, Fingerprint, User, GraduationCap } from "lucide-react";
+=======
+import { ArrowLeft, UserPlus, ShieldCheck, Mail, Fingerprint, User, GraduationCap  } from "lucide-react";
+>>>>>>> Backup
 
 const CreateStudentAccountPage = () => {
   
@@ -13,9 +17,15 @@ const CreateStudentAccountPage = () => {
     lastName: "",
     email: "",
     password: "",
+<<<<<<< HEAD
     studentId: "",
     gradeLevel: "", // New Field
     role: "STUDENT", 
+=======
+    school_id: "",
+    role: "STUDENT",
+    grade_level:"",
+>>>>>>> Backup
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -24,9 +34,10 @@ const CreateStudentAccountPage = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
+<<<<<<< HEAD
     console.log("Saving Account Data:", formData);
 
     setTimeout(() => {
@@ -35,6 +46,47 @@ const CreateStudentAccountPage = () => {
       navigate(-1);
     }, 1000);
   };
+=======
+  
+
+  try {
+    const token = localStorage.getItem("access");
+
+    const response = await fetch("http://127.0.0.1:8000/api/user/create/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        school_id:formData.school_id,
+        student_profile: {
+          grade_level: `GRADE_${formData.grade_level}`,
+        },
+        role: "STUDENT",
+      }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.detail || "Failed to create user");
+    }
+
+    alert("Account created successfully!");
+    navigate(-1);
+
+  } catch (error: any) {
+    alert(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+>>>>>>> Backup
 
   return (
 
@@ -115,6 +167,7 @@ const CreateStudentAccountPage = () => {
                   <Fingerprint size={14} /> Student ID
                 </label>
                 <input
+<<<<<<< HEAD
                   required
                   type="text"
                   name="studentId"
@@ -127,6 +180,38 @@ const CreateStudentAccountPage = () => {
 
               {/* Grade Level Selection */}
               <div className="space-y-1.5">
+=======
+                    required
+                    type="text"
+                    name="school_id"
+                    placeholder="2024-XXXX"
+                    value={formData.school_id}
+                    onChange={handleChange}
+                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+                </div>
+                <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <GraduationCap size={14} /> Grade Level
+                </label>
+                <select
+                  required
+                  name="grade_level"
+                  value={formData.grade_level}
+                  onChange={handleChange}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer transition-all"
+                >
+                  <option value="">Select Grade</option>
+                  {[7, 8, 9, 10].map((grade) => (
+                    <option key={grade} value={grade}>
+                      Grade {grade}
+                    </option>
+                  ))}
+                </select>
+              </div>
+                {/* Password */}
+                <div className="space-y-1.5">
+>>>>>>> Backup
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <GraduationCap size={14} /> Grade Level
                 </label>

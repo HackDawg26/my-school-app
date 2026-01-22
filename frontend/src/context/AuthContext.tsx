@@ -1,14 +1,14 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
 
-// 1. Define what a "User" looks like
-interface User {
+export type Role = "STUDENT" | "TEACHER" | "ADMIN";
+
+export interface User {
   id: string;
   email: string;
-  role: 'STUDENT' | 'TEACHER' | 'ADMIN';
+  role: Role;
   token: string;
 }
 
-// 2. Define what the "Brain" (Context) provides to the app
 interface AuthContextType {
   user: User | null;
   login: (userData: User) => void;
@@ -22,23 +22,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 3. Persistence: Check if the user was already logged in when the page refreshes
   useEffect(() => {
-    const savedUser = localStorage.getItem('school_user');
+    const savedUser = localStorage.getItem("user");
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        if (parsedUser.role) {
+          parsedUser.role = parsedUser.role.toUpperCase();
+          setUser(parsedUser);
+        }
+      } catch {
+        setUser(null);
+      }
     }
     setIsLoading(false);
   }, []);
 
   const login = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem('school_user', JSON.stringify(userData));
+    const normalizedUser = { ...userData, role: userData.role.toUpperCase() as Role };
+    setUser(normalizedUser);
+    localStorage.setItem("user", JSON.stringify(normalizedUser));
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('school_user');
+    localStorage.removeItem("user");
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
   };
 
   return (
@@ -48,7 +58,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// 4. Custom Hook for easy access
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within an AuthProvider");
