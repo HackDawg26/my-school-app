@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, UserPlus, ShieldCheck, Mail, User, ShieldAlert } from "lucide-react";
+import { ArrowLeft, UserPlus, ShieldCheck, Mail, User, ShieldAlert, Fingerprint } from "lucide-react";
 
 const CreateAdminAccountPage = () => {
   const navigate = useNavigate();
@@ -12,12 +12,8 @@ const CreateAdminAccountPage = () => {
     lastName: "",
     email: "",
     password: "",
-<<<<<<< HEAD
-    role: "ADMIN", // Fixed role for this page
-=======
     school_id: "",
     role: "ADMIN", // Default role
->>>>>>> Backup
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -29,17 +25,6 @@ const CreateAdminAccountPage = () => {
   e.preventDefault();
   setLoading(true);
 
-<<<<<<< HEAD
-    console.log("Saving Admin Data:", formData);
-
-    // Simulate API delay
-    setTimeout(() => {
-      setLoading(false);
-      alert("Administrator account created successfully!");
-      navigate(-1);
-    }, 1000);
-  };
-=======
   try {
     const accessToken = localStorage.getItem("access");
 
@@ -75,7 +60,6 @@ const CreateAdminAccountPage = () => {
     setLoading(false);
   }
 };
->>>>>>> Backup
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6">
@@ -150,23 +134,6 @@ const CreateAdminAccountPage = () => {
               />
             </div>
 
-<<<<<<< HEAD
-            {/* Password */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <ShieldCheck size={14} /> Secure Password
-              </label>
-              <input
-                required
-                type="password"
-                name="password"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-              />
-              <p className="text-[10px] text-gray-400">Ensure the password contains at least 8 characters.</p>
-=======
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* ID Number */}
                 <div className="space-y-1.5">
@@ -199,7 +166,6 @@ const CreateAdminAccountPage = () => {
                     className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
                 </div>
->>>>>>> Backup
             </div>
 
             {/* Action Buttons */}

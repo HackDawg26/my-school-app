@@ -19,11 +19,8 @@ type Section = {
 
 export const StudentAccountsPage = () => {
   const navigate = useNavigate();
-<<<<<<< HEAD
-=======
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
->>>>>>> Backup
 
   /* =========================
      FETCH SECTIONS

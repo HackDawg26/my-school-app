@@ -1,8 +1,4 @@
 from django.contrib import admin
-<<<<<<< HEAD
-
-# Register your models here.
-=======
 from .models import (
     User, Student, Subject, Assignment, Quiz, QuizQuestion, 
     QuizChoice, QuizAttempt, QuizAnswer, Resource, Grade
@@ -20,4 +16,3 @@ admin.site.register(QuizAttempt)
 admin.site.register(QuizAnswer)
 admin.site.register(Resource)
 admin.site.register(Grade)
->>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f

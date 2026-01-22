@@ -1,14 +1,7 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
-<<<<<<< HEAD
-import { useState } from "react";
-<<<<<<< HEAD
-=======
-import axios from 'axios';
->>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
-=======
->>>>>>> Backup
 
 // Logo Component
 const SchoolLogo = () => (
@@ -30,15 +23,15 @@ const SchoolLogo = () => (
       </svg>
     </div>
     <div className="flex flex-col text-left">
-      <h2 className="font-headline text-3xl font-semibold leading-none">
-        ClaroEd
-      </h2>
+      <h2 className="font-headline text-3xl font-semibold leading-none">ClaroEd</h2>
       <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
         Management System
       </span>
     </div>
   </div>
 );
+
+type Role = "STUDENT" | "TEACHER" | "ADMIN";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -55,106 +48,55 @@ export const LoginPage = () => {
     setError("");
 
     try {
-<<<<<<< HEAD
-<<<<<<< HEAD
-      // Simulate a network delay (Senior Devs always handle the "Loading" state)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-=======
-      const response = await fetch("http://127.0.0.1:8000/api/token/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      // Call backend
+      const res = await axios.post("http://127.0.0.1:8000/api/token/", {
+        email,
+        password,
       });
->>>>>>> Backup
 
-      if (!response.ok) {
-        throw new Error("Invalid email or password");
-      }
+      const { access, refresh, user } = res.data;
 
-      const data = await response.json();
+      if (!user?.role) throw new Error("User role not defined");
 
-      if (!data.user || !data.user.role) {
-        throw new Error("User role not defined");
-      }
+      const role = String(user.role).toUpperCase() as Role;
 
-      // Normalize role to uppercase
-      const role = data.user.role.toUpperCase();
+      // Store tokens (optional but common)
+      localStorage.setItem("access", access);
+      if (refresh) localStorage.setItem("refresh", refresh);
 
-      // Create User object for AuthContext
-      const user = {
-        id: data.user.id,
-        email: data.user.email,
-        role: role as "STUDENT" | "TEACHER" | "ADMIN",
-        token: data.access,
+      const userData = {
+        id: String(user.id),
+        email: user.email,
+        role,
+        token: access,
       };
+
+      localStorage.setItem("user", JSON.stringify(userData));
 
       // Update AuthContext
-      login(user);
-
-<<<<<<< HEAD
-      // 4. Navigation Logic
-=======
-      // Call the Django backend API for authentication
-      const response = await axios.post('http://127.0.0.1:8000/api/token/', {
-        email: email,
-        password: password
-      });
-
-      // Extract data from response
-      const { access, user } = response.data;
-      
-      // Create user object with token
-      const userData = {
-        id: user.id.toString(),
-        email: user.email,
-        role: user.role || 'STUDENT', // Default to STUDENT if role not provided
-        token: access  // JWT access token
-      };
-
-      // Update global Auth context
       login(userData);
 
-      // Navigation based on role
->>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
-      const dashboardMap = {
-        ADMIN: '/admin/dashboard',
-        TEACHER: '/teacher/dashboard',
-        STUDENT: '/student/dashboard',
-      };
-
-<<<<<<< HEAD
-      navigate(dashboardMap[role]);
-      
-    } catch (err) {
-      setError('Invalid email or password. Please try again.');
-=======
-      navigate(dashboardMap[userData.role]);
-      
-    } catch (err: any) {
-      console.error('Login error:', err);
-      if (err.response?.status === 401) {
-        setError('Invalid email or password. Please try again.');
-      } else {
-        setError('An error occurred during login. Please try again later.');
-      }
->>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
-=======
-      // Persist user and tokens in localStorage
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("access", data.access);
-      localStorage.setItem("refresh", data.refresh);
-
-      // Redirect to dashboard based on role
-      const dashboardMap: Record<string, string> = {
+      // Navigate by role
+      const dashboardMap: Record<Role, string> = {
         ADMIN: "/admin/dashboard",
         TEACHER: "/teacher/dashboard",
         STUDENT: "/student/dashboard",
       };
 
-      navigate(dashboardMap[role] || "/login");
+      navigate(dashboardMap[role]);
     } catch (err: any) {
-      setError(err.message || "Login failed");
->>>>>>> Backup
+      console.error("Login error:", err);
+
+      // Axios error handling
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 401) {
+          setError("Invalid email or password. Please try again.");
+        } else {
+          setError("An error occurred during login. Please try again later.");
+        }
+      } else {
+        setError(err?.message || "Login failed");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -172,9 +114,7 @@ export const LoginPage = () => {
         </div>
 
         {error && (
-          <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg">
-            {error}
-          </div>
+          <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg">{error}</div>
         )}
 
         <form className="space-y-5" onSubmit={handleLogin}>

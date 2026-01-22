@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -60,8 +61,6 @@ REST_FRAMEWORK = {
     ],
 }
 
-<<<<<<< HEAD
-=======
 # JWT Settings - Extended token lifetime for better user experience
 from datetime import timedelta
 
@@ -89,7 +88,6 @@ SIMPLE_JWT = {
     'JTI_CLAIM': 'jti',
 }
 
->>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite default port
 ]
@@ -166,12 +164,8 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-<<<<<<< HEAD
-AUTH_USER_MODEL = 'LMS.User'
-=======
 AUTH_USER_MODEL = 'LMS.User'
 
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 OPENAI_MODEL = 'gpt-3.5-turbo'
->>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f

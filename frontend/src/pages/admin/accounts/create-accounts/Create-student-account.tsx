@@ -1,10 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-<<<<<<< HEAD
-import { ArrowLeft, UserPlus, ShieldCheck, Mail, Fingerprint, User, GraduationCap } from "lucide-react";
-=======
 import { ArrowLeft, UserPlus, ShieldCheck, Mail, Fingerprint, User, GraduationCap  } from "lucide-react";
->>>>>>> Backup
 
 const CreateStudentAccountPage = () => {
   
@@ -17,15 +13,9 @@ const CreateStudentAccountPage = () => {
     lastName: "",
     email: "",
     password: "",
-<<<<<<< HEAD
-    studentId: "",
-    gradeLevel: "", // New Field
-    role: "STUDENT", 
-=======
     school_id: "",
     role: "STUDENT",
     grade_level:"",
->>>>>>> Backup
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -37,16 +27,6 @@ const CreateStudentAccountPage = () => {
   e.preventDefault();
   setLoading(true);
 
-<<<<<<< HEAD
-    console.log("Saving Account Data:", formData);
-
-    setTimeout(() => {
-      setLoading(false);
-      alert("Account created successfully!");
-      navigate(-1);
-    }, 1000);
-  };
-=======
   
 
   try {
@@ -86,7 +66,6 @@ const CreateStudentAccountPage = () => {
   }
 };
 
->>>>>>> Backup
 
   return (
 
@@ -167,20 +146,6 @@ const CreateStudentAccountPage = () => {
                   <Fingerprint size={14} /> Student ID
                 </label>
                 <input
-<<<<<<< HEAD
-                  required
-                  type="text"
-                  name="studentId"
-                  placeholder="2024-XXXX"
-                  value={formData.studentId}
-                  onChange={handleChange}
-                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                />
-              </div>
-
-              {/* Grade Level Selection */}
-              <div className="space-y-1.5">
-=======
                     required
                     type="text"
                     name="school_id"
@@ -211,14 +176,13 @@ const CreateStudentAccountPage = () => {
               </div>
                 {/* Password */}
                 <div className="space-y-1.5">
->>>>>>> Backup
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <GraduationCap size={14} /> Grade Level
                 </label>
                 <select
                   required
                   name="gradeLevel"
-                  value={formData.gradeLevel}
+                  value={formData.grade_level}
                   onChange={handleChange}
                   className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer transition-all"
                 >

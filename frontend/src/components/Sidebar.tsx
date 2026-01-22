@@ -9,10 +9,7 @@ import {
   Book,
   Users,
   Banknote,
-<<<<<<< HEAD
-=======
   ClipboardList,
->>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -43,10 +40,7 @@ const adminLinks: NavItem[] = [
 const teacherLinks: NavItem[] = [
   { name: "Dashboard", to: "/teacher/dashboard", Icon: LayoutDashboard },
   { name: "Subjects", to: "/teacher/subject", Icon: BookCopy },
-<<<<<<< HEAD
-=======
   { name: "Quizzes", to: "/teacher/quiz", Icon: ClipboardList },
->>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
   { name: "Analytics", to: "/teacher/analytics", Icon: BarChart3 },
   { name: "Submissions", to: "/teacher/submissions", Icon: CheckSquare },
   { name: "Gradebook", to: "/teacher/gradebook", Icon: Book },
@@ -56,10 +50,7 @@ const teacherLinks: NavItem[] = [
 const studentLinks: NavItem[] = [
   { name: "Dashboard", to: "/student/dashboard", Icon: LayoutDashboard },
   { name: "Subjects", to: "/student/subject", Icon: BookCopy },
-<<<<<<< HEAD
-=======
   { name: "Quizzes", to: "/student/quiz", Icon: ClipboardList },
->>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
   { name: "Submissions", to: "/student/submissions", Icon: CheckSquare },
   { name: "Gradebook", to: "/student/gradebook", Icon: Book },
 ];

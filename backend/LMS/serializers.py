@@ -1,25 +1,9 @@
 from rest_framework import serializers
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
-<<<<<<< HEAD
-from LMS.models import Student
-<<<<<<< HEAD
-from .models import User
-=======
-from .models import (
-    User, Quiz, QuizQuestion, QuizChoice, 
-    QuizAttempt, QuizAnswer, Subject,
-    QuizTopicPerformance, GradeForecast, QuarterlyGrade
-)
->>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
-=======
-from django.contrib.auth import get_user_model
-<<<<<<< HEAD
+
 from LMS.models import Student, Subject, SubjectOffering, Teacher, Admin, Section
->>>>>>> Backup
-=======
-from LMS.models import Student, Subject, SubjectOffering, Teacher, Admin, Section, Quiz, QuizQuestion, QuizChoice, QuizAttempt, QuizAnswer, QuizTopicPerformance, GradeForecast, QuarterlyGrade
->>>>>>> Backup
+from .models import Quiz, QuizQuestion, QuizChoice, QuizAttempt, QuizAnswer, QuizTopicPerformance, GradeForecast, QuarterlyGrade
 
 User = get_user_model()
 
@@ -546,6 +530,9 @@ class LoginSerializer(serializers.Serializer):
 
         refresh = RefreshToken.for_user(user)
 
+        # ✅ FIX: define name properly
+        full_name = f"{user.first_name} {user.last_name}".strip()
+
         profile = None
 
         if user.role == "STUDENT":
@@ -557,8 +544,8 @@ class LoginSerializer(serializers.Serializer):
 
         elif user.role == "TEACHER":
             profile = {
-                "subjects": user.subjects.values("id", "name"),
-                "advisory_sections": user.advised_sections.values("id", "name"),
+                "subjects": list(user.subjects.values("id", "name")),
+                "advisory_sections": list(user.advised_sections.values("id", "name")),
             }
 
         elif user.role == "ADMIN":
@@ -570,26 +557,16 @@ class LoginSerializer(serializers.Serializer):
             "user": {
                 "id": user.id,
                 "email": user.email,
-<<<<<<< HEAD
-<<<<<<< HEAD
-                "name": name
-=======
-                "role": user.role,
+                "role": user.role,           # ✅ REQUIRED by frontend
                 "first_name": user.first_name,
                 "last_name": user.last_name,
+                "name": full_name,           # ✅ now valid
                 "school_id": user.school_id,
                 "status": user.status,
->>>>>>> Backup
             },
             "profile": profile,
         }
-=======
-                "name": name,
-                "role": user.role  # Include role for frontend routing
-            },
-            "student": student,
-        }
-
+# =========================
 
 # Quiz Serializers
 class QuizChoiceSerializer(serializers.ModelSerializer):
@@ -833,4 +810,4 @@ class QuarterlyGradeCreateUpdateSerializer(serializers.ModelSerializer):
             )
         
         return data
->>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
+# =========================

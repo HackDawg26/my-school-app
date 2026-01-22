@@ -1,35 +1,37 @@
-import { useState } from 'react';
+import { useState } from "react";
+import ActivityList from "./activity-list";
+import SubjectActivityList from "./subject-activity-list";
+import ActivitySubmissions from "./activity-submission";
+import type { ExtendedActivity, SubjectGroup } from "./submission_types";
 
-import ActivityList from './activity-list.tsx';
-import SubjectActivityList from './subject-activity-list.tsx';
-import ActivitySubmissions from './activity-submission.tsx';
+
+/** Types must match ActivityList + SubjectActivityList */
+
 
 const TeacherSubmissions = () => {
-    // State to hold the currently selected subject object
-    const [selectedSubject, setSelectedSubject] = useState(null); 
-    
-    // State to hold the currently selected activity object
-    const [selectedActivity, setSelectedActivity] = useState(null);
+  const [selectedSubject, setSelectedSubject] = useState<SubjectGroup | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<ExtendedActivity | null>(null);
 
-    // If an activity is selected, show the TeacherSubmissions Table
-    if (selectedActivity) {
-        return <ActivitySubmissions 
-            activity={selectedActivity} 
-            onBack={() => setSelectedActivity(null)} 
-        />;
-    }
-    
-    // If a subject is selected, show the Activity List for that subject
-    if (selectedSubject) {
-        return <SubjectActivityList 
-            subject={selectedSubject} 
-            onSelectActivity={setSelectedActivity} 
-            onBack={() => setSelectedSubject(null)}
-        />;
-    }
+  if (selectedActivity) {
+    return (
+      <ActivitySubmissions
+        activity={selectedActivity}
+        onBack={() => setSelectedActivity(null)}
+      />
+    );
+  }
 
-    // Default view: Show the list of all subjects
-    return <ActivityList onSelectSubject={setSelectedSubject} />;
+  if (selectedSubject) {
+    return (
+      <SubjectActivityList
+        subject={selectedSubject}
+        onSelectActivity={setSelectedActivity}
+        onBack={() => setSelectedSubject(null)}
+      />
+    );
+  }
+
+  return <ActivityList onSelectSubject={setSelectedSubject} />;
 };
 
 export default TeacherSubmissions;

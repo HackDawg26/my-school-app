@@ -1,17 +1,6 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-import { ArrowRight, FolderPlus, Plus, UserPlus, Users, X } from "lucide-react";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-=======
-import { ArrowRight, FolderPlus, Users, X } from "lucide-react";
-=======
 import { ArrowRight, FolderPlus, Users, X, Trash2 } from "lucide-react";
->>>>>>> Backup
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
->>>>>>> Backup
 
 interface Subject {
   id: number;
@@ -20,24 +9,9 @@ interface Subject {
 }
 
 export const FacultyPage = () => {
-<<<<<<< HEAD
-  const navigate = useNavigate();
-  const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
-  const [newDeptName, setNewDeptName] = useState("");
-
-  const handleAddDepartment = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("New Department Added:", newDeptName);
-    // Logic to save to your list goes here
-    setIsDeptModalOpen(false);
-    setNewDeptName("");
-  };
-  
-  const getSlug = (name: string) => name.toLowerCase().replace(/\s+/g, '-');
-=======
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [issubjectModalOpen, setIssubjectModalOpen] = useState(false);
-  const [newsubjectName, setNewsubjectName] = useState("");
+  const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
+  const [newSubjectName, setNewSubjectName] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const token = localStorage.getItem("access");
@@ -55,16 +29,17 @@ export const FacultyPage = () => {
       .catch((err) => console.error("Failed to load subjects", err));
   }, [token]);
 
-  const handleAddDepartment = async (e: React.FormEvent) => {
+  const handleAddSubject = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!token) return alert("Not authenticated");
 
     const res = await fetch("http://127.0.0.1:8000/api/subjects/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("access")}`,
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ name: newsubjectName }),
+      body: JSON.stringify({ name: newSubjectName }),
     });
 
     if (!res.ok) {
@@ -75,15 +50,10 @@ export const FacultyPage = () => {
     const created = await res.json();
     setSubjects((prev) => [...prev, created]);
 
-    setIssubjectModalOpen(false);
-    setNewsubjectName("");
+    setIsSubjectModalOpen(false);
+    setNewSubjectName("");
   };
 
-<<<<<<< HEAD
->>>>>>> Backup
-  return (    
-=======
-  // ✅ Delete subject/department
   const handleDeleteSubject = async (id: number) => {
     if (!token) return alert("Not authenticated");
 
@@ -101,8 +71,6 @@ export const FacultyPage = () => {
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        console.error("Delete failed:", err);
         alert("Failed to delete subject");
         return;
       }
@@ -117,40 +85,17 @@ export const FacultyPage = () => {
   };
 
   return (
->>>>>>> Backup
     <main className="flex-1 p-2">
       {/* Header Section */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Faculty Accounts</h1>
-          <p className="text-slate-500">
-            Select a department to view and manage faculty accounts.
-          </p>
+          <p className="text-slate-500">Select a department to view and manage faculty accounts.</p>
         </div>
-<<<<<<< HEAD
-        {/* Add Department - Triggers Modal */}
-        <div className="flex items-center gap-3">
-        <button 
-<<<<<<< HEAD
-          onClick={() => setIsDeptModalOpen(true)}
-          className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-xl transition-all font-bold text-sm shadow-sm"
-        >
-          <FolderPlus size={18} className="text-indigo-600" />
-          Add Department
-=======
-          onClick={() => setIssubjectModalOpen(true)}
-          className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-xl transition-all font-bold text-sm shadow-sm"
-        >
-          <FolderPlus size={18} className="text-indigo-600" />
-          Add Subject
->>>>>>> Backup
-        </button>
-=======
->>>>>>> Backup
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setIssubjectModalOpen(true)}
+            onClick={() => setIsSubjectModalOpen(true)}
             className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-xl transition-all font-bold text-sm shadow-sm"
           >
             <FolderPlus size={18} className="text-indigo-600" />
@@ -159,80 +104,31 @@ export const FacultyPage = () => {
         </div>
       </div>
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-      {isDeptModalOpen && (
-=======
-=======
       {/* Modal */}
->>>>>>> Backup
-      {issubjectModalOpen && (
->>>>>>> Backup
+      {isSubjectModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
-<<<<<<< HEAD
-<<<<<<< HEAD
-            onClick={() => setIsDeptModalOpen(false)} 
-=======
-            onClick={() => setIssubjectModalOpen(false)} 
->>>>>>> Backup
-=======
-            onClick={() => setIssubjectModalOpen(false)}
->>>>>>> Backup
+            onClick={() => setIsSubjectModalOpen(false)}
           />
 
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all border border-slate-100">
             <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-<<<<<<< HEAD
-<<<<<<< HEAD
-              <h3 className="text-lg font-bold text-slate-900">Create New Department</h3>
-              <button onClick={() => setIsDeptModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-=======
               <h3 className="text-lg font-bold text-slate-900">Create New Subject</h3>
-              <button onClick={() => setIssubjectModalOpen(false)} className="text-slate-400 hover:text-slate-600">
->>>>>>> Backup
-=======
-              <h3 className="text-lg font-bold text-slate-900">
-                Create New Subject
-              </h3>
-              <button
-                onClick={() => setIssubjectModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
->>>>>>> Backup
+              <button onClick={() => setIsSubjectModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleAddDepartment} className="p-6 space-y-4">
+            <form onSubmit={handleAddSubject} className="p-6 space-y-4">
               <div className="space-y-2">
-<<<<<<< HEAD
-<<<<<<< HEAD
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Department Name</label>
-=======
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subject Name</label>
->>>>>>> Backup
-                <input 
-                  autoFocus
-                  required
-                  type="text" 
-<<<<<<< HEAD
-                  value={newDeptName}
-                  onChange={(e) => setNewDeptName(e.target.value)}
-=======
-=======
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Subject Name
-                </label>
                 <input
                   autoFocus
                   required
                   type="text"
->>>>>>> Backup
-                  value={newsubjectName}
-                  onChange={(e) => setNewsubjectName(e.target.value)}
->>>>>>> Backup
+                  value={newSubjectName}
+                  onChange={(e) => setNewSubjectName(e.target.value)}
                   placeholder="e.g. Social Studies"
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                 />
@@ -241,11 +137,7 @@ export const FacultyPage = () => {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-<<<<<<< HEAD
-                  onClick={() => setIsDeptModalOpen(false)}
-=======
-                  onClick={() => setIssubjectModalOpen(false)}
->>>>>>> Backup
+                  onClick={() => setIsSubjectModalOpen(false)}
                   className="flex-1 px-4 py-2.5 text-slate-600 font-bold hover:bg-slate-50 rounded-lg transition-colors"
                 >
                   Cancel
@@ -254,7 +146,7 @@ export const FacultyPage = () => {
                   type="submit"
                   className="flex-1 px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all"
                 >
-                  Create Department
+                  Create Subject
                 </button>
               </div>
             </form>
@@ -269,7 +161,7 @@ export const FacultyPage = () => {
             key={subject.id}
             className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group relative"
           >
-            {/* Delete button (top-right) */}
+            {/* Delete button */}
             <button
               type="button"
               onClick={(e) => {
@@ -299,16 +191,11 @@ export const FacultyPage = () => {
                 className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors group"
               >
                 View Faculty List
-                <ArrowRight
-                  size={16}
-                  className="group-hover:translate-x-1 transition-transform"
-                />
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
 
-            {deletingId === subject.id && (
-              <div className="mt-3 text-xs text-slate-500">Deleting...</div>
-            )}
+            {deletingId === subject.id && <div className="mt-3 text-xs text-slate-500">Deleting...</div>}
           </div>
         ))}
       </div>

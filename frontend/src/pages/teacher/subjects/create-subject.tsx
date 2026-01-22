@@ -174,23 +174,14 @@ export default function AssignSubjectOffering() {
           >
             Assign Subject Offering
           </button>
-<<<<<<< HEAD
-          
-          {/* Cancel Link */}
-          <Link 
-<<<<<<< HEAD
-            to="/subject" 
-=======
-            to="/teacher/subject" 
->>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
-            className="w-full text-center block text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition duration-150 mt-2 font-medium"
-=======
+
+
 
           {/* Cancel */}
           <Link
             to="/teacher/subject"
             className="block text-center text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
->>>>>>> Backup
+
           >
             Cancel and Go Back
           </Link>
