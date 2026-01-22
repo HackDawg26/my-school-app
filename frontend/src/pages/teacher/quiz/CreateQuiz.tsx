@@ -31,9 +31,9 @@ export default function CreateQuiz() {
     // Fetch subjects from backend API
     const fetchSubjects = async () => {
       try {
-        const savedUser = localStorage.getItem('school_user');
+        const savedUser = localStorage.getItem('user');
         const token = savedUser ? JSON.parse(savedUser).token : null;
-        const response = await axios.get('http://127.0.0.1:8000/api/subjects/', {
+        const response = await axios.get('http://127.0.0.1:8000/api/subject-offerings/', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSubjects(response.data);
@@ -61,13 +61,13 @@ export default function CreateQuiz() {
     const subjectId = useCustomSubject ? 1 : formData.subject;
     
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       
       // Convert local datetime to ISO format (will include timezone offset)
       const quizData = {
         ...formData,
-        subject: subjectId,
+        SubjectOffering: subjectId,
         open_time: new Date(formData.open_time).toISOString(),
         close_time: new Date(formData.close_time).toISOString()
       };

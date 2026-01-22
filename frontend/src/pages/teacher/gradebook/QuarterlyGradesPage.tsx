@@ -22,9 +22,9 @@ export default function QuarterlyGradesPage() {
 
   const fetchSubjects = async () => {
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
-      const response = await axios.get('http://127.0.0.1:8000/api/subjects/', {
+      const response = await axios.get('http://127.0.0.1:8000/api/subject-offerings/', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSubjects(response.data);
@@ -48,7 +48,7 @@ export default function QuarterlyGradesPage() {
           Back to Subjects
         </button>
         <TeacherQuarterlyGrades 
-          subjectId={selectedSubject} 
+          subjectoffering_id={selectedSubject} 
           subjectName={selectedSubjectInfo.name}
         />
       </div>

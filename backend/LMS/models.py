@@ -174,7 +174,7 @@ class SubjectOffering(models.Model):
         unique_together = ("name", "section")
         
     def __str__(self):
-        return f"{self.subject_name} — {self.section.name}"
+        return f"{self.name} — {self.section.name}"
 
 # =========================
 # STUDENT PROFILE
@@ -354,15 +354,147 @@ class Admin(models.Model):
     
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 =======
+=======
+class Quiz(models.Model):
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('SCHEDULED', 'Scheduled'),
+        ('OPEN', 'Open'),
+        ('CLOSED', 'Closed'),
+    ]
+    
+    quiz_id = models.CharField(max_length=50, unique=True, blank=True)
+    SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="quizzes")
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_quizzes", null=True, blank=True)
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    
+    # Time management
+    posted_at = models.DateTimeField(auto_now_add=True, null=True)
+    open_time = models.DateTimeField()
+    close_time = models.DateTimeField()
+    time_limit = models.IntegerField(help_text="Minutes to complete quiz")
+    
+    # Quiz settings
+    total_points = models.FloatField(default=100)
+    passing_score = models.FloatField(default=60)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
+    
+    # Additional settings
+    show_correct_answers = models.BooleanField(default=False)
+    shuffle_questions = models.BooleanField(default=False)
+    allow_multiple_attempts = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
+
+    def __str__(self):
+        return self.title
+    
+    def save(self, *args, **kwargs):
+        if not self.quiz_id:
+            import uuid
+            self.quiz_id = f"QZ{uuid.uuid4().hex[:8].upper()}"
+        super().save(*args, **kwargs)
+    
+    def is_open(self):
+        from django.utils import timezone
+        now = timezone.now()
+        return self.open_time <= now <= self.close_time
+    
+    def is_upcoming(self):
+        from django.utils import timezone
+        return timezone.now() < self.open_time
+    
+    def is_closed(self):
+        from django.utils import timezone
+        return timezone.now() > self.close_time
+
+
+class QuizQuestion(models.Model):
+    QUESTION_TYPES = [
+        ('MULTIPLE_CHOICE', 'Multiple Choice'),
+        ('TRUE_FALSE', 'True/False'),
+        ('SHORT_ANSWER', 'Short Answer'),
+    ]
+    
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="questions")
+    question_text = models.TextField()
+    question_type = models.CharField(max_length=20, choices=QUESTION_TYPES, default='MULTIPLE_CHOICE')
+    points = models.FloatField(default=1)
+    order = models.IntegerField(default=0)
+    
+    def __str__(self):
+        return f"{self.quiz.title} - Q{self.order}"
+
+
+class QuizChoice(models.Model):
+    question = models.ForeignKey(QuizQuestion, on_delete=models.CASCADE, related_name="choices")
+    choice_text = models.CharField(max_length=500)
+    is_correct = models.BooleanField(default=False)
+    order = models.IntegerField(default=0)
+    
+    def __str__(self):
+        return self.choice_text
+
+
+class QuizAttempt(models.Model):
+    STATUS_CHOICES = [
+        ('IN_PROGRESS', 'In Progress'),
+        ('SUBMITTED', 'Submitted'),
+        ('GRADED', 'Graded'),
+    ]
+    
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="attempts")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="quiz_attempts")
+    started_at = models.DateTimeField(auto_now_add=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    score = models.FloatField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='IN_PROGRESS')
+    
+    def __str__(self):
+        return f"{self.student.user.email} - {self.quiz.title}"
+
+
+class QuizAnswer(models.Model):
+    attempt = models.ForeignKey(QuizAttempt, on_delete=models.CASCADE, related_name="answers")
+    question = models.ForeignKey(QuizQuestion, on_delete=models.CASCADE)
+    selected_choice = models.ForeignKey(QuizChoice, on_delete=models.CASCADE, null=True, blank=True)
+    text_answer = models.TextField(blank=True)
+    is_correct = models.BooleanField(null=True, blank=True)
+    points_earned = models.FloatField(default=0)
+    
+    def __str__(self):
+        return f"{self.attempt.student.user.email} - Q{self.question.order}"
+
+
+class Resource(models.Model):
+    resource_id = models.CharField(max_length=50, unique=True)
+    SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="resources")
+    title = models.CharField(max_length=255)
+    type = models.CharField(max_length=50)
+    url = models.URLField()
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.title
+
+
+>>>>>>> Backup
 # ==================== GRADE FORECASTING MODELS ====================
 
 class QuizTopicPerformance(models.Model):
     """Tracks student performance per topic across quizzes"""
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="topic_performance")
+<<<<<<< HEAD
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="topic_performance")
+=======
+    SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="topic_performance")
+>>>>>>> Backup
     topic = models.CharField(max_length=255, help_text="Quiz or question topic/category")
     
     # Performance metrics
@@ -374,7 +506,11 @@ class QuizTopicPerformance(models.Model):
     last_updated = models.DateTimeField(auto_now=True)
     
     class Meta:
+<<<<<<< HEAD
         unique_together = ['student', 'subject', 'topic']
+=======
+        unique_together = ['student', 'SubjectOffering', 'topic']
+>>>>>>> Backup
     
     def __str__(self):
         return f"{self.student.user.email} - {self.topic}: {self.accuracy_percentage}%"
@@ -403,7 +539,11 @@ class GradeForecast(models.Model):
     ]
     
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="grade_forecasts")
+<<<<<<< HEAD
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="grade_forecasts")
+=======
+    SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="grade_forecasts")
+>>>>>>> Backup
     
     # Current performance metrics
     current_average = models.FloatField(help_text="Current average quiz score")
@@ -426,6 +566,7 @@ class GradeForecast(models.Model):
     
     class Meta:
         ordering = ['-generated_at']
+<<<<<<< HEAD
         unique_together = ['student', 'subject']
     
     def __str__(self):
@@ -437,6 +578,16 @@ class Grade(models.Model):
     grade_id = models.CharField(max_length=50, unique=True)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="grades")
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="grades")
+=======
+        unique_together = ['student', 'SubjectOffering']
+    
+    def __str__(self):
+        return f"{self.student.user.email} - {self.SubjectOffering.name}: {self.predicted_grade}%"
+class Grade(models.Model):
+    grade_id = models.CharField(max_length=50, unique=True)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="grades")
+    SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="grades")
+>>>>>>> Backup
     assignment_name = models.CharField(max_length=255)
     score = models.FloatField()
     total = models.FloatField()
@@ -444,9 +595,25 @@ class Grade(models.Model):
 
     def __str__(self):
 <<<<<<< HEAD
+<<<<<<< HEAD
         return f"{self.student.student_id} - {self.subject.name} - {self.score}/{self.total}"
 =======
         return f"{self.student.student_id} - {self.subject.name} - {self.score}/{self.total}"
+=======
+        return f"{self.student.user.email} - {self.SubjectOffering.name}: {self.predicted_grade}%"
+
+class Grade(models.Model):
+    grade_id = models.CharField(max_length=50, unique=True)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="grades")
+    SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="grades")
+    assignment_name = models.CharField(max_length=255)
+    score = models.FloatField()
+    total = models.FloatField()
+    date = models.DateField()
+
+    def __str__(self):
+        return f"{self.student.student_id} - {self.SubjectOffering.name} - {self.score}/{self.total}"
+>>>>>>> Backup
 
 
 # ==================== QUARTERLY GRADES SYSTEM ====================
@@ -461,7 +628,11 @@ class QuarterlyGrade(models.Model):
     ]
     
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="quarterly_grades")
+<<<<<<< HEAD
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="quarterly_grades")
+=======
+    SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="quarterly_grades")
+>>>>>>> Backup
     quarter = models.CharField(max_length=2, choices=QUARTER_CHOICES)
     
     # Component scores (raw scores, not weighted)
@@ -488,8 +659,13 @@ class QuarterlyGrade(models.Model):
     remarks = models.TextField(blank=True, help_text="Teacher comments/remarks")
     
     class Meta:
+<<<<<<< HEAD
         unique_together = ['student', 'subject', 'quarter']
         ordering = ['student', 'subject', 'quarter']
+=======
+        unique_together = ['student', 'SubjectOffering', 'quarter']
+        ordering = ['student', 'SubjectOffering', 'quarter']
+>>>>>>> Backup
     
     def calculate_final_grade(self):
         """Calculate weighted final grade from component scores"""
@@ -508,7 +684,11 @@ class QuarterlyGrade(models.Model):
         super().save(*args, **kwargs)
     
     def __str__(self):
+<<<<<<< HEAD
         return f"{self.student.user.email} - {self.subject.name} - {self.quarter}: {self.final_grade:.2f}%"
 >>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
 =======
+>>>>>>> Backup
+=======
+        return f"{self.student.user.email} - {self.SubjectOffering.name} - {self.quarter}: {self.final_grade:.2f}%"
 >>>>>>> Backup

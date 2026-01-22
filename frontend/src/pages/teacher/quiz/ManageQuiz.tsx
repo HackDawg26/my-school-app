@@ -64,7 +64,7 @@ export default function ManageQuiz() {
 
   const fetchQuiz = async () => {
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       const response = await axios.get(`http://127.0.0.1:8000/api/teacher/quizzes/${id}/`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -97,7 +97,7 @@ export default function ManageQuiz() {
 
   const fetchQuestions = async () => {
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       const response = await axios.get(`http://127.0.0.1:8000/api/teacher/quizzes/${id}/questions/`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -110,7 +110,7 @@ export default function ManageQuiz() {
 
   const updateTimes = async () => {
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       
       // Convert local datetime-local input to ISO string (will be in UTC)
@@ -132,7 +132,7 @@ export default function ManageQuiz() {
       console.error('Error updating times:', error);
       if (error.response?.status === 401) {
         alert('Your session has expired. Please log in again.');
-        localStorage.removeItem('school_user');
+        localStorage.removeItem('user');
         window.location.href = '/login';
       } else {
         alert('Failed to update times');
@@ -142,7 +142,7 @@ export default function ManageQuiz() {
 
   const updateStatus = async () => {
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       
       await axios.patch(
@@ -161,7 +161,7 @@ export default function ManageQuiz() {
 
   const addQuestion = async () => {
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       
       // Prepare question data based on question type
@@ -216,7 +216,7 @@ export default function ManageQuiz() {
     if (!confirm('Delete this question?')) return;
     
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       await axios.delete(`http://127.0.0.1:8000/api/teacher/questions/${questionId}/`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -241,7 +241,7 @@ export default function ManageQuiz() {
     if (!editingQuestion) return;
     
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       
       let questionData: any = { ...editQuestion };

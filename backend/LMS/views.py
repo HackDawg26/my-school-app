@@ -1,10 +1,14 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
 from django.contrib import messages
 <<<<<<< HEAD
 from rest_framework import views
 =======
+=======
+from django.utils import timezone
+>>>>>>> Backup
 from rest_framework import viewsets,status
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 >>>>>>> Backup
@@ -41,8 +45,21 @@ from .grade_analytics import GradeAnalyticsService
 =======
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+<<<<<<< HEAD
 from .models import Section, Student, Subject, SubjectOffering
 from .serializers import LoginSerializer, SubjectListSerializer, SubjectOfferingSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer
+>>>>>>> Backup
+=======
+from .models import (Section, Student, Subject, SubjectOffering, Quiz, QuizQuestion, QuizChoice, QuizAttempt, 
+    QuizAnswer, Student, GradeForecast, QuizTopicPerformance,
+    QuarterlyGrade)
+from .serializers import (LoginSerializer, SubjectListSerializer, SubjectOfferingSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer,QuizSerializer, QuizCreateUpdateSerializer,
+    QuizQuestionSerializer, StudentQuizSerializer, QuizAttemptSerializer,
+    QuizSubmissionSerializer, QuizChoiceSerializer,
+    GradeForecastSerializer, QuizTopicPerformanceSerializer,
+    QuarterlyGradeSerializer, QuarterlyGradeCreateUpdateSerializer
+)
+from .grade_analytics import GradeAnalyticsService
 >>>>>>> Backup
 
 User = get_user_model()
@@ -148,10 +165,36 @@ class SubjectOfferingViewSet(viewsets.ModelViewSet):
     """
     A ViewSet for managing SubjectOfferings.
     """
-    queryset = SubjectOffering.objects.all()
     serializer_class = SubjectOfferingSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
 
+        # Teachers only see their own offerings
+        if user.role == "TEACHER":
+            return SubjectOffering.objects.filter(teacher=user)
+
+        # Admins can see all (optional)
+        if user.role == "ADMIN":
+            return SubjectOffering.objects.all()
+
+        # Others see none
+        return SubjectOffering.objects.none()
+    @action(detail=True, methods=["get"], url_path="students")
+    def students(self, request, pk=None):
+        offering = self.get_object()  # respects get_queryset() (teacher restriction)
+
+        students_qs = (
+            Student.objects
+            .filter(section=offering.section)
+            .select_related("user")
+            # FIX: order by related user fields (not Student.last_name)
+            .order_by("user__last_name", "user__first_name")
+        )
+
+        data = StudentSerializer(students_qs, many=True).data
+        return Response(data)
     @action(detail=False, methods=["get"], url_path="by-section/(?P<section_id>[^/.]+)")
     def by_section(self, request, section_id=None):
         """
@@ -169,7 +212,7 @@ class SubjectOfferingViewSet(viewsets.ModelViewSet):
         if not section_id:
             raise serializers.ValidationError({"section_id": "This field is required."})
         section = Section.objects.get(id=section_id)
-        serializer.save(section=section)
+        serializer.save(section=section, teacher=self.request.user)
 # =========================
 # CREATE USER (ADMIN ONLY)
 # =========================
@@ -272,6 +315,7 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 <<<<<<< HEAD
+<<<<<<< HEAD
         return Response(serializer.validated_data)
 =======
 @api_view(['GET'])
@@ -311,6 +355,10 @@ class LoginView(APIView):
         return Response(serializer.validated_data)
 
 
+=======
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+    
+>>>>>>> Backup
 # ==================== TEACHER QUIZ VIEWS ====================
 
 class TeacherQuizViewSet(viewsets.ModelViewSet):
@@ -697,7 +745,11 @@ def student_quiz_attempts(request):
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
+<<<<<<< HEAD
 def grade_forecast(request, student_id=None, subject_id=None):
+=======
+def grade_forecast(request, student_id=None, SubjectOffering_id=None):
+>>>>>>> Backup
     """
     Get or generate grade forecast for a student
     
@@ -713,9 +765,15 @@ def grade_forecast(request, student_id=None, subject_id=None):
     
     if request.method == 'GET':
         # Get all forecasts for student or specific subject
+<<<<<<< HEAD
         if subject_id:
             try:
                 forecast = GradeForecast.objects.get(student_id=student_id, subject_id=subject_id)
+=======
+        if SubjectOffering_id:
+            try:
+                forecast = GradeForecast.objects.get(student_id=student_id, SubjectOffering_id=SubjectOffering_id)
+>>>>>>> Backup
                 serializer = GradeForecastSerializer(forecast)
                 return Response(serializer.data)
             except GradeForecast.DoesNotExist:
@@ -730,19 +788,33 @@ def grade_forecast(request, student_id=None, subject_id=None):
     
     elif request.method == 'POST':
         # Generate new forecast
+<<<<<<< HEAD
         if not subject_id:
             subject_id = request.data.get('subject_id')
         
         if not subject_id:
             return Response(
                 {'error': 'subject_id is required'},
+=======
+        if not SubjectOffering_id:
+            SubjectOffering_id = request.data.get('SubjectOffering_id')
+        
+        if not SubjectOffering_id:
+            return Response(
+                {'error': 'SubjectOffering_id is required'},
+>>>>>>> Backup
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         # Generate forecast using analytics service
         analytics = GradeAnalyticsService()
+<<<<<<< HEAD
         forecast = analytics.generate_forecast(student_id, subject_id)
         
+=======
+        forecast = analytics.generate_forecast(student_id, SubjectOffering_id)
+
+>>>>>>> Backup
         if forecast:
             serializer = GradeForecastSerializer(forecast)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -755,7 +827,11 @@ def grade_forecast(request, student_id=None, subject_id=None):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+<<<<<<< HEAD
 def student_topic_performance(request, student_id=None, subject_id=None):
+=======
+def student_topic_performance(request, student_id=None, SubjectOffering_id=None):
+>>>>>>> Backup
     """Get topic-level performance data for a student"""
     # Determine student_id (from param or current user)
     if student_id is None:
@@ -766,8 +842,13 @@ def student_topic_performance(request, student_id=None, subject_id=None):
     
     # Filter by subject if provided
     topics_query = QuizTopicPerformance.objects.filter(student_id=student_id)
+<<<<<<< HEAD
     if subject_id:
         topics_query = topics_query.filter(subject_id=subject_id)
+=======
+    if SubjectOffering_id:
+        topics_query = topics_query.filter(SubjectOffering_id=SubjectOffering_id)
+>>>>>>> Backup
     
     topics = topics_query.order_by('-accuracy_percentage')
     serializer = QuizTopicPerformanceSerializer(topics, many=True)
@@ -782,11 +863,19 @@ def student_grade_analytics(request):
         return Response({'error': 'Not a student'}, status=status.HTTP_403_FORBIDDEN)
     
     student = request.user.student_profile
+<<<<<<< HEAD
     subject_id = request.query_params.get('subject_id')
     
     # Get analytics data
     analytics = GradeAnalyticsService()
     data = analytics.get_student_quiz_data(student.id, subject_id)
+=======
+    SubjectOffering_id = request.query_params.get('SubjectOffering_id')
+    
+    # Get analytics data
+    analytics = GradeAnalyticsService()
+    data = analytics.get_student_quiz_data(student.id, SubjectOffering_id)
+>>>>>>> Backup
     
     if not data:
         return Response({
@@ -796,9 +885,15 @@ def student_grade_analytics(request):
     
     # Get existing forecast if available
     forecast = None
+<<<<<<< HEAD
     if subject_id:
         try:
             forecast_obj = GradeForecast.objects.get(student=student, subject_id=subject_id)
+=======
+    if SubjectOffering_id:
+        try:
+            forecast_obj = GradeForecast.objects.get(student=student, SubjectOffering_id=SubjectOffering_id)
+>>>>>>> Backup
             forecast = GradeForecastSerializer(forecast_obj).data
         except GradeForecast.DoesNotExist:
             pass
@@ -824,6 +919,7 @@ def quarterly_grades(request):
     if request.method == 'GET':
         # Filter by teacher for teachers, or by student for students
         if request.user.role == 'TEACHER':
+<<<<<<< HEAD
             subject_id = request.query_params.get('subject_id')
             quarter = request.query_params.get('quarter')
             
@@ -839,12 +935,30 @@ def quarterly_grades(request):
                 grades_query = grades_query.filter(quarter=quarter)
             
             grades = grades_query.select_related('student__user', 'subject').order_by('student__user__last_name')
+=======
+            SubjectOffering_id = request.query_params.get('SubjectOffering_id')
+            quarter = request.query_params.get('quarter')
+            
+            grades_query = QuarterlyGrade.objects.all()
+            # Only filter by SubjectOffering_id if it's a valid integer
+            if SubjectOffering_id and SubjectOffering_id != 'NaN':
+                try:
+                    SubjectOffering_id_int = int(SubjectOffering_id)
+                    grades_query = grades_query.filter(SubjectOffering_id=SubjectOffering_id_int)
+                except (ValueError, TypeError):
+                    pass  # Ignore invalid SubjectOffering_id
+            if quarter:
+                grades_query = grades_query.filter(quarter=quarter)
+            
+            grades = grades_query.select_related('student__user', 'SubjectOffering').order_by('student__user__last_name')
+>>>>>>> Backup
             serializer = QuarterlyGradeSerializer(grades, many=True)
             return Response(serializer.data)
         
         elif hasattr(request.user, 'student_profile'):
             # Students can only see their own grades
             student = request.user.student_profile
+<<<<<<< HEAD
             subject_id = request.query_params.get('subject_id')
             quarter = request.query_params.get('quarter')
             
@@ -855,6 +969,18 @@ def quarterly_grades(request):
                 grades_query = grades_query.filter(quarter=quarter)
             
             grades = grades_query.select_related('subject').order_by('quarter')
+=======
+            SubjectOffering_id = request.query_params.get('SubjectOffering_id')
+            quarter = request.query_params.get('quarter')
+            
+            grades_query = QuarterlyGrade.objects.filter(student=student)
+            if SubjectOffering_id:
+                grades_query = grades_query.filter(SubjectOffering_id=SubjectOffering_id)
+            if quarter:
+                grades_query = grades_query.filter(quarter=quarter)
+            
+            grades = grades_query.select_related('SubjectOffering').order_by('quarter')
+>>>>>>> Backup
             serializer = QuarterlyGradeSerializer(grades, many=True)
             return Response(serializer.data)
         
@@ -1006,8 +1132,12 @@ def quiz_item_analysis(request, quiz_id):
         'total_questions': total_questions,
         'total_student_attempts': total_student_attempts,
         'questions': analysis
+<<<<<<< HEAD
     })
 >>>>>>> b86c2354adfddee38bfd4181b1797539de1d863f
 =======
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
+>>>>>>> Backup
+=======
+    })
 >>>>>>> Backup
