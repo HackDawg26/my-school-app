@@ -8,9 +8,6 @@ import { useAuth } from '../src/context/AuthContext.tsx'; // Import your auth ho
 
 // student imports
 import SubjectsPage from './pages/student/subjects/student-subjects.tsx';
-import GradesPage from './pages/student/gradebook/student-grades.tsx';
-import { StudentSubmissions } from './pages/student/submission/StudentSubmissions.tsx';
-
 import  StudentSubjectpage  from './pages/student/subjects/student-subjects-id.tsx';
 
 // teacher imports
@@ -80,10 +77,8 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={['STUDENT']} />}>
               <Route path="/student/dashboard" element={<StudentDashboard />} />
               <Route path="/student/subject" element={<SubjectsPage />} />
-              <Route path="/student/subject/:id" element={<StudentSubjectpage />} />
-              <Route path="/student/gradebook" element={<GradesPage />} />
+              <Route path="/student/subject-offering/:id" element={<StudentSubjectpage />} />
               <Route path="/student/grades/quarterly" element={<StudentQuarterlyGrades />} />
-              <Route path="/student/submissions" element={<StudentSubmissions />} />
               <Route path="/student/quiz" element={<StudentQuizList />} />
               <Route path="/student/quiz/:id/take" element={<TakeQuiz />} />
               <Route path="/student/quiz/result" element={<QuizResult />} />

@@ -1,4 +1,5 @@
 from django.utils import timezone
+from httpx import request
 from rest_framework import viewsets,status
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.response import Response
@@ -10,7 +11,7 @@ from django.shortcuts import get_object_or_404
 from .models import (Section, Student, Subject, SubjectOffering, Quiz, QuizQuestion, QuizChoice, QuizAttempt, 
     QuizAnswer, Student, GradeForecast, QuizTopicPerformance,
     QuarterlyGrade)
-from .serializers import (LoginSerializer, SubjectListSerializer, SubjectOfferingSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer,QuizSerializer, QuizCreateUpdateSerializer,
+from .serializers import (LoginSerializer, StudentSubjectOfferingSerializer, SubjectListSerializer, SubjectOfferingSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer,QuizSerializer, QuizCreateUpdateSerializer,
     QuizQuestionSerializer, StudentQuizSerializer, QuizAttemptSerializer,
     QuizSubmissionSerializer, QuizChoiceSerializer,
     GradeForecastSerializer, QuizTopicPerformanceSerializer,
@@ -202,6 +203,126 @@ class SubjectOfferingViewSet(viewsets.ModelViewSet):
             })
 
         return Response(data)
+    @action(detail=False, methods=["get"], url_path="my", permission_classes=[IsAuthenticated])
+    def my_subject_offerings(self, request):
+        """
+        GET /api/subject-offerings/my/
+        Returns subject offerings for the logged-in STUDENT based on their section.
+        """
+        user = request.user
+
+        # Student profile should exist if user is a student
+        student = getattr(user, "student_profile", None)
+        if not student or not student.section:
+            return Response([])
+
+        offerings = SubjectOffering.objects.filter(section=student.section).order_by("name")
+        serializer = self.get_serializer(offerings, many=True)
+        return Response(serializer.data)
+    
+class StudentSubjectOfferingViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Student view: list subject offerings for the logged-in student (based on their section),
+    including quarterly progress + average.
+    """
+    serializer_class = StudentSubjectOfferingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role != "STUDENT":
+            return SubjectOffering.objects.none()
+
+        try:
+            student = Student.objects.select_related("section").get(user=user)
+        except Student.DoesNotExist:
+            return SubjectOffering.objects.none()
+
+        if not student.section:
+            return SubjectOffering.objects.none()
+
+        return (
+            SubjectOffering.objects
+            .select_related("section", "teacher")
+            .filter(section=student.section)
+            .order_by("name")
+        )
+
+    def list(self, request, *args, **kwargs):
+        qs = list(self.get_queryset())
+
+        # attach computed fields using student's grades
+        user = request.user
+        try:
+            student = Student.objects.get(user=user)
+        except Student.DoesNotExist:
+            return Response([], status=status.HTTP_200_OK)
+
+        grades = (
+            QuarterlyGrade.objects
+            .filter(student=student, SubjectOffering__in=qs)
+            .select_related("SubjectOffering")
+        )
+
+        by_offering = {}
+        for g in grades:
+            by_offering.setdefault(g.SubjectOffering_id, []).append(g)
+
+        for o in qs:
+            gs = by_offering.get(o.id, [])
+            o._student_quarterly_grades = gs
+
+            # progress = quarters encoded / 4 * 100
+            progress = int((len({g.quarter for g in gs}) / 4) * 100) if gs else 0
+            o.progress = progress
+
+            # average = mean of available quarters (or 0)
+            if gs:
+                avg = sum(float(g.final_grade) for g in gs) / len(gs)
+            else:
+                avg = 0
+            o.average = round(avg, 2)
+
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["get"], url_path="my-grades")
+    def my_grades(self, request, pk=None):
+        """
+        Returns the student's quarterly grades for this subject offering.
+        """
+        user = request.user
+        if user.role != "STUDENT":
+            return Response({"detail": "Not authorized"}, status=403)
+
+        try:
+            student = Student.objects.get(user=user)
+        except Student.DoesNotExist:
+            return Response({"detail": "Student profile not found"}, status=404)
+
+        qs = QuarterlyGrade.objects.filter(student=student, Subject_Offering_id=pk).order_by("quarter")
+        return Response(QuarterlyGradeSerializer(qs, many=True).data)
+    @action(detail=True, methods=["get"], url_path="quizzes")
+    def quizzes(self, request, pk=None):
+        offering = self.get_object()
+        qs = offering.quizzes.all().order_by("-id")  # uses related_name="quizzes"
+        return Response(QuizSerializer(qs, many=True).data)
+    
+    def retrieve(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        student = getattr(request.user, "student_profile", None)
+        if student:
+            grades = QuarterlyGrade.objects.filter(student=student, SubjectOffering=obj).order_by("quarter")
+            obj._student_quarterly_grades = list(grades)
+
+        # optional: compute average + progress for detail view too
+            gs = obj._student_quarterly_grades
+            obj.progress = int((len({g.quarter for g in gs}) / 4) * 100) if gs else 0
+            obj.average = round(sum(float(g.final_grade) for g in gs) / len(gs), 2) if gs else 0
+
+        serializer = self.get_serializer(obj)
+        return Response(serializer.data)
 # =========================
 # CREATE USER (ADMIN ONLY)
 # =========================

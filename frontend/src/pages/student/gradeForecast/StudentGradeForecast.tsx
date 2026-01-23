@@ -46,9 +46,9 @@ export default function StudentGradeForecast() {
 
   const fetchSubjects = async () => {
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
-      const response = await axios.get('http://127.0.0.1:8000/api/subjects/', {
+      const response = await axios.get('http://127.0.0.1:8000/api/subject-offerings/my/', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSubjects(response.data);
@@ -61,7 +61,7 @@ export default function StudentGradeForecast() {
     setLoading(true);
     setError('');
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       
       // Try to get existing forecast
@@ -95,12 +95,12 @@ export default function StudentGradeForecast() {
     setGenerating(true);
     setError('');
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       
       const response = await axios.post(
         'http://127.0.0.1:8000/api/student/grade-forecast/',
-        { subject_id: selectedSubject },
+        { SubjectOffering_id: selectedSubject },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       

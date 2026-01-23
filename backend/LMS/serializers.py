@@ -284,6 +284,56 @@ class SubjectListSerializer(serializers.ModelSerializer):
         # TODO: Replace with real grading logic
         return 3
 
+class StudentSubjectOfferingSerializer(serializers.ModelSerializer):
+    subject_name = serializers.CharField(source="name", read_only=True)
+    teacher_name = serializers.SerializerMethodField()
+    section_name = serializers.CharField(source="section.name", read_only=True)
+    grade_level = serializers.CharField(source="section.grade_level", read_only=True)
+
+    # computed fields
+    progress = serializers.IntegerField(read_only=True)  # 0..100
+    average = serializers.FloatField(read_only=True)     # 0..100
+    quarters = serializers.SerializerMethodField()       # {1: 88, 2: 90, ...}
+    final_grade = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SubjectOffering
+        fields = (
+            "id",
+            "subject_name",
+            "teacher_name",
+            "section_name",
+            "grade_level",
+            "progress",
+            "average",
+            "quarters",
+            "final_grade",
+        )
+
+    def get_teacher_name(self, obj):
+        if obj.teacher:
+            return f"{obj.teacher.first_name} {obj.teacher.last_name}".strip()
+        return "N/A"
+
+    def get_quarters(self, obj):
+        # expects annotation or prefetched grades in the view
+        qmap = {}
+        grades = getattr(obj, "_student_quarterly_grades", [])
+        for g in grades:
+            qmap[g.quarter] = float(g.final_grade)
+        return qmap
+    def get_final_grade(self, obj):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        student = getattr(user, "student_profile", None)
+        if not student:
+            return None
+
+        qs = QuarterlyGrade.objects.filter(student=student, SubjectOffering=obj)
+        vals = list(qs.values_list("final_grade", flat=True))
+        vals = [float(v) for v in vals if v is not None]
+        return round(sum(vals) / len(vals), 2) if vals else None
+        
 # Quiz Serializers
 class QuizChoiceSerializer(serializers.ModelSerializer):
     class Meta:

@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import StudentViewSet, SubjectOfferingViewSet, SubjectViewSet, TeacherQuizViewSet, TeacherSubjectListViewSet, TeacherViewSet, grade_forecast, list_users, LoginView, create_user, manage_quiz_question, quarterly_grade_detail, quarterly_grades, quiz_item_analysis, start_quiz, student_grade_analytics, student_quiz_attempts, student_quiz_detail, student_quizzes, student_topic_performance, submit_quiz, user_detail, SectionViewSet, AdminDashboardStatsView
+from .views import StudentSubjectOfferingViewSet, StudentViewSet, SubjectOfferingViewSet, SubjectViewSet, TeacherQuizViewSet, TeacherSubjectListViewSet, TeacherViewSet, grade_forecast, list_users, LoginView, create_user, manage_quiz_question, quarterly_grade_detail, quarterly_grades, quiz_item_analysis, start_quiz, student_grade_analytics, student_quiz_attempts, student_quiz_detail, student_quizzes, student_topic_performance, submit_quiz, user_detail, SectionViewSet, AdminDashboardStatsView
 
 router = DefaultRouter()
 router.register(r"sections", SectionViewSet, basename="section")
@@ -11,6 +11,7 @@ router.register(r"teachers", TeacherViewSet, basename="teacher")
 router.register("teacher/subjects", TeacherSubjectListViewSet, basename="teacher-subjects")
 router.register(r"subject-offerings", SubjectOfferingViewSet, basename="subject-offering")
 router.register(r'teacher/quizzes', TeacherQuizViewSet, basename='teacher-quiz')
+router.register(r"student/subject-offerings", StudentSubjectOfferingViewSet, basename="student-subject-offerings")
 
 urlpatterns = [
     path('token/', LoginView.as_view(), name='token_obtain_pair'),
@@ -36,9 +37,9 @@ urlpatterns = [
     # Grade Forecasting - Student access
     path('student/grade-analytics/', student_grade_analytics, name='student_grade_analytics'),
     path('student/grade-forecast/', grade_forecast, name='student_grade_forecast'),
-    path('student/grade-forecast/<int:subjectoffering_id>/', grade_forecast, name='student_grade_forecast_subject'),
+    path('student/grade-forecast/<int:SubjectOffering_id>/', grade_forecast, name='student_grade_forecast_subject'),
     path('student/topic-performance/', student_topic_performance, name='student_topic_performance'),
-    path('student/topic-performance/<int:subjectoffering_id>/', student_topic_performance, name='student_topic_performance_subject'),
+    path('student/topic-performance/<int:SubjectOffering_id>/', student_topic_performance, name='student_topic_performance_subject'),
     
     # Quarterly Grades
     path('quarterly-grades/', quarterly_grades, name='quarterly_grades'),

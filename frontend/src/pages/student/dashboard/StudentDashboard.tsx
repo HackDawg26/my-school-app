@@ -1,213 +1,314 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  GraduationCap, 
-  Calendar, 
-  Bell, 
-  Clock, 
-  Search,
-  ChevronRight,
-  TrendingUp
-} from 'lucide-react';
+'use client';
 
-// --- Types ---
-interface Task {
+import React, { useEffect, useMemo, useState } from 'react';
+import { Clock, ChevronRight } from 'lucide-react';
+
+// ---------------- Types ----------------
+
+type SubjectOfferingCard = {
   id: number;
+  subject_name: string;
+  teacher_name?: string;
+  progress?: number; // 0..100 (optional)
+  average?: number;  // 0..100 (optional)
+};
+
+type Assignment = {
+  id: number;
+  title: string;
+  due_date?: string | null;
+  status?: 'PENDING' | 'SUBMITTED' | 'GRADED';
+};
+
+type QuizStatus = 'DRAFT' | 'SCHEDULED' | 'OPEN' | 'CLOSED';
+type Quiz = {
+  id: number;
+  title: string;
+  open_time?: string | null;
+  close_time?: string | null;
+  status?: QuizStatus;
+};
+
+type Task = {
+  id: string;
   subject: string;
   taskName: string;
   dueDate: string;
   urgency: 'high' | 'medium' | 'low';
-}
-
-interface SubjectGrade {
-  label: string;
-  percentage: number;
-}
-
-// --- Mock Data ---
-const MOCK_TASKS: Task[] = [
-  { id: 1, subject: 'Advanced Calculus', taskName: 'Weekly Quiz', dueDate: 'Today, 11:59 PM', urgency: 'high' },
-  { id: 2, subject: 'Quantum Physics', taskName: 'Lab Report', dueDate: 'Tomorrow', urgency: 'medium' },
-  { id: 3, subject: 'World History', taskName: 'Research Paper', dueDate: 'In 3 days', urgency: 'low' },
-];
-
-const MOCK_GRADES: SubjectGrade[] = [
-  { label: 'Math', percentage: 88 },
-  { label: 'Physics', percentage: 74 },
-  { label: 'Computer Sci', percentage: 95 },
-  { label: 'History', percentage: 82 },
-  { label: 'Literature', percentage: 91 },
-];
-
-const StudentDashboard: React.FC = () => {
-  const navigate = useNavigate();
-
-  return (
-    <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-900">
-      
-
-      {/* Main Content */}
-      <main className="flex-1 p-1 overflow-y-auto">
-        
-        {/* Header */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Student Dashboard</h1>
-            <p className="text-slate-500 font-medium">Hello Alex, you have <span className="text-blue-600">3 tasks</span> requiring attention.</p>
-          </div>  
-        </header>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-          <StatCard label="Current GPA" value="3.88" trend="+0.04" type="up" />
-          <StatCard label="Attendance" value="96.2%" trend="Stable" type="neutral" />
-          <StatCard label="Completed Tasks" value="24/28" trend="85%" type="up" />
-        </div>
-
-        {/* Quick Action Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <QuickActionCard 
-            icon={<BookOpen size={24} />}
-            label="My Subjects" 
-            onClick={() => navigate('/student/subject')}
-            color="blue"
-          />
-          <QuickActionCard 
-            icon={<GraduationCap size={24} />}
-            label="Take Quiz" 
-            onClick={() => navigate('/student/quiz')}
-            color="green"
-          />
-          <QuickActionCard 
-            icon={<TrendingUp size={24} />}
-            label="Grade Forecast" 
-            onClick={() => navigate('/student/grade-forecast')}
-            color="purple"
-          />
-          <QuickActionCard 
-            icon={<Calendar size={24} />}
-            label="Submissions" 
-            onClick={() => navigate('/student/submissions')}
-            color="orange"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Grade Analysis Section */}
-          <section className="xl:col-span-2 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
-            <div className="flex justify-between items-center mb-8">
-              <div>
-                <h2 className="text-xl font-bold">Grade Performance</h2>
-                <p className="text-sm text-slate-400">Average score across all current modules</p>
-              </div>
-              <select className="text-sm font-semibold bg-slate-50 border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 ring-blue-500/20">
-                <option>Semester 1, 2024</option>
-                <option>Semester 2, 2023</option>
-              </select>
-            </div>
-            
-            <div className="flex items-end justify-between h-64 gap-4 md:gap-8 pt-6">
-              {MOCK_GRADES.map((grade) => (
-                <GradeBar key={grade.label} label={grade.label} percentage={grade.percentage} />
-              ))}
-            </div>
-          </section>
-
-          {/* Pending Activities Section */}
-          <section className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">Upcoming Deadlines</h2>
-              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">View All</span>
-            </div>
-            
-            <div className="space-y-4">
-              {MOCK_TASKS.map((task) => (
-                <div key={task.id} className="group p-4 rounded-2xl border border-slate-50 bg-slate-50/30 hover:bg-white hover:shadow-md hover:border-blue-100 transition-all duration-300">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">{task.subject}</span>
-                    <div className={`p-1.5 rounded-lg ${task.urgency === 'high' ? 'bg-red-50 text-red-500' : 'bg-slate-200 text-slate-500'}`}>
-                      <Clock size={14} />
-                    </div>
-                  </div>
-                  <h3 className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{task.taskName}</h3>
-                  <div className="flex items-center justify-between mt-4">
-                    <span className={`text-[11px] px-3 py-1 rounded-full font-bold ${
-                      task.urgency === 'high' ? 'bg-red-500 text-white' : 'bg-white border text-slate-500'
-                    }`}>
-                      {task.dueDate}
-                    </span>
-                    <ChevronRight size={16} className="text-slate-300 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-      </main>
-    </div>
-  );
 };
 
-// --- Sub-components ---
+// ---------------- Helpers ----------------
 
+function safeNumber(v: any, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
 
+function formatDate(iso?: string | null) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' });
+}
+
+function urgencyFromDate(iso?: string | null): Task['urgency'] {
+  if (!iso) return 'low';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 'low';
+  const now = new Date();
+  const diffDays = (d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+  if (diffDays <= 1) return 'high';
+  if (diffDays <= 3) return 'medium';
+  return 'low';
+}
 
 const StatCard = ({ label, value, trend, type }: any) => (
   <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{label}</p>
     <div className="flex items-end justify-between">
       <h3 className="text-3xl font-black text-slate-800">{value}</h3>
-      <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
-        type === 'up' ? 'text-emerald-600 bg-emerald-50' : 'text-slate-500 bg-slate-50'
-      }`}>
+      <span
+        className={`text-xs font-bold px-2 py-1 rounded-lg ${
+          type === 'up' ? 'text-emerald-600 bg-emerald-50' : 'text-slate-500 bg-slate-50'
+        }`}
+      >
         {trend}
       </span>
     </div>
   </div>
 );
 
-const GradeBar = ({ label, percentage }: SubjectGrade) => {
-  // Logic to change bar color based on performance
-  const barColor = percentage > 85 ? 'bg-indigo-500' : percentage > 75 ? 'bg-blue-400' : 'bg-slate-400';
-  
-  return (
-    <div className="flex flex-col items-center flex-1 h-full group">
-      <div className="w-full bg-slate-50 rounded-2xl relative h-full flex items-end overflow-hidden border border-slate-100/50">
-        <div 
-          className={`${barColor} w-full transition-all duration-1000 ease-out rounded-t-xl group-hover:opacity-80`} 
-          style={{ height: `${percentage}%` }}
-        />
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[10px] py-1 px-2 rounded-md font-bold z-10">
-          {percentage}%
-        </div>
+// ---------------- Component ----------------
+
+export default function StudentDashboard() {
+  const [offerings, setOfferings] = useState<SubjectOfferingCard[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const token = localStorage.getItem('access');
+  const base = 'http://127.0.0.1:8000/api';
+
+  useEffect(() => {
+    const run = async () => {
+      if (!token) {
+        setErrorMsg('Not authenticated. Please log in again.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setErrorMsg(null);
+
+        // 1) Load offerings list (main source of truth for dashboard)
+        const res = await fetch(`${base}/student/subject-offerings`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error('subject-offerings list failed', err);
+          setErrorMsg('Failed to load subjects.');
+          setOfferings([]);
+          setTasks([]);
+          return;
+        }
+
+        const data = (await res.json()) as SubjectOfferingCard[];
+        const list = Array.isArray(data) ? data : [];
+        setOfferings(list);
+
+        // 2) Optional: build upcoming deadlines by probing nested endpoints
+        // If your backend does NOT have these endpoints yet, it will just return empty tasks (no crash).
+        const deadlineTasks: Task[] = [];
+
+        await Promise.all(
+          list.map(async (o) => {
+            const [aRes, qRes] = await Promise.all([
+              fetch(`${base}/student/subject-offerings/${o.id}/assignments/`, {
+                headers: { Authorization: `Bearer ${token}` },
+              }).catch(() => null),
+              fetch(`${base}/student/subject-offerings/${o.id}/quizzes/`, {
+                headers: { Authorization: `Bearer ${token}` },
+              }).catch(() => null),
+            ]);
+
+            // Assignments → tasks
+            if (aRes && aRes.ok) {
+              const aData = (await aRes.json()) as Assignment[];
+              (Array.isArray(aData) ? aData : []).forEach((a) => {
+                // show only pending-ish
+                if (a.status === 'SUBMITTED' || a.status === 'GRADED') return;
+
+                const urgency = urgencyFromDate(a.due_date);
+                deadlineTasks.push({
+                  id: `A-${o.id}-${a.id}`,
+                  subject: o.subject_name,
+                  taskName: a.title,
+                  dueDate: a.due_date ? formatDate(a.due_date) : '—',
+                  urgency,
+                });
+              });
+            }
+
+            // Quizzes → tasks (use close_time as "due")
+            if (qRes && qRes.ok) {
+              const qData = (await qRes.json()) as Quiz[];
+              (Array.isArray(qData) ? qData : []).forEach((q) => {
+                // only show open/scheduled
+                if (q.status && !['SCHEDULED', 'OPEN'].includes(q.status)) return;
+
+                const dueIso = q.close_time ?? q.open_time ?? null;
+                const urgency = urgencyFromDate(dueIso);
+
+                deadlineTasks.push({
+                  id: `Q-${o.id}-${q.id}`,
+                  subject: o.subject_name,
+                  taskName: q.title,
+                  dueDate: dueIso ? formatDate(dueIso) : '—',
+                  urgency,
+                });
+              });
+            }
+          })
+        );
+
+        // Sort: soonest first (best-effort by urgency bucket)
+        const urgencyRank = { high: 0, medium: 1, low: 2 } as const;
+        deadlineTasks.sort((a, b) => urgencyRank[a.urgency] - urgencyRank[b.urgency]);
+
+        setTasks(deadlineTasks.slice(0, 6)); // keep it tidy
+      } catch (e) {
+        console.error(e);
+        setErrorMsg('Network error while loading dashboard.');
+        setOfferings([]);
+        setTasks([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    run();
+  }, [token]);
+
+  const stats = useMemo(() => {
+    // Current Grade: average across offering.average (if present)
+    const avgs = offerings.map((o) => safeNumber(o.average, NaN)).filter((n) => Number.isFinite(n));
+    const currentGrade = avgs.length ? (avgs.reduce((a, b) => a + b, 0) / avgs.length).toFixed(1) : '—';
+
+    // Completed quiz: only possible if backend provides a progress-like field;
+    // fallback: show —
+    const completedQuiz = '—';
+
+    return {
+      currentGrade,
+      completedQuiz,
+      upcomingCount: tasks.length,
+    };
+  }, [offerings, tasks]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 p-6">
+        <p className="text-slate-600 font-bold">Loading dashboard…</p>
       </div>
-      <span className="text-[10px] font-bold text-slate-500 mt-4 text-center whitespace-nowrap">{label}</span>
+    );
+  }
+
+  if (errorMsg) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 p-6">
+        <h1 className="text-2xl font-black">Student Dashboard</h1>
+        <p className="text-rose-600 font-bold mt-2">{errorMsg}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-900">
+      <main className="flex-1 p-1 overflow-y-auto">
+        {/* Header */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight">Student Dashboard</h1>
+            <p className="text-slate-500 font-medium">
+              You have <span className="text-blue-600">{stats.upcomingCount}</span> upcoming items.
+            </p>
+          </div>
+        </header>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+          <StatCard label="Current Grade" value={stats.currentGrade} trend="SF9 Avg" type="up" />
+          <StatCard label="Completed Quiz" value={stats.completedQuiz} trend="—" type="flat" />
+        </div>
+
+        {/* Upcoming Deadlines */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          <section className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm xl:col-span-2">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Upcoming Deadlines</h2>
+              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                View All
+              </span>
+            </div>
+
+            {tasks.length === 0 ? (
+              <div className="text-slate-600 font-semibold">No deadlines available yet.</div>
+            ) : (
+              <div className="space-y-4">
+                {tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="group p-4 rounded-2xl border border-slate-50 bg-slate-50/30 hover:bg-white hover:shadow-md hover:border-blue-100 transition-all duration-300"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                        {task.subject}
+                      </span>
+                      <div
+                        className={`p-1.5 rounded-lg ${
+                          task.urgency === 'high'
+                            ? 'bg-red-50 text-red-500'
+                            : task.urgency === 'medium'
+                            ? 'bg-amber-50 text-amber-600'
+                            : 'bg-slate-200 text-slate-500'
+                        }`}
+                      >
+                        <Clock size={14} />
+                      </div>
+                    </div>
+
+                    <h3 className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                      {task.taskName}
+                    </h3>
+
+                    <div className="flex items-center justify-between mt-4">
+                      <span
+                        className={`text-[11px] px-3 py-1 rounded-full font-bold ${
+                          task.urgency === 'high'
+                            ? 'bg-red-500 text-white'
+                            : task.urgency === 'medium'
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-white border text-slate-500'
+                        }`}
+                      >
+                        {task.dueDate}
+                      </span>
+                      <ChevronRight
+                        size={16}
+                        className="text-slate-300 group-hover:text-blue-400 group-hover:translate-x-1 transition-all"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
     </div>
   );
-};
-
-const QuickActionCard = ({ icon, label, onClick, color }: any) => {
-  const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600 hover:bg-blue-100 hover:shadow-blue-200/50',
-    green: 'bg-green-50 text-green-600 hover:bg-green-100 hover:shadow-green-200/50',
-    purple: 'bg-purple-50 text-purple-600 hover:bg-purple-100 hover:shadow-purple-200/50',
-    orange: 'bg-orange-50 text-orange-600 hover:bg-orange-100 hover:shadow-orange-200/50',
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      className={`${colorClasses[color]} p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col items-center gap-3 group`}
-    >
-      <div className="group-hover:scale-110 transition-transform duration-300">
-        {icon}
-      </div>
-      <span className="text-sm font-bold">{label}</span>
-      <ChevronRight size={16} className="text-slate-300 group-hover:text-current group-hover:translate-x-1 transition-all" />
-    </button>
-  );
-};
-
-export default StudentDashboard;
+}
