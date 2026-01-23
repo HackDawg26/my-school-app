@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    User, Student, Subject, Assignment, Quiz, QuizQuestion, 
+    User, Student, Subject, Quiz, QuizQuestion, 
     QuizChoice, QuizAttempt, QuizAnswer, Resource, Grade
 )
 
@@ -8,7 +8,6 @@ from .models import (
 admin.site.register(User)
 admin.site.register(Student)
 admin.site.register(Subject)
-admin.site.register(Assignment)
 admin.site.register(Quiz)
 admin.site.register(QuizQuestion)
 admin.site.register(QuizChoice)

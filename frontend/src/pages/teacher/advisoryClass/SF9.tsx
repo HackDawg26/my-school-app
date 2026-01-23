@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-import React, { useState, type JSX } from "react";
-=======
 // ExportReportCardPDF.tsx (UPDATED — uses QUARTERLY GRADES from backend)
 //
 // ✅ Replaces hardcoded learningAreasBody with backend data from:
@@ -13,7 +9,6 @@ import React, { useState, type JSX } from "react";
 // NOTE: I kept CORE_VALUES as static (AO). If you have a backend for values, we can plug it in too.
 
 import React, { useEffect, useMemo, useState, type JSX } from "react";
->>>>>>> Backup
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ArrowLeft, FileText, ShieldCheck } from "lucide-react";
@@ -108,35 +103,6 @@ function gradeLabel(grade_level: string | number | undefined) {
 // ---------------- Component ----------------
 
 export default function ExportReportCardPDF(): JSX.Element {
-<<<<<<< HEAD
-    const navigate = useNavigate();
-
-    
-    // Add a state to toggle the preview if you want, or just show it by default
-    const [showPreview, setShowPreview] = useState(true);
-    const [activePage, setActivePage] = useState(1);
-
-
-    // Replicating your JSX Image Helper with Types
-    const getBase64ImageFromURL = (url: string): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.setAttribute("crossOrigin", "anonymous");
-            img.onload = () => {
-                const canvas = document.createElement("canvas");
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext("2d");
-                if (ctx) {
-                    ctx.drawImage(img, 0, 0);
-                    resolve(canvas.toDataURL("image/png"));
-                } else {
-                    reject(new Error("Canvas context failed"));
-                }
-            };
-            img.onerror = (error) => reject(error);
-            img.src = url;
-=======
   const navigate = useNavigate();
   const { studentId } = useParams<{ studentId: string }>();
 
@@ -213,7 +179,6 @@ export default function ExportReportCardPDF(): JSX.Element {
         // student detail (optional but helps cover)
         const studentRes = await fetch(`${base}/students/${sid}/`, {
           headers: { Authorization: `Bearer ${token}` },
->>>>>>> Backup
         });
 
         if (studentRes.ok) {
@@ -512,29 +477,11 @@ export default function ExportReportCardPDF(): JSX.Element {
 
   if (loading) {
     return (
-<<<<<<< HEAD
-
-        <div className="flex flex-col gap-6 p-8 bg-white rounded-3xl border border-slate-200 shadow-sm mb-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                {/* Navigation Group */}
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => navigate('/teacher/advisory-class')}
-                        className="group flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-slate-900 transition-all font-bold text-sm"
-                    >
-                        <div className="p-2 bg-slate-50 group-hover:bg-slate-100 rounded-full transition-colors">
-                            <ArrowLeft size={20} />
-                        </div>
-                        <span>Back to Masterlist</span>
-                    </button>
-                </div>
-=======
       <div className="p-8 bg-white rounded-3xl border border-slate-200 shadow-sm">
         <p className="text-slate-600 font-bold">Loading quarterly grades…</p>
       </div>
     );
   }
->>>>>>> Backup
 
   if (errorMsg) {
     return (
@@ -561,22 +508,6 @@ export default function ExportReportCardPDF(): JSX.Element {
           </button>
         </div>
 
-<<<<<<< HEAD
-
-            {/* Informational Footer */}
-            <div className="flex items-start gap-3 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
-                <div className="p-1 bg-indigo-100 text-indigo-600 rounded-lg"><ShieldCheck size={16} /></div>
-                <div className="flex-1">
-                    <p className="text-[11px] font-black text-indigo-900 uppercase tracking-tight mb-0.5">Standard Compliance Check</p>
-                    <p className="text-xs text-indigo-700/70 font-medium">Verified DepEd SF9-2024 Standards. <button onClick={() => setShowPreview(!showPreview)} className="ml-1 font-bold underline cursor-pointer">{showPreview ? "Hide Preview" : "Show Preview"}</button></p>
-                </div>
-                {showPreview && (
-                    <div className="flex bg-white p-1 rounded-xl border border-indigo-100 shadow-sm">
-                        <button onClick={() => setActivePage(1)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${activePage === 1 ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-indigo-600'}`}>Page 1</button>
-                        <button onClick={() => setActivePage(2)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${activePage === 2 ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-indigo-600'}`}>Page 2</button>
-                    </div>
-                )}
-=======
         <div className="flex items-center gap-3">
           <button
             onClick={handleExport}
@@ -631,7 +562,6 @@ export default function ExportReportCardPDF(): JSX.Element {
             <div className="flex flex-col">
               <h3 className="text-sm font-black text-slate-700 uppercase tracking-tight">Live SF9 Preview</h3>
               <p className="text-[10px] text-slate-500 font-medium">Draft generated from backend quarterly grades</p>
->>>>>>> Backup
             </div>
             <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
               <button
@@ -885,14 +815,9 @@ export default function ExportReportCardPDF(): JSX.Element {
                     <img src={deped_logo} alt="DepEd" className="w-20 h-20 object-contain mt-10 opacity-80" />
                   </div>
                 </div>
-<<<<<<< HEAD
-            )}
-
-=======
               )}
             </div>
           </div>
->>>>>>> Backup
         </div>
       )}
     </div>

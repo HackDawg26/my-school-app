@@ -166,11 +166,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'LMS.User'
 
-<<<<<<< HEAD
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 OPENAI_MODEL = 'gpt-3.5-turbo'
-=======
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
-OPENAI_MODEL = 'gpt-3.5-turbo'
->>>>>>> Backup

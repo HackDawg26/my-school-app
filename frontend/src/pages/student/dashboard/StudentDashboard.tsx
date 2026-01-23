@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-import React from 'react'
-
-const StudentDashboard = () => {
-  return (
-    <div>StudentDashboard</div>
-  )
-}
-
-export default StudentDashboard
-=======
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -323,4 +312,3 @@ export default function StudentDashboard() {
     </div>
   );
 }
->>>>>>> Backup
