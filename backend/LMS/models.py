@@ -184,7 +184,67 @@ class Admin(models.Model):
     def __str__(self):
         return f"Admin: {self.user.school_id}"
     
+# ==================== QUARTERLY GRADES SYSTEM ====================
 
+class QuarterlyGrade(models.Model):
+    """Stores student grades per quarter with weighted components"""
+    QUARTER_CHOICES = [
+        ('Q1', 'First Quarter'),
+        ('Q2', 'Second Quarter'),
+        ('Q3', 'Third Quarter'),
+        ('Q4', 'Fourth Quarter'),
+    ]
+    
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="quarterly_grades")
+    SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="quarterly_grades")
+    quarter = models.CharField(max_length=2, choices=QUARTER_CHOICES)
+    
+    # Component scores (raw scores, not weighted)
+    written_work_score = models.FloatField(default=0.0, help_text="Total WW score")
+    written_work_total = models.FloatField(default=100.0, help_text="Total possible WW points")
+    
+    performance_task_score = models.FloatField(default=0.0, help_text="Total PT score")
+    performance_task_total = models.FloatField(default=100.0, help_text="Total possible PT points")
+    
+    quarterly_assessment_score = models.FloatField(default=0.0, help_text="Quarterly exam score")
+    quarterly_assessment_total = models.FloatField(default=100.0, help_text="Total possible QA points")
+    
+    # Weights (default: 40-40-20)
+    ww_weight = models.FloatField(default=0.40, help_text="Written Work weight (0-1)")
+    pt_weight = models.FloatField(default=0.40, help_text="Performance Task weight (0-1)")
+    qa_weight = models.FloatField(default=0.20, help_text="Quarterly Assessment weight (0-1)")
+    
+    # Calculated final grade
+    final_grade = models.FloatField(default=0.0, help_text="Weighted final grade (0-100)")
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    remarks = models.TextField(blank=True, help_text="Teacher comments/remarks")
+    
+    class Meta:
+        unique_together = ['student', 'SubjectOffering', 'quarter']
+        ordering = ['student', 'SubjectOffering', 'quarter']
+    
+    def calculate_final_grade(self):
+        """Calculate weighted final grade from component scores"""
+        # Convert to percentages
+        ww_pct = (self.written_work_score / self.written_work_total * 100) if self.written_work_total > 0 else 0
+        pt_pct = (self.performance_task_score / self.performance_task_total * 100) if self.performance_task_total > 0 else 0
+        qa_pct = (self.quarterly_assessment_score / self.quarterly_assessment_total * 100) if self.quarterly_assessment_total > 0 else 0
+        
+        # Apply weights
+        self.final_grade = (ww_pct * self.ww_weight) + (pt_pct * self.pt_weight) + (qa_pct * self.qa_weight)
+        return self.final_grade
+    
+    def save(self, *args, **kwargs):
+        """Auto-calculate final grade before saving"""
+        self.calculate_final_grade()
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.student.user.email} - {self.SubjectOffering.name} - {self.quarter}: {self.final_grade:.2f}%"
+    
 class Quiz(models.Model):
     STATUS_CHOICES = [
         ('DRAFT', 'Draft'),
@@ -194,6 +254,7 @@ class Quiz(models.Model):
     ]
     
     quiz_id = models.CharField(max_length=50, unique=True, blank=True)
+    quarter = models.CharField(max_length=2, choices=QuarterlyGrade.QUARTER_CHOICES, default='Q1')
     SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="quizzes")
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_quizzes", null=True, blank=True)
     title = models.CharField(max_length=255)
@@ -206,7 +267,7 @@ class Quiz(models.Model):
     time_limit = models.IntegerField(help_text="Minutes to complete quiz")
     
     # Quiz settings
-    total_points = models.FloatField(default=100)
+    total_points = models.FloatField(default=0)
     passing_score = models.FloatField(default=60)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
     
@@ -383,17 +444,6 @@ class GradeForecast(models.Model):
     
     def __str__(self):
         return f"{self.student.user.email} - {self.SubjectOffering.name}: {self.predicted_grade}%"
-class Grade(models.Model):
-    grade_id = models.CharField(max_length=50, unique=True)
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="grades")
-    SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="grades")
-    assignment_name = models.CharField(max_length=255)
-    score = models.FloatField()
-    total = models.FloatField()
-    date = models.DateField()
-
-    def __str__(self):
-        return f"{self.student.user.email} - {self.SubjectOffering.name}: {self.predicted_grade}%"
 
 class Grade(models.Model):
     grade_id = models.CharField(max_length=50, unique=True)
@@ -408,63 +458,3 @@ class Grade(models.Model):
         return f"{self.student.student_id} - {self.SubjectOffering.name} - {self.score}/{self.total}"
 
 
-# ==================== QUARTERLY GRADES SYSTEM ====================
-
-class QuarterlyGrade(models.Model):
-    """Stores student grades per quarter with weighted components"""
-    QUARTER_CHOICES = [
-        ('Q1', 'First Quarter'),
-        ('Q2', 'Second Quarter'),
-        ('Q3', 'Third Quarter'),
-        ('Q4', 'Fourth Quarter'),
-    ]
-    
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="quarterly_grades")
-    SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="quarterly_grades")
-    quarter = models.CharField(max_length=2, choices=QUARTER_CHOICES)
-    
-    # Component scores (raw scores, not weighted)
-    written_work_score = models.FloatField(default=0.0, help_text="Total WW score")
-    written_work_total = models.FloatField(default=100.0, help_text="Total possible WW points")
-    
-    performance_task_score = models.FloatField(default=0.0, help_text="Total PT score")
-    performance_task_total = models.FloatField(default=100.0, help_text="Total possible PT points")
-    
-    quarterly_assessment_score = models.FloatField(default=0.0, help_text="Quarterly exam score")
-    quarterly_assessment_total = models.FloatField(default=100.0, help_text="Total possible QA points")
-    
-    # Weights (default: 40-40-20)
-    ww_weight = models.FloatField(default=0.40, help_text="Written Work weight (0-1)")
-    pt_weight = models.FloatField(default=0.40, help_text="Performance Task weight (0-1)")
-    qa_weight = models.FloatField(default=0.20, help_text="Quarterly Assessment weight (0-1)")
-    
-    # Calculated final grade
-    final_grade = models.FloatField(default=0.0, help_text="Weighted final grade (0-100)")
-    
-    # Metadata
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    remarks = models.TextField(blank=True, help_text="Teacher comments/remarks")
-    
-    class Meta:
-        unique_together = ['student', 'SubjectOffering', 'quarter']
-        ordering = ['student', 'SubjectOffering', 'quarter']
-    
-    def calculate_final_grade(self):
-        """Calculate weighted final grade from component scores"""
-        # Convert to percentages
-        ww_pct = (self.written_work_score / self.written_work_total * 100) if self.written_work_total > 0 else 0
-        pt_pct = (self.performance_task_score / self.performance_task_total * 100) if self.performance_task_total > 0 else 0
-        qa_pct = (self.quarterly_assessment_score / self.quarterly_assessment_total * 100) if self.quarterly_assessment_total > 0 else 0
-        
-        # Apply weights
-        self.final_grade = (ww_pct * self.ww_weight) + (pt_pct * self.pt_weight) + (qa_pct * self.qa_weight)
-        return self.final_grade
-    
-    def save(self, *args, **kwargs):
-        """Auto-calculate final grade before saving"""
-        self.calculate_final_grade()
-        super().save(*args, **kwargs)
-    
-    def __str__(self):
-        return f"{self.student.user.email} - {self.SubjectOffering.name} - {self.quarter}: {self.final_grade:.2f}%"

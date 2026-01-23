@@ -8,6 +8,7 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from django.db.models import Sum
 from .models import (Section, Student, Subject, SubjectOffering, Quiz, QuizQuestion, QuizChoice, QuizAttempt, 
     QuizAnswer, Student, GradeForecast, QuizTopicPerformance,
     QuarterlyGrade)
@@ -182,7 +183,7 @@ class SubjectOfferingViewSet(viewsets.ModelViewSet):
     def recent_quiz_grades(self, request, pk=None):
         attempts = (
             QuizAttempt.objects
-            .filter(quiz__SubjectOffering_id=pk)
+            .filter(quiz__SubjectOffering_id=pk, status="GRADED",)
             .select_related("student__user", "quiz")
             .order_by("-submitted_at")[:10]
         )
@@ -494,14 +495,21 @@ class TeacherQuizViewSet(viewsets.ModelViewSet):
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'])
+    
     def add_question(self, request, pk=None):
-        """Add a question to the quiz"""
         quiz = self.get_object()
         serializer = QuizQuestionSerializer(data=request.data)
-        
+
         if serializer.is_valid():
             serializer.save(quiz=quiz)
+
+        # recalc total_points
+            total = quiz.questions.aggregate(s=Sum('points'))['s'] or 0
+            quiz.total_points = total
+            quiz.save(update_fields=['total_points'])
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['get'])
@@ -741,7 +749,22 @@ def submit_quiz(request, attempt_id):
     attempt.score = total_score
     attempt.status = 'GRADED'
     attempt.save()
+    quiz = attempt.quiz
+    student = attempt.student
+    quarter = quiz.quarter
     
+    grade, created = QuarterlyGrade.objects.get_or_create(
+        student=student,
+        SubjectOffering=quiz.SubjectOffering,
+        quarter=quarter,
+        defaults={
+            'written_work_score': 0.0,
+            'written_work_total': 0.0,  # start at 0 so accumulation works cleanly
+        }
+    )
+    grade.written_work_score += float(total_score)
+    grade.written_work_total += float(quiz.total_points or 0)
+    grade.save()  # auto recalculates final_grade via QuarterlyGrade.save() :contentReference[oaicite:7]{index=7}
     return Response({
         'message': 'Quiz submitted successfully',
         'score': total_score,
