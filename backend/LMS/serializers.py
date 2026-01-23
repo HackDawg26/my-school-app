@@ -375,10 +375,10 @@ class QuizSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'quiz_id', 'SubjectOffering', 'subject_name', 'teacher', 'teacher_name',
             'title', 'description', 'posted_at', 'open_time', 'close_time',
-            'time_limit', 'total_points', 'passing_score', 'status',
+            'time_limit', 'quarter', 'total_points', 'passing_score', 'status',
             'show_correct_answers', 'shuffle_questions', 'allow_multiple_attempts',
             'questions', 'question_count', 'is_open', 'is_upcoming', 'is_closed',
-            'created_at', 'updated_at'
+            'created_at', 'updated_at', 
         ]
         read_only_fields = ['quiz_id', 'posted_at', 'teacher', 'created_at', 'updated_at']
     
@@ -405,11 +405,11 @@ class QuizCreateUpdateSerializer(serializers.ModelSerializer):
         model = Quiz
         fields = [
             'SubjectOffering', 'title', 'description', 'open_time', 'close_time',
-            'time_limit', 'total_points', 'passing_score', 'status',
+            'time_limit', 'quarter', 'total_points', 'passing_score', 'status',
             'show_correct_answers', 'shuffle_questions', 'allow_multiple_attempts'
         ]
-
-
+        read_only_fields = ['total_points']
+        
 class StudentQuizSerializer(serializers.ModelSerializer):
     """Quiz serializer for students - hides sensitive info"""
     subject_name = serializers.CharField(source='SubjectOffering.name', read_only=True)

@@ -11,6 +11,7 @@ type SubjectOfferingCard = {
   teacher_name?: string;
   progress?: number; // 0..100 (optional)
   average?: number;  // 0..100 (optional)
+  final_grade?: number | null; // ✅ add this
 };
 
 type Assignment = {
@@ -194,20 +195,20 @@ export default function StudentDashboard() {
   }, [token]);
 
   const stats = useMemo(() => {
-    // Current Grade: average across offering.average (if present)
-    const avgs = offerings.map((o) => safeNumber(o.average, NaN)).filter((n) => Number.isFinite(n));
-    const currentGrade = avgs.length ? (avgs.reduce((a, b) => a + b, 0) / avgs.length).toFixed(1) : '—';
+  const firstOfferingWithGrade = offerings.find(
+    (o) => typeof o.final_grade === 'number'
+  );
 
-    // Completed quiz: only possible if backend provides a progress-like field;
-    // fallback: show —
-    const completedQuiz = '—';
+  return {
+    finalGrade:
+      firstOfferingWithGrade?.final_grade !== undefined && firstOfferingWithGrade.final_grade !== null
+        ? firstOfferingWithGrade.final_grade.toFixed(1)
+        : '—',
+    completedQuiz: '—',
+    upcomingCount: tasks.length,
+  };
+}, [offerings, tasks]);
 
-    return {
-      currentGrade,
-      completedQuiz,
-      upcomingCount: tasks.length,
-    };
-  }, [offerings, tasks]);
 
   if (loading) {
     return (
@@ -241,7 +242,7 @@ export default function StudentDashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-          <StatCard label="Current Grade" value={stats.currentGrade} trend="SF9 Avg" type="up" />
+          <StatCard label="Final Grade" value={stats.finalGrade} trend="Quarterly Avg" type="up" />
           <StatCard label="Completed Quiz" value={stats.completedQuiz} trend="—" type="flat" />
         </div>
 

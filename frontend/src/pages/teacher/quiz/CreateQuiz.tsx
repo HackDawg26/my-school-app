@@ -17,6 +17,7 @@ export default function CreateQuiz() {
     open_time: '',
     close_time: '',
     time_limit: 60,
+    quarter: 'Q1',
     total_points: 100,
     passing_score: 60,
     status: 'SCHEDULED',  // Changed from DRAFT to SCHEDULED so students can see it
@@ -209,14 +210,13 @@ export default function CreateQuiz() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Total Points</label>
-            <input
-              type="number"
-              value={formData.total_points}
-              onChange={(e) => setFormData({ ...formData, total_points: parseFloat(e.target.value) })}
-              className="w-full border rounded px-3 py-2"
-              min="1"
-            />
+            <label>Quarter</label>
+            <select value={formData.quarter} onChange={(e) => setFormData({ ...formData, quarter: e.target.value })}>
+              <option value="Q1">Q1</option>
+              <option value="Q2">Q2</option>
+              <option value="Q3">Q3</option>
+              <option value="Q4">Q4</option>
+              </select>
           </div>
 
           <div>
