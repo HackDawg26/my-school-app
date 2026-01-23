@@ -6,7 +6,7 @@ Analyzes quiz performance and generates AI-powered grade predictions
 from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from datetime import timedelta
-from .models import QuizAttempt, QuizAnswer, QuizTopicPerformance, GradeForecast, Student, Subject, Quiz
+from .models import QuizAttempt, QuizAnswer, QuizTopicPerformance, GradeForecast, Student, Subject, Quiz, SubjectOffering
 from .ai_service import AIService
 
 
@@ -16,13 +16,13 @@ class GradeAnalyticsService:
     def __init__(self):
         self.ai_service = AIService()
     
-    def get_student_quiz_data(self, student_id, subject_id=None):
+    def get_student_quiz_data(self, student_id, SubjectOffering_id=None):
         """
         Aggregate all quiz performance data for a student
         
         Args:
             student_id: Student ID
-            subject_id: Optional subject filter
+            SubjectOffering_id: Optional subject filter
         
         Returns:
             Dict with aggregated performance metrics
@@ -38,10 +38,10 @@ class GradeAnalyticsService:
             status='GRADED'
         )
         
-        if subject_id:
-            attempts_query = attempts_query.filter(quiz__subject_id=subject_id)
+        if SubjectOffering_id:
+            attempts_query = attempts_query.filter(quiz__SubjectOffering_id=SubjectOffering_id)
         
-        attempts = attempts_query.select_related('quiz__subject').order_by('submitted_at')
+        attempts = attempts_query.select_related('quiz__SubjectOffering').order_by('submitted_at')
         
         if not attempts.exists():
             return None
@@ -58,7 +58,7 @@ class GradeAnalyticsService:
         recent_trend = self._analyze_trend(quiz_scores)
         
         # Get topic-level performance
-        topic_performance = self._calculate_topic_performance(student, subject_id)
+        topic_performance = self._calculate_topic_performance(student, SubjectOffering_id)
         
         # Get student name
         student_name = f"{student.user.first_name} {student.user.last_name}".strip() or student.user.email
@@ -95,7 +95,7 @@ class GradeAnalyticsService:
         else:
             return f"Stable (avg around {recent_avg:.1f}%)"
     
-    def _calculate_topic_performance(self, student, subject_id=None):
+    def _calculate_topic_performance(self, student, SubjectOffering_id=None):
         """
         Calculate per-topic accuracy from quiz questions
         
@@ -109,8 +109,8 @@ class GradeAnalyticsService:
             question__question_type__in=['MULTIPLE_CHOICE', 'TRUE_FALSE']  # Only auto-graded
         ).select_related('question__quiz')
         
-        if subject_id:
-            answers_query = answers_query.filter(attempt__quiz__subject_id=subject_id)
+        if SubjectOffering_id:
+            answers_query = answers_query.filter(attempt__quiz__SubjectOffering_id=SubjectOffering_id)
         
         # Group by quiz title as "topic" (you can enhance this with actual topic field)
         topic_stats = {}
@@ -141,15 +141,15 @@ class GradeAnalyticsService:
         
         return performance_list
     
-    def update_topic_performance_records(self, student_id, subject_id):
+    def update_topic_performance_records(self, student_id, SubjectOffering_id):
         """Update QuizTopicPerformance records in database"""
         try:
             student = Student.objects.get(id=student_id)
-            subject = Subject.objects.get(id=subject_id)
+            subject = Subject.objects.get(id=SubjectOffering_id)
         except (Student.DoesNotExist, Subject.DoesNotExist):
             return False
         
-        topic_data = self._calculate_topic_performance(student, subject_id)
+        topic_data = self._calculate_topic_performance(student, SubjectOffering_id)
         
         # Update or create records
         for topic_info in topic_data:
@@ -166,26 +166,26 @@ class GradeAnalyticsService:
         
         return True
     
-    def generate_forecast(self, student_id, subject_id):
+    def generate_forecast(self, student_id, SubjectOffering_id):
         """
         Generate or update grade forecast using AI
         
         Args:
             student_id: Student ID
-            subject_id: Subject ID
+            SubjectOffering_id: Subject ID
         
         Returns:
             GradeForecast object or None
         """
         # Get student data
-        student_data = self.get_student_quiz_data(student_id, subject_id)
+        student_data = self.get_student_quiz_data(student_id, SubjectOffering_id)
         
         if not student_data or student_data['quiz_count'] < 1:
             return None  # Need at least 1 quiz for prediction
         
         try:
-            subject = Subject.objects.get(id=subject_id)
-        except Subject.DoesNotExist:
+            subject = SubjectOffering.objects.get(id=SubjectOffering_id)
+        except SubjectOffering.DoesNotExist:
             return None
         
         # Add subject name for AI context
@@ -195,12 +195,12 @@ class GradeAnalyticsService:
         ai_prediction = self.ai_service.predict_grade(student_data)
         
         # Update topic performance records
-        self.update_topic_performance_records(student_id, subject_id)
+        self.update_topic_performance_records(student_id, SubjectOffering_id)
         
         # Create or update forecast record
         forecast, created = GradeForecast.objects.update_or_create(
             student=student_data['student'],
-            subject=subject,
+            SubjectOffering=SubjectOffering.objects.get(id=SubjectOffering_id),
             defaults={
                 'current_average': student_data['current_average'],
                 'quiz_count': student_data['quiz_count'],

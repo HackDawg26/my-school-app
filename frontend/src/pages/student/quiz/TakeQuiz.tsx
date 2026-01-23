@@ -58,7 +58,7 @@ export default function TakeQuiz() {
 
   const startQuiz = async () => {
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       const response = await axios.post(
         `http://127.0.0.1:8000/api/student/quizzes/${id}/start/`,
@@ -116,7 +116,7 @@ export default function TakeQuiz() {
     });
 
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       const response = await axios.post(
         `http://127.0.0.1:8000/api/student/quiz-attempts/${attemptId}/submit/`,

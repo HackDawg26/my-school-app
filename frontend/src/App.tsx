@@ -8,6 +8,7 @@ import { useAuth } from '../src/context/AuthContext.tsx';
 
 // student imports
 import SubjectsPage from './pages/student/subjects/student-subjects.tsx';
+<<<<<<< HEAD
 import GradesPage from './pages/student/gradebook/student-grades.tsx';
 import { StudentSubmissions } from './pages/student/submission/StudentSubmissions.tsx';
 import StudentDashboard from './pages/student/dashboard/StudentDashboard.tsx';
@@ -17,6 +18,13 @@ import StudentQuarterlyGrades from './pages/student/grades/StudentQuarterlyGrade
 
 // teacher imports
 import TeacherSubmissions from './pages/teacher/submissions/TeacherSubmissions.tsx';
+=======
+import  StudentSubjectpage  from './pages/student/subjects/student-subjects-id.tsx';
+
+// teacher imports
+
+
+>>>>>>> Backup
 import AdvisoryClass from './pages/teacher/advisoryClass/AdvisoryClass.tsx';
 import TeacherDashboard from './pages/teacher/dashboard/TeacherDashboard.tsx';
 
@@ -76,12 +84,17 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={['STUDENT']} />}>
               <Route path="/student/dashboard" element={<StudentDashboard />} />
               <Route path="/student/subject" element={<SubjectsPage />} />
+<<<<<<< HEAD
               <Route path="/student/subject/:id" element={<StudentSubjectpage />} />
               <Route path="/student/gradebook" element={<GradesPage />} />
 
               <Route path="/student/submissions" element={<StudentSubmissions />} />
               <Route path="/student/grades/quarterly" element={<StudentQuarterlyGrades />} />
 
+=======
+              <Route path="/student/subject-offering/:id" element={<StudentSubjectpage />} />
+              <Route path="/student/grades/quarterly" element={<StudentQuarterlyGrades />} />
+>>>>>>> Backup
               <Route path="/student/quiz" element={<StudentQuizList />} />
               <Route path="/student/quiz/:id/take" element={<TakeQuiz />} />
               <Route path="/student/quiz/result" element={<QuizResult />} />
@@ -105,8 +118,11 @@ function App() {
               <Route path="/teacher/gradebook" element={<Gradebook />} />
               <Route path="/teacher/gradebook/:subjectId" element={<Gradebook />} />
               <Route path="/teacher/grades/quarterly" element={<QuarterlyGradesPage />} />
+<<<<<<< HEAD
 
               <Route path="/teacher/submissions" element={<TeacherSubmissions />} />
+=======
+>>>>>>> Backup
               <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />
               <Route path="/teacher/advisory-class/sf9/:studentId" element={<ExportReportCardPDF />} />
 

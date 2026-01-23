@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
@@ -12,125 +13,255 @@ import {
 
 } from 'lucide-react';
 import { useSubjects, type Subject } from './SubjectProvider';
+=======
+// SubjectPage.tsx (UPDATED: fetch SubjectOffering + quizzes + recent quiz grades from backend)
+//
+// Assumes backend endpoints exist:
+//   GET /api/subject-offerings/:id/                       -> subject offering detail
+//   GET /api/subject-offerings/:id/quizzes/               -> quizzes for offering
+//   GET /api/subject-offerings/:id/recent-quiz-grades/    -> recent quiz attempts (computed)
+//
+// If your serializer field names differ, tweak the interfaces below.
+>>>>>>> Backup
 
-// --- Interfaces ---
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import {
+  ArrowLeft,
+  Users,
+  FileText,
+  TrendingUp,
+  BookOpen,
+  type LucideIcon,
+  MapPin,
+  Calendar,
+  Download,
+  Plus,
+} from "lucide-react";
 
-interface Assignment {
-    id: string;
-    name: string;
-    due: string;
-    status: 'Grading' | 'Assigned' | 'Overdue';
-    count: number;
+// ---------------- Types ----------------
+
+type QuizStatus = "DRAFT" | "SCHEDULED" | "OPEN" | "CLOSED";
+
+interface SubjectOfferingDetail {
+  id: number;
+  name: string; // offering name (e.g. "Math")
+  section: string; // e.g. "Diamond"
+  grade: string | number; // e.g. 7
+  room_number?: string; // fallback if backend still uses room_number
+  teacher_name?: string; // optional if serializer provides
+  students?: number; // optional count
+  average?: number; // optional
+  quiz_count?: number; // optional
 }
 
-interface RecentGrade {
-    student: string;
-    grade: number;
-    assignment: string;
+interface Quiz {
+  id: number;
+  title: string;
+  open_time: string | null;
+  close_time: string | null;
+  status: QuizStatus;
+  // optional extras if you have them:
+  total_points?: number;
 }
 
-interface DetailedSubject extends Subject {
-    schedule?: string;
-    assignments?: Assignment[];
-    recentGrades?: RecentGrade[];
+interface RecentQuizGrade {
+  student: string; // "First Last"
+  quiz: string; // quiz title
+  score: number;
+  total: number;
+  percent: number; // 0-100
+  submitted_at?: string;
 }
 
 interface StatCardProps {
-    title: string;
-    value: string | number;
-    icon: LucideIcon;
-    colorClass: 'stat-green' | 'stat-red' | 'stat-purple' | 'stat-orange' | 'stat-blue';
+  title: string;
+  value: string | number;
+  icon: LucideIcon;
+  colorClass:
+    | "stat-green"
+    | "stat-red"
+    | "stat-purple"
+    | "stat-orange"
+    | "stat-blue";
 }
 
-// --- Dummy Data ---
-// In a real app, this would likely come from an API call using the ID
-const ALL_SUBJECT_DATA: Record<number, Partial<DetailedSubject>> = {
-    1: {
-        schedule: "Mon, Wed, Fri | 9:00 AM - 10:00 AM",
-        assignments: [
-            { id: 'A1', name: 'Ratios and Proportions Quiz', due: 'Nov 10', status: 'Grading', count: 12 },
-            { id: 'A2', name: 'Geometry Basics Homework', due: 'Nov 8', status: 'Assigned', count: 28 },
-        ],
-        recentGrades: [
-            { student: 'Alex J.', grade: 92, assignment: 'Fractions Test' },
-            { student: 'Maria P.', grade: 78, assignment: 'Ratios HW' },
-        ]
-    },
-    2: {
-        schedule: "Tue, Thu | 10:30 AM - 12:00 PM",
-        assignments: [
-            { id: 'A3', name: 'Quadratic Equations Midterm', due: 'Nov 15', status: 'Assigned', count: 26 },
-        ],
-        recentGrades: [
-            { student: 'Ben C.', grade: 88, assignment: 'Polynomials Quiz' },
-            { student: 'Sarah L.', grade: 95, assignment: 'Linear Eq. Test' },
-        ]
-    },
-    3: {
-        schedule: "Mon, Wed | 11:15 AM - 12:15 PM",
-        assignments: [
-            { id: 'A4', name: 'Circle Theorems Lab', due: 'Nov 12', status: 'Grading', count: 30 },
-            { id: 'A5', name: 'Trigonometry Homework', due: 'Nov 18', status: 'Assigned', count: 30 },
-            { id: 'A6', name: 'Area & Volume Quiz', due: 'Nov 6', status: 'Overdue', count: 0 },
-        ],
-        recentGrades: []
-    },
+// ---------------- UI helpers ----------------
+
+const SubjectStatCard: React.FC<StatCardProps> = ({
+  title,
+  value,
+  icon: Icon,
+  colorClass,
+}) => {
+  const colorMap = {
+    "stat-green": "bg-emerald-100 text-emerald-600",
+    "stat-red": "bg-rose-100 text-rose-600",
+    "stat-purple": "bg-purple-100 text-purple-600",
+    "stat-orange": "bg-amber-100 text-amber-600",
+    "stat-blue": "bg-blue-100 text-blue-600",
+  };
+
+  return (
+    <div className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-100">
+      <div className={`p-3 rounded-full mr-4 ${colorMap[colorClass]}`}>
+        <Icon size={24} />
+      </div>
+      <div>
+        <p className="text-3xl font-bold text-gray-900">{value}</p>
+        <h3 className="text-sm font-medium text-gray-500 mt-1">{title}</h3>
+      </div>
+    </div>
+  );
 };
 
-// --- Stat Card Component ---
-const SubjectStatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, colorClass }) => {
-    const colorMap = {
-        'stat-green': 'bg-emerald-100 text-emerald-600',
-        'stat-red': 'bg-rose-100 text-rose-600',
-        'stat-purple': 'bg-purple-100 text-purple-600',
-        'stat-orange': 'bg-amber-100 text-amber-600',
-        'stat-blue': 'bg-blue-100 text-blue-600',
-    };
+function formatDateShort(iso: string | null | undefined) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "2-digit",
+  });
+}
 
-    return (
-        <div className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-100">
-            <div className={`p-3 rounded-full mr-4 ${colorMap[colorClass]}`}>
-                <Icon size={24} />
-            </div>
-            <div>
-                <p className="text-3xl font-bold text-gray-900">{value}</p>
-                <h3 className="text-sm font-medium text-gray-500 mt-1">{title}</h3>
-            </div>
-        </div>
-    );
-};
+function quizStatusFromTimes(q: Quiz): QuizStatus {
+  // If your backend already provides status, keep it.
+  if (q.status) return q.status;
+
+  const now = Date.now();
+  const start = q.open_time ? new Date(q.open_time).getTime() : null;
+  const end = q.close_time ? new Date(q.close_time).getTime() : null;
+
+  if (start && now < start) return "SCHEDULED";
+  if (start && (!end || now <= end)) return "OPEN";
+  if (end && now > end) return "CLOSED";
+  return "DRAFT";
+}
+
+// ---------------- Component ----------------
 
 export default function SubjectPage() {
-    const { id } = useParams<{ id: string }>();
-    const { subjects } = useSubjects();
-    const [subject, setSubject] = useState<DetailedSubject | null>(null);
+  const { id } = useParams<{ id: string }>();
+  const subjectId = Number(id || 0);
 
-    const subjectId = parseInt(id || '0', 10);
+  const [offering, setOffering] = useState<SubjectOfferingDetail | null>(null);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [recent, setRecent] = useState<RecentQuizGrade[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    useEffect(() => {
-        const foundSubject = subjects.find(s => s.id === subjectId);
-        const detailedData = ALL_SUBJECT_DATA[subjectId] || {};
+  const token = localStorage.getItem("access");
 
-        if (foundSubject) {
-            setSubject({ ...foundSubject, ...detailedData });
+  useEffect(() => {
+    const run = async () => {
+      if (!token) {
+        setErrorMsg("Not authenticated. Please log in again.");
+        setLoading(false);
+        return;
+      }
+      if (!subjectId) {
+        setErrorMsg("Invalid subject offering id.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setErrorMsg(null);
+
+        const base = "http://127.0.0.1:8000/api";
+
+        const [offeringRes, quizzesRes, recentRes] = await Promise.all([
+          fetch(`${base}/subject-offerings/${subjectId}/`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${base}/subject-offerings/${subjectId}/quizzes/`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${base}/subject-offerings/${subjectId}/recent-quiz-grades/`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        if (!offeringRes.ok) {
+          const err = await offeringRes.json().catch(() => ({}));
+          console.error("Offering load failed:", err);
+          setErrorMsg("Failed to load subject offering.");
+          setOffering(null);
+          setQuizzes([]);
+          setRecent([]);
+          return;
         }
-    }, [subjectId, subjects]);
 
-    if (!subject) {
-        return (
-            <div className="p-10 text-center bg-gray-50 min-h-screen">
-                <h1 className="text-4xl font-extrabold text-gray-900 mb-4">Loading Subject...</h1>
-                <p className="text-lg text-gray-600 mb-6">Could not locate the course with ID: {id}.</p>
-                <Link to="/teacher/subject" className="inline-flex items-center px-4 py-2 text-white bg-blue-600 rounded-md">
-                    <ArrowLeft size={16} className="mr-2" /> Back to Subject List
-                </Link>
-            </div>
-        );
-    }
+        const offeringData = (await offeringRes.json()) as SubjectOfferingDetail;
+        setOffering(offeringData);
 
-    const gradingCount = (subject.assignments || []).filter(a => a.status === 'Grading').length;
+        if (quizzesRes.ok) {
+          const qData = (await quizzesRes.json()) as Quiz[];
+          setQuizzes(Array.isArray(qData) ? qData : []);
+        } else {
+          const err = await quizzesRes.json().catch(() => ({}));
+          console.error("Quizzes load failed:", err);
+          setQuizzes([]);
+        }
 
+        if (recentRes.ok) {
+          const rData = (await recentRes.json()) as RecentQuizGrade[];
+          setRecent(Array.isArray(rData) ? rData : []);
+        } else {
+          const err = await recentRes.json().catch(() => ({}));
+          console.error("Recent grades load failed:", err);
+          setRecent([]);
+        }
+      } catch (e) {
+        console.error(e);
+        setErrorMsg("Network error while loading subject page.");
+        setOffering(null);
+        setQuizzes([]);
+        setRecent([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    run();
+  }, [subjectId, token]);
+
+  const computed = useMemo(() => {
+    const totalStudents = offering?.students ?? 0;
+
+    const avg = Number(offering?.average ?? 0);
+    const avgText = offering?.average != null ? `${avg}%` : "—";
+
+    const now = Date.now();
+    const openQuizzes = quizzes.filter((q) => {
+      const s = quizStatusFromTimes(q);
+      return s === "OPEN";
+    }).length;
+
+    // "Unfinished grading": if you consider quizzes with attempts but not reviewed, you need a backend flag.
+    // For now: treat CLOSED quizzes as "needs checking" (placeholder).
+    const unfinishedGrading = quizzes.filter((q) => quizStatusFromTimes(q) === "CLOSED").length;
+
+    // show next upcoming quiz date as schedule (optional)
+    const nextQuiz = quizzes
+      .map((q) => ({ q, t: q.open_time ? new Date(q.open_time).getTime() : null }))
+      .filter((x) => x.t && x.t > now)
+      .sort((a, b) => (a.t! - b.t!))[0];
+
+    const scheduleText = nextQuiz?.q?.open_time
+      ? `Next quiz • ${new Date(nextQuiz.q.open_time).toLocaleString()}`
+      : "—";
+
+    return { totalStudents, avgText, avg, openQuizzes, unfinishedGrading, scheduleText };
+  }, [offering, quizzes]);
+
+  // ---------------- States ----------------
+
+  if (loading) {
     return (
+<<<<<<< HEAD
         <section className="bg-slate-50/30 min-h-screen p-1 font-sans">
             {/* HEADER: Sophisticated Typography & Clean Actions */}
             <header className=" mx-auto mb-10">
@@ -271,5 +402,249 @@ export default function SubjectPage() {
             </main>
 
         </section>
+=======
+      <div className="p-10 text-center bg-gray-50 min-h-screen">
+        <h1 className="text-3xl font-extrabold text-gray-900 mb-3">Loading Subject...</h1>
+        <p className="text-gray-600">Fetching offering, quizzes, and recent quiz grades.</p>
+      </div>
+>>>>>>> Backup
     );
+  }
+
+  if (errorMsg || !offering) {
+    return (
+      <div className="p-10 text-center bg-gray-50 min-h-screen">
+        <h1 className="text-3xl font-extrabold text-gray-900 mb-3">Cannot Load Subject</h1>
+        <p className="text-gray-600 mb-6">{errorMsg ?? "Not found."}</p>
+        <Link
+          to="/teacher/subject"
+          className="inline-flex items-center px-4 py-2 text-white bg-blue-600 rounded-md"
+        >
+          <ArrowLeft size={16} className="mr-2" /> Back to Subject List
+        </Link>
+      </div>
+    );
+  }
+
+  const room = offering.room_number ?? "—";
+
+  // ---------------- Render ----------------
+
+  return (
+    <section className="bg-slate-50/30 min-h-screen p-1 font-sans">
+      {/* HEADER */}
+      <header className="mx-auto mb-10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+          <div className="space-y-4">
+            <Link
+              to="/teacher/subject"
+              className="inline-flex items-center text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-widest"
+            >
+              <ArrowLeft size={16} className="mr-2" />
+              Back to Subjects
+            </Link>
+
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+                  {offering.name}
+                </h1>
+                <span className="h-6 w-px bg-slate-200" />
+                <span className="text-lg font-medium text-slate-500">
+                  {offering.grade} — {offering.section}
+                </span>
+              </div>
+
+              <p className="text-slate-500 flex items-center gap-4 text-sm flex-wrap">
+                <span className="flex items-center gap-1.5">
+                  <MapPin size={14} /> Room {room}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Calendar size={14} /> {computed.scheduleText}
+                </span>
+                {offering.teacher_name ? (
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen size={14} /> {offering.teacher_name}
+                  </span>
+                ) : null}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl shadow-sm hover:bg-slate-50 transition-all">
+              <Download size={18} /> Export List
+            </button>
+          </div>
+        </div>
+
+        {/* NAV */}
+        <nav className="flex items-center p-1 bg-slate-100/50 w-fit rounded-xl border border-slate-200/60">
+          {["Overview", "Files", "Quizzes", "Grades"].map((tab) => {
+            const isActive = tab === "Overview";
+            return (
+              <Link
+                key={tab}
+                to="#"
+                className={`px-6 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${
+                  isActive
+                    ? "bg-white text-indigo-600 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                {tab}
+              </Link>
+            );
+          })}
+        </nav>
+      </header>
+
+      <main className="mx-auto space-y-8">
+        {/* METRICS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <SubjectStatCard
+            title="Avg. Performance"
+            value={offering.average != null ? `${computed.avg.toFixed(1)}%` : "—"}
+            icon={TrendingUp}
+            colorClass={computed.avg < 85 ? "stat-red" : "stat-green"}
+          />
+          <SubjectStatCard
+            title="Total Students"
+            value={computed.totalStudents}
+            icon={Users}
+            colorClass="stat-purple"
+          />
+          <SubjectStatCard
+            title="Open Quizzes"
+            value={computed.openQuizzes}
+            icon={FileText}
+            colorClass="stat-orange"
+          />
+          <SubjectStatCard
+            title="Closed Quizzes"
+            value={computed.unfinishedGrading}
+            icon={BookOpen}
+            colorClass="stat-blue"
+          />
+        </div>
+
+        {/* CONTENT GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* LEFT: QUIZZES LIST */}
+          <div className="lg:col-span-8 space-y-4">
+            <div className="flex items-center justify-between px-2">
+              <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">
+                Quizzes
+              </h2>
+              <Link to="#" className="text-xs font-bold text-indigo-600">
+                View All
+              </Link>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm divide-y divide-slate-100">
+              {quizzes.length === 0 ? (
+                <div className="p-6 text-slate-600">No quizzes yet for this subject offering.</div>
+              ) : (
+                quizzes.map((q) => {
+                  const status = quizStatusFromTimes(q);
+                  const due = q.close_time ? formatDateShort(q.close_time) : formatDateShort(q.open_time);
+
+                  return (
+                    <div
+                      key={q.id}
+                      className="flex items-center justify-between p-5 hover:bg-slate-50 transition-colors group"
+                    >
+                      <div className="flex items-center gap-5">
+                        <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-all">
+                          <FileText size={20} />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-800 text-base">{q.title}</h4>
+                          <p className="text-xs font-medium text-slate-400">
+                            {q.open_time ? `Starts ${formatDateShort(q.open_time)}` : "No schedule"} •{" "}
+                            {q.close_time ? `Ends ${formatDateShort(q.close_time)}` : "No end date"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-6">
+                        <div className="text-right hidden sm:block">
+                          <p className="text-[10px] font-bold text-slate-300 uppercase">Due</p>
+                          <p className="text-xs font-bold text-slate-600">{due}</p>
+                        </div>
+
+                        <span
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
+                            status === "OPEN"
+                              ? "bg-emerald-50 border-emerald-100 text-emerald-600"
+                              : status === "CLOSED"
+                              ? "bg-rose-50 border-rose-100 text-rose-700"
+                              : status === "SCHEDULED"
+                              ? "bg-amber-50 border-amber-100 text-amber-600"
+                              : "bg-slate-50 border-slate-200 text-slate-500"
+                          }`}
+                        >
+                          {status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT: RECENT QUIZ GRADES */}
+          <div className="lg:col-span-4 space-y-4">
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest px-2">
+              Recent Quiz Grades
+            </h2>
+
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
+              {recent.length === 0 ? (
+                <div className="text-slate-600">No recent quiz attempts yet.</div>
+              ) : (
+                <div className="space-y-6">
+                  {recent.map((g, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-slate-100 to-slate-50 border border-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-600">
+                          {g.student
+                            .split(" ")
+                            .filter(Boolean)
+                            .slice(0, 2)
+                            .map((n) => n[0])
+                            .join("")}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">{g.student}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+                            {g.quiz} • {g.score}/{g.total}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div
+                        className={`text-sm font-black px-2 py-1 rounded-md ${
+                          g.percent < 80
+                            ? "bg-rose-50 text-rose-600"
+                            : "bg-emerald-50 text-emerald-600"
+                        }`}
+                      >
+                        {g.percent}%
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button className="w-full mt-8 py-3.5 bg-slate-900 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200">
+                Detailed Analytics
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+  );
 }

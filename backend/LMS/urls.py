@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+<<<<<<< HEAD
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
@@ -25,6 +26,20 @@ from .views import (
 
 router = DefaultRouter()
 router.register(r"teacher/quizzes", TeacherQuizViewSet, basename="teacher-quiz")
+=======
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .views import StudentSubjectOfferingViewSet, StudentViewSet, SubjectOfferingViewSet, SubjectViewSet, TeacherQuizViewSet, TeacherSubjectListViewSet, TeacherViewSet, grade_forecast, list_users, LoginView, create_user, manage_quiz_question, quarterly_grade_detail, quarterly_grades, quiz_item_analysis, start_quiz, student_grade_analytics, student_quiz_attempts, student_quiz_detail, student_quizzes, student_topic_performance, submit_quiz, user_detail, SectionViewSet, AdminDashboardStatsView
+
+router = DefaultRouter()
+router.register(r"sections", SectionViewSet, basename="section")
+router.register(r"students", StudentViewSet, basename="student")
+router.register("subjects", SubjectViewSet, basename="subjects")
+router.register(r"teachers", TeacherViewSet, basename="teacher")
+router.register("teacher/subjects", TeacherSubjectListViewSet, basename="teacher-subjects")
+router.register(r"subject-offerings", SubjectOfferingViewSet, basename="subject-offering")
+router.register(r'teacher/quizzes', TeacherQuizViewSet, basename='teacher-quiz')
+router.register(r"student/subject-offerings", StudentSubjectOfferingViewSet, basename="student-subject-offerings")
+>>>>>>> Backup
 
 urlpatterns = [
     # Auth
@@ -44,6 +59,7 @@ urlpatterns = [
 
     # ViewSets
     path("", include(router.urls)),
+<<<<<<< HEAD
 
     # Teacher quiz question management
     path("teacher/questions/<int:question_id>/", manage_quiz_question, name="manage_quiz_question"),
@@ -67,3 +83,31 @@ urlpatterns = [
     path("quarterly-grades/", quarterly_grades, name="quarterly_grades"),
     path("quarterly-grades/<int:grade_id>/", quarterly_grade_detail, name="quarterly_grade_detail"),
 ]
+=======
+    path("dashboard/stats/", AdminDashboardStatsView.as_view()),
+    # Teacher Quiz Management
+    path('teacher/questions/<int:question_id>/', manage_quiz_question, name='manage_quiz_question'),
+    
+    # Quiz Item Analysis
+    path('teacher/quizzes/<int:quiz_id>/item-analysis/', quiz_item_analysis, name='quiz_item_analysis'),
+    
+    # Student Quiz Access
+    path('student/quizzes/', student_quizzes, name='student_quizzes'),
+    path('student/quizzes/<int:quiz_id>/', student_quiz_detail, name='student_quiz_detail'),
+    path('student/quizzes/<int:quiz_id>/start/', start_quiz, name='start_quiz'),
+    path('student/quiz-attempts/<int:attempt_id>/submit/', submit_quiz, name='submit_quiz'),
+    path('student/quiz-attempts/', student_quiz_attempts, name='student_quiz_attempts'),
+    
+    # Grade Forecasting - Student access
+    path('student/grade-analytics/', student_grade_analytics, name='student_grade_analytics'),
+    path('student/grade-forecast/', grade_forecast, name='student_grade_forecast'),
+    path('student/grade-forecast/<int:SubjectOffering_id>/', grade_forecast, name='student_grade_forecast_subject'),
+    path('student/topic-performance/', student_topic_performance, name='student_topic_performance'),
+    path('student/topic-performance/<int:SubjectOffering_id>/', student_topic_performance, name='student_topic_performance_subject'),
+    
+    # Quarterly Grades
+    path('quarterly-grades/', quarterly_grades, name='quarterly_grades'),
+    path('quarterly-grades/<int:grade_id>/', quarterly_grade_detail, name='quarterly_grade_detail'),
+    
+]
+>>>>>>> Backup

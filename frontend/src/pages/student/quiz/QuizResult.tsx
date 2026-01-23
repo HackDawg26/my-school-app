@@ -41,7 +41,7 @@ export default function QuizResult() {
   const fetchForecast = async (subjectId: number) => {
     setLoadingForecast(true);
     try {
-      const savedUser = localStorage.getItem('school_user');
+      const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
       
       const response = await axios.get(

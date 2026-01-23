@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from __future__ import annotations
 
 from datetime import datetime
@@ -14,6 +15,27 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.views import APIView
 
+=======
+from django.utils import timezone
+from httpx import request
+from rest_framework import viewsets,status
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
+from .models import (Section, Student, Subject, SubjectOffering, Quiz, QuizQuestion, QuizChoice, QuizAttempt, 
+    QuizAnswer, Student, GradeForecast, QuizTopicPerformance,
+    QuarterlyGrade)
+from .serializers import (LoginSerializer, StudentSubjectOfferingSerializer, SubjectListSerializer, SubjectOfferingSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer,QuizSerializer, QuizCreateUpdateSerializer,
+    QuizQuestionSerializer, StudentQuizSerializer, QuizAttemptSerializer,
+    QuizSubmissionSerializer, QuizChoiceSerializer,
+    GradeForecastSerializer, QuizTopicPerformanceSerializer,
+    QuarterlyGradeSerializer, QuarterlyGradeCreateUpdateSerializer
+)
+>>>>>>> Backup
 from .grade_analytics import GradeAnalyticsService
 from .models import (
     GradeForecast,
@@ -167,10 +189,13 @@ class TeacherSubjectListViewSet(ReadOnlyModelViewSet):
             .order_by("section__grade_level", "section__name")
         )
 
+<<<<<<< HEAD
 
 # ============================================================
 # SUBJECT OFFERINGS
 # ============================================================
+=======
+>>>>>>> Backup
 class SubjectOfferingViewSet(viewsets.ModelViewSet):
     serializer_class = SubjectOfferingSerializer
     permission_classes = [IsAuthenticated]
@@ -215,10 +240,167 @@ class SubjectOfferingViewSet(viewsets.ModelViewSet):
         section = get_object_or_404(Section, id=section_id)
         serializer.save(section=section, teacher=self.request.user)
 
+<<<<<<< HEAD
 
 # ============================================================
 # ADMIN USER MANAGEMENT (ADMIN ONLY)
 # ============================================================
+=======
+    @action(detail=True, methods=["get"], url_path="quizzes")
+    def quizzes(self, request, pk=None):
+        # IMPORTANT: FK field is SubjectOffering / SubjectOffering_id (NOT subject_offering)
+        qs = Quiz.objects.filter(SubjectOffering_id=pk).order_by("-posted_at", "-created_at")
+        return Response(QuizSerializer(qs, many=True).data)
+
+    @action(detail=True, methods=["get"], url_path="recent-quiz-grades")
+    def recent_quiz_grades(self, request, pk=None):
+        attempts = (
+            QuizAttempt.objects
+            .filter(quiz__SubjectOffering_id=pk)
+            .select_related("student__user", "quiz")
+            .order_by("-submitted_at")[:10]
+        )
+
+        data = []
+        for a in attempts:
+            total = a.quiz.total_points or 0
+            percent = round((a.score / total) * 100, 2) if total else 0
+            student_name = f"{a.student.user.first_name} {a.student.user.last_name}".strip()
+
+            data.append({
+                "student": student_name,
+                "quiz": a.quiz.title,
+                "score": a.score,
+                "total": total,
+                "percent": percent,
+                "submitted_at": a.submitted_at,
+            })
+
+        return Response(data)
+    @action(detail=False, methods=["get"], url_path="my", permission_classes=[IsAuthenticated])
+    def my_subject_offerings(self, request):
+        """
+        GET /api/subject-offerings/my/
+        Returns subject offerings for the logged-in STUDENT based on their section.
+        """
+        user = request.user
+
+        # Student profile should exist if user is a student
+        student = getattr(user, "student_profile", None)
+        if not student or not student.section:
+            return Response([])
+
+        offerings = SubjectOffering.objects.filter(section=student.section).order_by("name")
+        serializer = self.get_serializer(offerings, many=True)
+        return Response(serializer.data)
+    
+class StudentSubjectOfferingViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Student view: list subject offerings for the logged-in student (based on their section),
+    including quarterly progress + average.
+    """
+    serializer_class = StudentSubjectOfferingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role != "STUDENT":
+            return SubjectOffering.objects.none()
+
+        try:
+            student = Student.objects.select_related("section").get(user=user)
+        except Student.DoesNotExist:
+            return SubjectOffering.objects.none()
+
+        if not student.section:
+            return SubjectOffering.objects.none()
+
+        return (
+            SubjectOffering.objects
+            .select_related("section", "teacher")
+            .filter(section=student.section)
+            .order_by("name")
+        )
+
+    def list(self, request, *args, **kwargs):
+        qs = list(self.get_queryset())
+
+        # attach computed fields using student's grades
+        user = request.user
+        try:
+            student = Student.objects.get(user=user)
+        except Student.DoesNotExist:
+            return Response([], status=status.HTTP_200_OK)
+
+        grades = (
+            QuarterlyGrade.objects
+            .filter(student=student, SubjectOffering__in=qs)
+            .select_related("SubjectOffering")
+        )
+
+        by_offering = {}
+        for g in grades:
+            by_offering.setdefault(g.SubjectOffering_id, []).append(g)
+
+        for o in qs:
+            gs = by_offering.get(o.id, [])
+            o._student_quarterly_grades = gs
+
+            # progress = quarters encoded / 4 * 100
+            progress = int((len({g.quarter for g in gs}) / 4) * 100) if gs else 0
+            o.progress = progress
+
+            # average = mean of available quarters (or 0)
+            if gs:
+                avg = sum(float(g.final_grade) for g in gs) / len(gs)
+            else:
+                avg = 0
+            o.average = round(avg, 2)
+
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["get"], url_path="my-grades")
+    def my_grades(self, request, pk=None):
+        """
+        Returns the student's quarterly grades for this subject offering.
+        """
+        user = request.user
+        if user.role != "STUDENT":
+            return Response({"detail": "Not authorized"}, status=403)
+
+        try:
+            student = Student.objects.get(user=user)
+        except Student.DoesNotExist:
+            return Response({"detail": "Student profile not found"}, status=404)
+
+        qs = QuarterlyGrade.objects.filter(student=student, Subject_Offering_id=pk).order_by("quarter")
+        return Response(QuarterlyGradeSerializer(qs, many=True).data)
+    @action(detail=True, methods=["get"], url_path="quizzes")
+    def quizzes(self, request, pk=None):
+        offering = self.get_object()
+        qs = offering.quizzes.all().order_by("-id")  # uses related_name="quizzes"
+        return Response(QuizSerializer(qs, many=True).data)
+    
+    def retrieve(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        student = getattr(request.user, "student_profile", None)
+        if student:
+            grades = QuarterlyGrade.objects.filter(student=student, SubjectOffering=obj).order_by("quarter")
+            obj._student_quarterly_grades = list(grades)
+
+        # optional: compute average + progress for detail view too
+            gs = obj._student_quarterly_grades
+            obj.progress = int((len({g.quarter for g in gs}) / 4) * 100) if gs else 0
+            obj.average = round(sum(float(g.final_grade) for g in gs) / len(gs), 2) if gs else 0
+
+        serializer = self.get_serializer(obj)
+        return Response(serializer.data)
+# =========================
+# CREATE USER (ADMIN ONLY)
+# =========================
+>>>>>>> Backup
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_user(request):
@@ -285,11 +467,55 @@ class StudentViewSet(ModelViewSet):
             queryset = queryset.filter(section__isnull=True)
 
         return queryset
+    @action(detail=True, methods=["get"], url_path="quarterly-summary")
+    def quarterly_summary(self, request, pk=None):
+        student = self.get_object()
 
+<<<<<<< HEAD
 
 # ============================================================
 # TEACHERS (READ ONLY)
 # ============================================================
+=======
+        grades = (
+            QuarterlyGrade.objects
+            .filter(student=student)
+            .select_related("SubjectOffering")
+            .order_by("SubjectOffering_id", "quarter")
+        )
+
+        # group by offering
+        by_offering = {}
+        for g in grades:
+            oid = g.SubjectOffering_id
+            if oid not in by_offering:
+                by_offering[oid] = {
+                    "subject_offering_id": oid,
+                    "subject": g.SubjectOffering.name,
+                    "q1": None,
+                    "q2": None,
+                    "q3": None,
+                    "q4": None,
+                    "final": None,
+                }
+
+            if g.quarter == "Q1":
+                by_offering[oid]["q1"] = g.final_grade
+            elif g.quarter == "Q2":
+                by_offering[oid]["q2"] = g.final_grade
+            elif g.quarter == "Q3":
+                by_offering[oid]["q3"] = g.final_grade
+            elif g.quarter == "Q4":
+                by_offering[oid]["q4"] = g.final_grade
+
+        # compute final average (if at least one quarter exists)
+        for item in by_offering.values():
+            vals = [item["q1"], item["q2"], item["q3"], item["q4"]]
+            vals = [v for v in vals if v is not None]
+            item["final"] = round(sum(vals) / len(vals), 2) if vals else None
+
+        return Response(list(by_offering.values()))
+>>>>>>> Backup
 class TeacherViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.filter(role="TEACHER")
     serializer_class = TeacherSerializer

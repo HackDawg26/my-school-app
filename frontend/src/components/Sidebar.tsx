@@ -42,7 +42,6 @@ const teacherLinks: NavItem[] = [
   { name: "Subjects", to: "/teacher/subject", Icon: BookCopy },
   { name: "Quizzes", to: "/teacher/quiz", Icon: ClipboardList },
   { name: "Analytics", to: "/teacher/analytics", Icon: BarChart3 },
-  { name: "Submissions", to: "/teacher/submissions", Icon: CheckSquare },
   { name: "Gradebook", to: "/teacher/gradebook", Icon: Book },
   { name: "Advisory Class", to: "/teacher/advisory-class", Icon: Banknote },
 ];
@@ -51,8 +50,13 @@ const studentLinks: NavItem[] = [
   { name: "Dashboard", to: "/student/dashboard", Icon: LayoutDashboard },
   { name: "Subjects", to: "/student/subject", Icon: BookCopy },
   { name: "Quizzes", to: "/student/quiz", Icon: ClipboardList },
+<<<<<<< HEAD
   { name: "Submissions", to: "/student/submissions", Icon: CheckSquare },
   { name: "Gradebook", to: "/student/gradebook", Icon: Book },
+=======
+  { name: "Grade Forecast", to: "/student/grade-forecast", Icon: Book },
+  { name: "Grades", to: "/student/grades/quarterly", Icon: BarChart3 },
+>>>>>>> Backup
 ];
 
 const SideBar: React.FC<SideBarProps> = ({ isDesktop = false, open = false, onClose = () => {} }) => {
