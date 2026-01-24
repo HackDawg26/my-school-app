@@ -5,7 +5,7 @@ import AddTeacherModal from "./AddTeacherModal";
 
 type AdvisoryClass = {
   id: number;
-  name: string;
+  section: string;
   grade_level?: string | number;
   adviser_name?: string;
 };
@@ -15,6 +15,7 @@ interface Teacher {
   first_name: string;
   last_name: string;
   email: string;
+  department?: string | null;
   advisory: AdvisoryClass | null; // ✅ advisory is an object, not a string
 }
 
@@ -34,6 +35,29 @@ export const FacultyList = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
+  const assignedIds = new Set(teachers.map((t) => t.id));
+  const filteredAvailableTeachers = availableTeachers
+    .filter((t) => !assignedIds.has(t.id))
+    .filter((t) => {
+      if (!subject?.name) return true;
+      return (t.department ?? "") === subject.name;
+    }
+  );
+  
+  const fetchAssignedTeachers = async () => {
+    if (!token || !subjectId) return;
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/subjects/${subjectId}/teachers/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setTeachers(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+      setTeachers([]);
+    }
+  };
+
   /* ---------------- FETCH SUBJECT ---------------- */
   useEffect(() => {
     if (!token || !subjectId) return;
@@ -51,17 +75,7 @@ export const FacultyList = () => {
 
   /* ---------------- FETCH ASSIGNED TEACHERS ---------------- */
   useEffect(() => {
-    if (!token || !subjectId) return;
-
-    fetch(`http://127.0.0.1:8000/api/subjects/${subjectId}/teachers/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => setTeachers(Array.isArray(data) ? data : []))
-      .catch((e) => {
-        console.error(e);
-        setTeachers([]);
-      });
+    fetchAssignedTeachers();
   }, [subjectId, token]);
 
   /* ---------------- FETCH AVAILABLE TEACHERS ---------------- */
@@ -77,7 +91,8 @@ export const FacultyList = () => {
         console.error(e);
         setAvailableTeachers([]);
       });
-  }, [subjectId, token]);
+  }, [ token]);
+
 
   /* ---------------- ASSIGN TEACHER ---------------- */
   const handleAssignTeacher = async (teacherId: number) => {
@@ -97,9 +112,12 @@ export const FacultyList = () => {
 
     if (!res.ok) return alert("Failed to assign teacher");
 
-    const assigned = await res.json();
-    setTeachers((prev) => [...prev, assigned]);
-    setAvailableTeachers((prev) => prev.filter((t) => t.id !== teacherId));
+    await fetchAssignedTeachers();
+    const res2 = await fetch(`http://127.0.0.1:8000/api/teachers/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setAvailableTeachers(await res2.json());
+
     setIsModalOpen(false);
   };
 
@@ -121,7 +139,12 @@ export const FacultyList = () => {
 
     if (!res.ok) return alert("Failed to remove teacher");
 
-    setTeachers((prev) => prev.filter((t) => t.id !== teacherId));
+    await fetchAssignedTeachers();
+    const res2 = await fetch(`http://127.0.0.1:8000/api/teachers/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setAvailableTeachers(await res2.json());
+
     setOpenMenuId(null);
 
     // Optional: put them back into available list (only if your API expects this UX)
@@ -129,12 +152,13 @@ export const FacultyList = () => {
     // if (removedTeacher) setAvailableTeachers(prev => [...prev, removedTeacher]);
   };
 
+
   if (!subject) {
     return <div className="p-10 text-center font-bold">Subject not found</div>;
   }
 
   return (
-    <div className="flex-1 p-6 bg-slate-50 min-h-screen relative">
+    <div className="flex-1 p-3 bg-slate-50 min-h-screen relative">
       {/* Navigation & Header */}
       <Link
         to="/admin/faculty"
@@ -188,7 +212,7 @@ export const FacultyList = () => {
 
           <tbody className="divide-y divide-slate-100">
             {teachers.map((faculty) => {
-              const advisoryLabel = faculty.advisory?.name ?? "N/A";
+              const advisoryLabel = faculty.advisory?.section ?? "N/A";
 
               return (
                 <tr
@@ -257,7 +281,7 @@ export const FacultyList = () => {
       <AddTeacherModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        teachers={availableTeachers}
+        teachers={filteredAvailableTeachers}
         onSelect={handleAssignTeacher}
       />
     </div>

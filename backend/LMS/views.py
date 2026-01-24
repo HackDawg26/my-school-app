@@ -73,7 +73,7 @@ class SubjectViewSet(viewsets.ModelViewSet):
 
         subject.teachers.add(teacher)
         return Response(
-            {"detail": "Teacher assigned successfully"},
+           TeacherSerializer(teacher).data,
             status=status.HTTP_200_OK,
         )
 
@@ -93,7 +93,7 @@ class SubjectViewSet(viewsets.ModelViewSet):
 
         subject.teachers.remove(teacher_id)
         return Response(
-            {"detail": "Teacher removed successfully"},
+            {"message": "Teacher removed successfully"},
             status=status.HTTP_200_OK,
         )
     @action(detail=True, methods=["get"], url_path="teachers")

@@ -16,6 +16,7 @@ else:
         password='teacher123',
         first_name='Teacher',
         last_name='User',
+        department='Mathematics',
         role='TEACHER'
     )
     

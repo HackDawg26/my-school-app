@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 
+
 import { 
   UserPlus, 
   Search, 
@@ -15,6 +16,7 @@ import {
 
 import AccountRole from "./accountRole";
 import EditModal from "./EditModal";
+import { useLocation } from "react-router-dom";
 
 
 // Unified UserAccount type
@@ -22,18 +24,19 @@ type UserAccount = {
   id: string;
   firstname: string;
   lastname: string;
-  student_id: string;
+  // student_id: string;
   email: string;
   password?: string;
   subjects?: { id: number; name: string }[];
   gradeLevel?: string;
   role: "STUDENT" | "TEACHER" | "ADMIN";
   status: "Active" | "Inactive";
+  department?: string;
 };
 
 const AccountListPage: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"student" | "teacher" | "admin">("student");
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [users, setUsers] = useState<UserAccount[]>([]);
@@ -41,6 +44,16 @@ const AccountListPage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<UserAccount | null>(null);
 
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<"student" | "teacher" | "admin">(() => {
+    return location.state?.activeTab || "student";
+  });
+
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location.state]);
 
   // --- Load users from Django API ---
   useEffect(() => {
@@ -63,6 +76,7 @@ const AccountListPage: React.FC = () => {
           gradeLevel: u.student_profile?.grade_level || undefined,
           subjects: u.subjects || [],
           status: u.status === "ACTIVE" ? "Active" : "Inactive",
+          department: u.teacher_profile?.department || undefined,
         }));
 
         setUsers(mapped);
@@ -75,6 +89,7 @@ const AccountListPage: React.FC = () => {
 
     fetchUsers();
   }, []);
+
 
   const handleCreateAccount = () => setIsOpen(!isOpen);
 
@@ -130,55 +145,59 @@ const AccountListPage: React.FC = () => {
     }
   };
 
-const handleSaveEdit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!selectedItem) return;
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedItem) return;
 
-  const token = localStorage.getItem("access");
+    const token = localStorage.getItem("access");
 
-  const payload: any = {
-    first_name: selectedItem.firstname,
-    last_name: selectedItem.lastname,
-    email: selectedItem.email,
-  };
+    const payload: any = {
+      first_name: selectedItem.firstname,
+      last_name: selectedItem.lastname,
+      email: selectedItem.email,
+    };
 
-  // ✅ STUDENT
-  if (selectedItem.role === "STUDENT") {
-    payload.student_profile = {grade_level: selectedItem.gradeLevel,};
-  }
-
-
-  // ✅ PASSWORD (only if provided)
-  if (selectedItem.password?.trim()) {
-    payload.password = selectedItem.password;
-  }
-
-  const res = await fetch(
-    `http://127.0.0.1:8000/api/user/${selectedItem.id}/`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
+    // ✅ STUDENT
+    if (selectedItem.role === "STUDENT") {
+      payload.student_profile = {grade_level: selectedItem.gradeLevel,};
     }
-  );
 
-  if (!res.ok) {
-    const err = await res.json();
-    console.error(err);
-    return;
-  }
+    if (selectedItem.role === "TEACHER") {
+      payload.teacher_profile = {department: selectedItem.department || null,};
+    }
 
-  // ✅ update UI
-  setUsers((prev) =>
-    prev.map((u) => (u.id === selectedItem.id ? selectedItem : u))
-  );
 
-  setIsEditModalOpen(false);
-  setSelectedItem(null);
-};
+    // ✅ PASSWORD (only if provided)
+    if (selectedItem.password?.trim()) {
+      payload.password = selectedItem.password;
+    }
+
+    const res = await fetch(
+      `http://127.0.0.1:8000/api/user/${selectedItem.id}/`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      console.error(err);
+      return;
+    }
+
+    // ✅ update UI
+    setUsers((prev) =>
+      prev.map((u) => (u.id === selectedItem.id ? selectedItem : u))
+    );
+
+    setIsEditModalOpen(false);
+    setSelectedItem(null);
+  };
 
   return (
     <div className="p-4 max-w-screen mx-auto space-y-6">
@@ -189,7 +208,9 @@ const handleSaveEdit = async (e: React.FormEvent) => {
           <p className="text-gray-500 text-sm">Manage and monitor all school accounts.</p>
         </div>
 
-        <button onClick={handleCreateAccount} className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-sm">
+        <button 
+          onClick={handleCreateAccount} 
+          className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-sm">
           <UserPlus size={18} /> Create New Account
         </button>
 
@@ -237,8 +258,9 @@ const handleSaveEdit = async (e: React.FormEvent) => {
                   <td className="px-6 py-4 font-medium text-gray-900">{user.firstname} {user.lastname}</td>
                   <td className="px-6 py-4 text-gray-600 flex items-center gap-2"><Mail size={14} className="text-gray-400" />{user.email}</td>
                   <td className="px-6 py-4 text-gray-600">{user.role === "TEACHER"
-    ? user.subjects?.map(s => s.name).join(", ") || "No Subject"
-    : user.gradeLevel || (user.role === "ADMIN" ? "System Admin" : "N/A")}</td>
+                    ? user.department || "No Department"
+                    : user.gradeLevel || (user.role === "ADMIN" ? "System Admin" : "N/A")}
+                  </td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.status === "Active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>{user.status}</span>
                   </td>
@@ -248,10 +270,20 @@ const handleSaveEdit = async (e: React.FormEvent) => {
                       <div>
                         <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)}></div>
                         <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-xl z-20 py-1 animate-in fade-in zoom-in-95 duration-100">
-                          <button onClick={() => handleToggleStatus(user)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center gap-2"><RefreshCw size={14} className="text-indigo-500" /> Set as {user.status === "Active" ? "Inactive" : "Active"}</button>
-                          <button onClick={() => { setSelectedItem(user); setIsEditModalOpen(true); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center gap-2"><RefreshCw size={14} className="text-indigo-500" /> Edit Account</button>
-                          <div className="border-t border-gray-100 my-1"></div>
-                          <button onClick={() => handleDelete(user.id)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"><Trash2 size={14} /> Delete Account</button>
+                          <button 
+                            onClick={() => handleToggleStatus(user)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center gap-2">
+                              Set as {user.status === "Active" ? "Inactive" : "Active"}
+                          </button>
+
+                          <button 
+                            onClick={() => { setSelectedItem(user); setIsEditModalOpen(true); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center gap-2">
+                              Edit Account
+                          </button>
+                          
+                          <button 
+                            onClick={() => handleDelete(user.id)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium">
+                              Delete Account
+                          </button>
                         </div>
                       </div>
                     )}

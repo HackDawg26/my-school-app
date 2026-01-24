@@ -28,7 +28,7 @@ export const FacultyPage = () => {
       .then((data) => setSubjects(data))
       .catch((err) => console.error("Failed to load subjects", err));
   }, [token]);
-
+  console.log(subjects);
   const handleAddSubject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return alert("Not authenticated");
@@ -176,7 +176,7 @@ export const FacultyPage = () => {
             </button>
 
             <div className="mb-4 pr-10">
-              <h2 className="text-xl font-bold text-slate-800">{subject.name}</h2>
+              <h2 className="text-xl font-bold text-slate-800">{subject.name.toUpperCase()}</h2>
               <p className="text-sm text-slate-400">Department</p>
             </div>
 

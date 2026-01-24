@@ -55,7 +55,7 @@ export default function CreateSectionPage() {
 };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6">
+    <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header Card */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

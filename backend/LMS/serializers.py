@@ -36,11 +36,16 @@ class StudentSerializer(serializers.ModelSerializer):
             "section",
         ]
 
+class TeacherProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Teacher
+        fields = ["department"]
 
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
     student_profile = StudentSerializer(required=False)
+    teacher_profile = TeacherProfileSerializer(required=False)
     subjects = serializers.SerializerMethodField()
 
     class Meta:
@@ -55,8 +60,10 @@ class UserSerializer(serializers.ModelSerializer):
             "school_id",
             "status",
             "student_profile",
+            "teacher_profile",
             "subjects",
         ]
+
     def get_subjects(self, obj):
         if obj.role != "TEACHER":
             return []
@@ -88,6 +95,7 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop("password")
         student_data = validated_data.pop("student_profile", None)
+        teacher_data = validated_data.pop("teacher_profile", None)
 
         user = User.objects.create_user(
         password=password,
@@ -102,7 +110,7 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
         elif user.role == "TEACHER":
-            Teacher.objects.create(user=user)
+            Teacher.objects.create(user=user, department=teacher_data.get("department") if teacher_data else None)
 
         elif user.role == "ADMIN":
             Admin.objects.create(user=user)
@@ -113,6 +121,7 @@ class UserSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         password = validated_data.pop("password", None)
         student_data = validated_data.pop("student_profile", None)
+        teacher_data = validated_data.pop("teacher_profile", None)
 
         # Update user fields
         for attr, value in validated_data.items():
@@ -131,6 +140,15 @@ class UserSerializer(serializers.ModelSerializer):
                 defaults={
                 "grade_level": student_data.get("grade_level"),
                 "section": student_data.get("section"),
+            }
+            )
+        
+        # ✅ UPDATE TEACHER PROFILE
+        if teacher_data and instance.role == "TEACHER":
+            Teacher.objects.update_or_create(
+                user=instance,
+                defaults={
+                "department": teacher_data.get("department"),
             }
             )
 
@@ -167,10 +185,11 @@ class SectionSerializer(serializers.ModelSerializer):
     
 class TeacherSerializer(serializers.ModelSerializer):
     advisory = serializers.SerializerMethodField()
+    department = serializers.CharField(source="teacher_profile.department", read_only=True, allow_null=True)
 
     class Meta:
         model = User
-        fields = ("id", "first_name", "last_name", "email", "advisory")
+        fields = ("id", "first_name", "last_name", "email", "advisory", 'department')
 
     def get_advisory(self, obj):
         section = obj.advised_sections.first()
@@ -179,7 +198,7 @@ class TeacherSerializer(serializers.ModelSerializer):
         # return structured data so frontend can use section.id
         return {
             "id": section.id,
-            "name": section.name,
+            "section": section.name,
             "grade_level": section.grade_level,
             "adviser_name": f"{obj.first_name} {obj.last_name}",
         }
