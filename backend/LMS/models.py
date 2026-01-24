@@ -457,4 +457,39 @@ class Grade(models.Model):
     def __str__(self):
         return f"{self.student.student_id} - {self.SubjectOffering.name} - {self.score}/{self.total}"
 
+class GradeChangeLog(models.Model):
+    CHANGE_TYPES = [
+        ("CREATE", "Create"),
+        ("UPDATE", "Update"),
+    ]
 
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="grade_change_logs"
+    )
+
+    student = models.ForeignKey(
+        "Student",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="grade_change_logs_as_student"
+    )
+
+    SubjectOffering = models.ForeignKey(
+        "SubjectOffering",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    activity = models.CharField(max_length=255)  # e.g., "Quiz 1", "Essay 1"
+    previous_grade = models.CharField(max_length=50, default="N/A")
+    new_grade = models.CharField(max_length=50)
+    change_type = models.CharField(max_length=6, choices=CHANGE_TYPES)
+
+    def __str__(self):
+        return f"{self.timestamp} {self.teacher} {self.student} {self.activity} {self.change_type}"

@@ -2,7 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
-from LMS.models import Student, Subject, SubjectOffering, Teacher, Admin, Section, Quiz, QuizQuestion, QuizChoice, QuizAttempt, QuizAnswer, QuizTopicPerformance, GradeForecast, QuarterlyGrade
+from django.db.models import Avg
+from LMS.models import Student, Subject, SubjectOffering, Teacher, Admin, Section, Quiz, QuizQuestion, QuizChoice, QuizAttempt, QuizAnswer, QuizTopicPerformance, GradeForecast, QuarterlyGrade, GradeChangeLog
 
 User = get_user_model()
 
@@ -219,8 +220,12 @@ class SubjectOfferingSerializer(serializers.ModelSerializer):
     def get_students(self, obj):
         return obj.section.students.count()
     def get_average(self, obj):
-        # TODO: Implement actual average calculation
-        return 88
+        qs = QuarterlyGrade.objects.filter(
+        SubjectOffering=obj,
+        final_grade__isnull=False
+    )
+        avg = qs.aggregate(a=Avg("final_grade"))["a"]
+        return round(avg, 2) if avg is not None else None
     def get_pendingTasks(self, obj):
         # pending quizzes = all quizzes not CLOSED
         return obj.quizzes.exclude(status="CLOSED").count()
@@ -333,7 +338,75 @@ class StudentSubjectOfferingSerializer(serializers.ModelSerializer):
         vals = list(qs.values_list("final_grade", flat=True))
         vals = [float(v) for v in vals if v is not None]
         return round(sum(vals) / len(vals), 2) if vals else None
-        
+
+class GradeChangeLogSerializer(serializers.ModelSerializer):
+    teacher = serializers.SerializerMethodField()
+    student = serializers.SerializerMethodField()
+    subject = serializers.SerializerMethodField()
+    changeType = serializers.SerializerMethodField()
+    previousGrade = serializers.CharField(source="previous_grade", read_only=True)
+    newGrade = serializers.CharField(source="new_grade", read_only=True)
+    change = serializers.SerializerMethodField()  # ✅ shows difference
+
+
+    class Meta:
+        model = GradeChangeLog
+        fields = [
+            "timestamp",
+            "teacher",
+            "student",
+            "subject",
+            "activity",
+            "previousGrade",
+            "newGrade",
+            "changeType",
+            "change",
+        ]
+
+    def _full_name_user(self, user):
+        if not user:
+            return "—"
+        name = f"{getattr(user, 'first_name', '')} {getattr(user, 'last_name', '')}".strip()
+        return name if name else getattr(user, "email", "—")
+
+    def get_teacher(self, obj):
+        # teacher is a User
+        return self._full_name_user(obj.teacher)
+
+    def get_student(self, obj):
+        # student is a Student -> use student.user
+        if not obj.student:
+            return "—"
+        return self._full_name_user(obj.student.user)
+
+    def get_subject(self, obj):
+        if not obj.SubjectOffering:
+            return "—"
+        # Adjust if your SubjectOffering uses "name" or "subject_name"
+        return getattr(obj.SubjectOffering, "name", None) or getattr(obj.SubjectOffering, "subject_name", "—")
+
+    def get_changeType(self, obj):
+        # Convert "UPDATE"/"CREATE" into "Update"/"Create"
+        return "Update" if obj.change_type == "UPDATE" else "Create"
+
+    def get_change(self, obj):
+        """
+        Human-friendly description of what changed.
+        Examples:
+          "WW 18/20 → WW 19/20"
+          "N/A → WW 10/10"
+        """
+        prev = (obj.previous_grade or "").strip() or "N/A"
+        new = (obj.new_grade or "").strip() or "—"
+
+        if prev == "N/A":
+            return f"Created: {new}"
+
+        if prev == new:
+            return "No change"
+
+        return f"{prev} → {new}"
+    
 # Quiz Serializers
 class QuizChoiceSerializer(serializers.ModelSerializer):
     class Meta:
@@ -550,6 +623,12 @@ class QuarterlyGradeSerializer(serializers.ModelSerializer):
         name = f"{user.first_name} {user.last_name}".strip()
         return name if name else user.email
 
+def grade_snapshot(g) -> str:
+    return (
+        f"WW {g.written_work_score}/{g.written_work_total}, "
+        f"PT {g.performance_task_score}/{g.performance_task_total}, "
+        f"QA {g.quarterly_assessment_score}/{g.quarterly_assessment_total}, "
+    )
 
 class QuarterlyGradeCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating quarterly grades"""
@@ -576,6 +655,49 @@ class QuarterlyGradeCreateUpdateSerializer(serializers.ModelSerializer):
             )
         
         return data
+    
+    def create(self, validated_data):
+        grade = super().create(validated_data)
+
+        teacher = None
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            teacher = request.user
+
+        GradeChangeLog.objects.create(
+            teacher=teacher,
+            student=grade.student,
+            SubjectOffering=grade.SubjectOffering,
+            activity=f"Quarterly Grade ({grade.quarter})",
+            previous_grade="N/A",
+            new_grade=grade_snapshot(grade),
+            change_type="CREATE",
+        )
+        return grade
+
+    def update(self, instance, validated_data):
+        prev = grade_snapshot(instance)
+
+        grade = super().update(instance, validated_data)
+        new = grade_snapshot(grade)
+
+        if prev != new:
+            teacher = None
+            request = self.context.get("request")
+            if request and request.user.is_authenticated:
+                teacher = request.user
+
+            GradeChangeLog.objects.create(
+                teacher=teacher,
+                student=grade.student,
+                SubjectOffering=grade.SubjectOffering,
+                activity=f"Quarterly Grade ({grade.quarter})",
+                previous_grade=prev,
+                new_grade=new,
+                change_type="UPDATE",
+            )
+
+        return grade
 # =========================
 # LOGIN SERIALIZER
 # =========================
