@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { ArrowLeft, MoreHorizontal, Plus, Mail, Users, Trash2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import AddStudentModal from "./AddStudentModal";
@@ -17,16 +17,20 @@ interface Section {
   id: number;
   name: string;
   grade_level: string;
-  adviser_name: string;
+  adviser_name: string; // "First Last" or "N/A"
 }
 
+interface Teacher {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
 
 export const StudentClassList = () => {
   const { sectionId } = useParams<{ sectionId: string }>();
-  
-  // -------------------
-  // State
-  // -------------------
+  const token = localStorage.getItem("access");
+
   const [students, setStudents] = useState<Student[]>([]);
   const [section, setSection] = useState<Section | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,46 +38,41 @@ export const StudentClassList = () => {
 
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [isAdviserModalOpen, setIsAdviserModalOpen] = useState(false);
-  const token = localStorage.getItem("access");
 
   const [availableStudents, setAvailableStudents] = useState<Student[]>([]);
-  const [selectedStudentId, setSelectedStudentId] = useState<number | "">("");
-  const [availableTeachers, setAvailableTeachers] = useState([]);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
+
+  const [availableTeachers, setAvailableTeachers] = useState<Teacher[]>([]);
   const [selectedTeacherId, setSelectedTeacherId] = useState<number | "">("");
 
-useEffect(() => {
-  if (!token || !section) return;
+  // -------------------
+  // Adviser state
+  // -------------------
+  const adviserLabel = useMemo(() => {
+    if (!section?.adviser_name) return "N/A";
+    if (section.adviser_name === "N/A") return "N/A";
+    if (section.adviser_name.trim() === "") return "N/A";
+    return section.adviser_name;
+  }, [section]);
 
-  fetch(
-    `http://127.0.0.1:8000/api/students/?section=null&grade_level=${section.grade_level}`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  )
-    .then(res => res.json())
-    .then(data => setAvailableStudents(data));
-}, [section, token]);
+  const hasAdviser = adviserLabel !== "N/A";
 
-useEffect(() => {
-  if (!token) return;
-
-  fetch("http://127.0.0.1:8000/api/teachers/", {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-    .then(res => res.json())
-    .then(data => setAvailableTeachers(data));
-}, [token]);
+  // Auto-close adviser modal if adviser exists
+  useEffect(() => {
+    if (isAdviserModalOpen && hasAdviser) setIsAdviserModalOpen(false);
+  }, [hasAdviser, isAdviserModalOpen]);
 
   // -------------------
-  // Fetch Section Info
+  // Fetch Section
   // -------------------
-useEffect(() => {
+  useEffect(() => {
     if (!sectionId || !token) return;
 
     const fetchSection = async () => {
       try {
-        const res = await fetch(
-          `http://127.0.0.1:8000/api/sections/${sectionId}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const res = await fetch(`http://127.0.0.1:8000/api/sections/${sectionId}/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         if (!res.ok) throw new Error("Section not found");
 
@@ -88,24 +87,24 @@ useEffect(() => {
     fetchSection();
   }, [sectionId, token]);
 
-
   // -------------------
-  // Fetch Students
+  // Fetch Students in Section
   // -------------------
- useEffect(() => {
+  useEffect(() => {
     if (!sectionId || !token) return;
 
     const fetchStudents = async () => {
       try {
-        const res = await fetch(
-          `http://127.0.0.1:8000/api/sections/${sectionId}/students/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        setLoading(true);
+
+        const res = await fetch(`http://127.0.0.1:8000/api/sections/${sectionId}/students/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         if (!res.ok) throw new Error("Failed to load students");
 
-        const data: Student[] = await res.json();
-        setStudents(data);
+        const data = await res.json();
+        setStudents(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error(err);
         setStudents([]);
@@ -118,108 +117,180 @@ useEffect(() => {
   }, [sectionId, token]);
 
   // -------------------
-  // Add Student
+  // Fetch Available Students (grade_level match, section=null)
   // -------------------
-  const handleAddStudent = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!token || !section || !selectedStudentId) return;
+  useEffect(() => {
+    if (!token || !section) return;
 
-  const res = await fetch(
-    `http://127.0.0.1:8000/api/students/${selectedStudentId}/`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ section: section.id }),
+    fetch(
+      `http://127.0.0.1:8000/api/students/?section=null&grade_level=${section.grade_level}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+      .then((res) => res.json())
+      .then((data) => setAvailableStudents(Array.isArray(data) ? data : []))
+      .catch((e) => {
+        console.error(e);
+        setAvailableStudents([]);
+      });
+  }, [section, token]);
+
+  // -------------------
+  // Fetch Teachers (only needed if no adviser yet)
+  // -------------------
+  useEffect(() => {
+    if (!token) return;
+    if (hasAdviser) return; // ✅ prevent fetching if adviser already assigned
+
+    fetch("http://127.0.0.1:8000/api/teachers/", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => setAvailableTeachers(Array.isArray(data) ? data : []))
+      .catch((e) => {
+        console.error(e);
+        setAvailableTeachers([]);
+      });
+  }, [token, hasAdviser]);
+
+  // -------------------
+  // Add MANY students to section
+  // -------------------
+  const handleAddStudents = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !section || selectedStudentIds.length === 0) return;
+
+    try {
+      const results = await Promise.all(
+        selectedStudentIds.map(async (id) => {
+          const res = await fetch(`http://127.0.0.1:8000/api/students/${id}/`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ section: section.id }),
+          });
+
+          if (!res.ok) {
+            const txt = await res.text().catch(() => "");
+            throw new Error(txt || `Failed to assign student ${id}`);
+          }
+
+          return res.json();
+        })
+      );
+
+      setStudents((prev) => [...prev, ...results]);
+      setAvailableStudents((prev) => prev.filter((s) => !selectedStudentIds.includes(s.id)));
+
+      setSelectedStudentIds([]);
+      setIsStudentModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to assign one or more students.");
     }
-  );
-
-  if (!res.ok) {
-    alert("Failed to assign student");
-    return;
-  }
-
-  const updated = await res.json();
-
-  setStudents(prev => [...prev, updated]);
-  setIsStudentModalOpen(false);
-  setSelectedStudentId("");
-};
+  };
 
   // -------------------
-  // Remove Student
+  // Remove student from section
   // -------------------
-    const handleRemoveFromSection = async (id: number) => {
-  if (!token) return;
+  const handleRemoveFromSection = async (id: number) => {
+    if (!token) return;
 
-  try {
-    const res = await fetch(
-      `http://127.0.0.1:8000/api/students/${id}/`,
-      {
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/students/${id}/`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ section: null }), // ✅ THIS IS REQUIRED
-      }
-    );
+        body: JSON.stringify({ section: null }),
+      });
 
-    if (!res.ok) throw new Error("Remove failed");
+      if (!res.ok) throw new Error("Remove failed");
 
-    // ✅ Update local state: remove only from section view
-    setStudents(prev => prev.filter(student => student.id !== id));
-  } catch (err) {
-    console.error(err);
-    alert("Failed to remove student from section");
-  } finally {
-    setOpenMenuId(null);
-  }
-};
+      setStudents((prev) => prev.filter((student) => student.id !== id));
 
-const handleAssignAdviser = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!token || !section || !selectedTeacherId) return;
+      const removed = students.find((s) => s.id === id);
+      if (removed) setAvailableStudents((prev) => [removed, ...prev]);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to remove student from section");
+    } finally {
+      setOpenMenuId(null);
+    }
+  };
 
-  const res = await fetch(
-    `http://127.0.0.1:8000/api/sections/${section.id}/`,
-    {
+  // -------------------
+  // Assign adviser
+  // -------------------
+  const handleAssignAdviser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !section || !selectedTeacherId) return;
+
+    const res = await fetch(`http://127.0.0.1:8000/api/sections/${section.id}/`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ adviser: selectedTeacherId }),
+    });
+
+    if (!res.ok) {
+      alert("Failed to assign adviser");
+      return;
     }
-  );
 
-  if (!res.ok) {
-    alert("Failed to assign adviser");
-    return;
-  }
+    const updatedSection = await res.json();
+    setSection(updatedSection);
+    setIsAdviserModalOpen(false);
+    setSelectedTeacherId("");
+  };
 
-  const updatedSection = await res.json();
-  setSection(updatedSection);
-  setIsAdviserModalOpen(false);
-};
+  // -------------------
+  // Remove adviser
+  // -------------------
+  const handleRemoveAdviser = async () => {
+    if (!token || !section) return;
 
-  /* ======================
-     STATES
-  ====================== */
-  if (loading) {
-    return <div className="p-12 text-center">Loading students...</div>;
-  }
+    const ok = window.confirm("Remove adviser from this section?");
+    if (!ok) return;
 
-  if (!section) {
-    return <div className="p-12 text-center">Section Not Found</div>;
-  }
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/sections/${section.id}/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ adviser: null }),
+      });
+
+      if (!res.ok) throw new Error("Failed to remove adviser");
+
+      const updatedSection = await res.json();
+      setSection(updatedSection);
+      setSelectedTeacherId("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to remove adviser");
+    }
+  };
+
+  // -------------------
+  // UI states
+  // -------------------
+  if (loading) return <div className="p-12 text-center">Loading students...</div>;
+  if (!section) return <div className="p-12 text-center">Section Not Found</div>;
 
   return (
     <div className="flex-1 p-6 bg-slate-50 min-h-screen relative">
       {/* Navigation */}
-      <Link to="/admin/students" className="inline-flex items-center text-slate-500 hover:text-indigo-600 mb-6 transition-colors group text-sm font-medium">
+      <Link
+        to="/admin/students"
+        className="inline-flex items-center text-slate-500 hover:text-indigo-600 mb-6 transition-colors group text-sm font-medium"
+      >
         <ArrowLeft size={16} className="mr-2 group-hover:-translate-x-1 transition-transform" />
         Back to All Sections
       </Link>
@@ -230,121 +301,161 @@ const handleAssignAdviser = async (e: React.FormEvent) => {
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
             {section.grade_level.replace("GRADE_", "Grade ")} — {section.name}
           </h1>
-          <div className="flex items-center gap-2 text-slate-500 text-sm mt-1">
+
+          <div className="flex items-center gap-2 text-slate-500 text-sm mt-1 flex-wrap">
             <Users size={14} />
-            <span>Adviser: <span className="font-semibold text-slate-700">{section.adviser_name}</span></span>
+            <span>
+              Adviser: <span className="font-semibold text-slate-700">{adviserLabel}</span>
+            </span>
+
+            {hasAdviser ? (
+              <button
+                type="button"
+                onClick={handleRemoveAdviser}
+                className="ml-2 inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg transition-colors"
+              >
+                <Trash2 size={14} />
+                Remove Adviser
+              </button>
+            ) : null}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-        <button 
-          onClick={() => setIsAdviserModalOpen(true)}
-          className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-100 text-sm font-bold"
-        >
-          <Plus size={18} />
-          Add Adviser
-        </button>
 
-        <button 
-          onClick={() => setIsStudentModalOpen(true)}
-          className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-100 text-sm font-bold"
-        >
-          <Plus size={18} />
-          Add New Student
-        </button>
+        <div className="flex items-center gap-3">
+          {/* ✅ Add Adviser hidden/disabled when adviser already exists */}
+          {!hasAdviser ? (
+            <button
+              onClick={() => setIsAdviserModalOpen(true)}
+              className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-100 text-sm font-bold"
+            >
+              <Plus size={18} />
+              Add Adviser
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              title="This section already has an adviser"
+              className="flex items-center justify-center gap-2 bg-slate-200 text-slate-500 px-5 py-2.5 rounded-xl text-sm font-bold cursor-not-allowed"
+            >
+              <Plus size={18} />
+              Adviser Assigned
+            </button>
+          )}
+
+          <button
+            onClick={() => setIsStudentModalOpen(true)}
+            className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-100 text-sm font-bold"
+          >
+            <Plus size={18} />
+            Add Students
+          </button>
         </div>
       </div>
 
       {/* Table Card */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">Enrolled Students ({students.length})</h2>
+          <h2 className="text-lg font-bold text-slate-900">
+            Enrolled Students ({students.length})
+          </h2>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-y-hidden min-h-screen ">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-y-hidden min-h-screen">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">School ID</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Full Name</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Email</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                  School ID
+                </th>
+                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                  Full Name
+                </th>
+                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                  Email
+                </th>
+                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest text-right">
+                  Actions
+                </th>
               </tr>
             </thead>
+
             <tbody className="divide-y divide-slate-100">
               {students.map((student) => (
-                <tr
-                  key={student.school_id}
-                  className="hover:bg-slate-50 transition-colors group"
-                >
-                  {/* ID & Status */}
+                <tr key={student.school_id} className="hover:bg-slate-50 transition-colors group">
                   <td className="px-6 py-4">
-                    <span className="text-sm font-bold text-slate-700"> {student.school_id} </span>
-                  </td>
-                  
-                  {/* Full Name */}
-                  <td className="px-6 py-4 text-sm">
-                    <span className="font-bold text-slate-900"> {student.last_name} </span>, {student.first_name}
+                    <span className="text-sm font-bold text-slate-700">{student.school_id}</span>
                   </td>
 
-                  {/* Contact Info */}
-                  <td className="px-6 py-4 ">
+                  <td className="px-6 py-4 text-sm">
+                    <span className="font-bold text-slate-900">{student.last_name}</span>,{" "}
+                    {student.first_name}
+                  </td>
+
+                  <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-slate-500">
                       <Mail size={14} className="text-slate-300" />
                       <span className="text-sm">{student.email}</span>
                     </div>
                   </td>
 
-                  {/* Action */}
                   <td className="px-6 py-4 text-right relative">
-                    <button onClick={()=>(setOpenMenuId(openMenuId === student.id ? null : student.id))} 
-                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                    <button
+                      onClick={() => setOpenMenuId(openMenuId === student.id ? null : student.id)}
+                      className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                    >
                       <MoreHorizontal size={18} className="text-slate-400" />
                     </button>
-                    
+
                     {openMenuId === student.id && (
-                      <div className="">
-                          <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)}></div>
-                          <div className="absolute right-0 mt-2 w-44  bg-white border border-gray-200 rounded-lg shadow-xl z-20 py-1 animate-in fade-in zoom-in-95 duration-100">
-                            
-                              {/* Delete Button - Works for all because handleDelete checks activeTab */}
-                              <button 
-                                  onClick={() => handleRemoveFromSection(student.id)}
-                                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
-                              >
-                                  <Trash2 size={14} /> Remove Account
-                              </button>
-                          </div>
+                      <div>
+                        <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
+                        <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-xl z-20 py-1 animate-in fade-in zoom-in-95 duration-100">
+                          <button
+                            onClick={() => handleRemoveFromSection(student.id)}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
+                          >
+                            <Trash2 size={14} /> Remove Student
+                          </button>
+                        </div>
                       </div>
                     )}
-
                   </td>
                 </tr>
               ))}
-            </tbody>
 
+              {students.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-slate-500">
+                    No students enrolled yet.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
           </table>
         </div>
       </div>
 
-      
-
-      {/* --- ADD STUDENT MODAL --- */}
+      {/* Add Students Modal */}
       <AddStudentModal
         isOpen={isStudentModalOpen}
         onClose={() => setIsStudentModalOpen(false)}
-        selectedStudentId={selectedStudentId}
-        setSelectedStudentId={setSelectedStudentId}
-        onSubmit={handleAddStudent}
+        selectedStudentIds={selectedStudentIds}
+        setSelectedStudentIds={setSelectedStudentIds}
+        onSubmit={handleAddStudents}
         availableStudents={availableStudents}
       />
+
+      {/* Add Adviser Modal (only openable if !hasAdviser) */}
       <AddAdviserModal
-      isOpen={isAdviserModalOpen}
-      onClose={() => setIsAdviserModalOpen(false)}
-      selectedTeacherId={selectedTeacherId}
-      setSelectedTeacherId={setSelectedTeacherId}
-      availableTeachers={availableTeachers}
-      onSubmit={handleAssignAdviser}
-/>
+        isOpen={isAdviserModalOpen}
+        onClose={() => setIsAdviserModalOpen(false)}
+        selectedTeacherId={selectedTeacherId}
+        setSelectedTeacherId={setSelectedTeacherId}
+        availableTeachers={availableTeachers}
+        onSubmit={handleAssignAdviser}
+        currentAdviserName={section?.adviser_name ?? null}
+      />
     </div>
   );
 };

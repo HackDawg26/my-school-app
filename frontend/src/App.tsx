@@ -39,7 +39,6 @@ import CreateTeacherAccountPage from './pages/admin/accounts/create-accounts/Cre
 import CreateStudentAccountPage from './pages/admin/accounts/create-accounts/Create-student-account.tsx';
 import CreateAdminAccountPage from './pages/admin/accounts/create-accounts/Create-admin-account.tsx';
 import CreateFacultyPage from './pages/admin/faculty/createFaculty.tsx';
-import SubmissionReport from './pages/admin/submissions/report.tsx';
 import StudentDashboard from './pages/student/dashboard/StudentDashboard.tsx';
 import SubjectAnalytics from './pages/teacher/analytics/SubjectAnalytics.tsx';
 
@@ -100,13 +99,6 @@ function App() {
                   
                   {/* Renders the detail page for a specific subject */}
                   <Route path=':id' element={<SubjectPage />} />
-
-                  {/* Nested activity routes for a specific subject */}
-                  {/* <Route path=':id/assignment' element={<CreateAssignment />}/>
-                  <Route path=':id/quiz' element={<QuizBuilder />}/>
-                  <Route path=':id/exam' element={<Exam />}/>
-                  <Route path=':id/files' element={<SubjectFilesPage />}/>
-                  <Route path=':id/activities' element={<ActivityPage />}/> */}
                 </Route>
               </Route>
               <Route path='/teacher/analytics' element={<SubjectAnalytics />} />
@@ -136,7 +128,6 @@ function App() {
               <Route path="/admin/students" element={<StudentAccountsPage />} />
               <Route path="/admin/students/add-section" element={<CreateSectionPage />} />
               <Route path="/admin/students/:sectionId" element={<StudentClassList />} />
-              <Route path="/admin/submission" element={<SubmissionReport />} />
               <Route path="/admin/gradelogs" element={<GradeLogs />} />
             </Route>
 

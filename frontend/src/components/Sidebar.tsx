@@ -33,7 +33,6 @@ const adminLinks: NavItem[] = [
   {name: "Accounts", to: "/admin/accounts", Icon: Users },
   { name: "Faculty", to: "/admin/faculty", Icon: Users },
   { name: "Students", to: "/admin/students", Icon: Users },
-  { name: "Submission", to: "/admin/submission", Icon: Users },
   { name: "Grade Logs", to: "/admin/gradelogs", Icon: Users },
 ];
 

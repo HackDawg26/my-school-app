@@ -9,14 +9,15 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum
-from .models import (Section, Student, Subject, SubjectOffering, Quiz, QuizQuestion, QuizChoice, QuizAttempt, 
+from .models import (GradeChangeLog, Section, Student, Subject, SubjectOffering, Quiz, QuizQuestion, QuizChoice, QuizAttempt, 
     QuizAnswer, Student, GradeForecast, QuizTopicPerformance,
     QuarterlyGrade)
+from rest_framework import permissions
 from .serializers import (LoginSerializer, StudentSubjectOfferingSerializer, SubjectListSerializer, SubjectOfferingSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer,QuizSerializer, QuizCreateUpdateSerializer,
     QuizQuestionSerializer, StudentQuizSerializer, QuizAttemptSerializer,
     QuizSubmissionSerializer, QuizChoiceSerializer,
     GradeForecastSerializer, QuizTopicPerformanceSerializer,
-    QuarterlyGradeSerializer, QuarterlyGradeCreateUpdateSerializer
+    QuarterlyGradeSerializer, QuarterlyGradeCreateUpdateSerializer, GradeChangeLogSerializer
 )
 from .grade_analytics import GradeAnalyticsService
 
@@ -324,6 +325,20 @@ class StudentSubjectOfferingViewSet(viewsets.ReadOnlyModelViewSet):
 
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
+    
+class GradeChangeLogViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = GradeChangeLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        qs = GradeChangeLog.objects.all().order_by("-timestamp")
+
+        # Optional filters
+        subject_offering_id = self.request.query_params.get("subject_offering")
+        if subject_offering_id:
+            qs = qs.filter(SubjectOffering_id=subject_offering_id)
+
+        return qs
 # =========================
 # CREATE USER (ADMIN ONLY)
 # =========================
@@ -1040,7 +1055,7 @@ def quarterly_grades(request):
         if request.user.role != 'TEACHER':
             return Response({'error': 'Only teachers can create grades'}, status=status.HTTP_403_FORBIDDEN)
         
-        serializer = QuarterlyGradeCreateUpdateSerializer(data=request.data)
+        serializer = QuarterlyGradeCreateUpdateSerializer(data=request.data,context={"request": request})
         if serializer.is_valid():
             grade = serializer.save()
             output_serializer = QuarterlyGradeSerializer(grade)
@@ -1073,7 +1088,7 @@ def quarterly_grade_detail(request, grade_id):
         if request.user.role != 'TEACHER':
             return Response({'error': 'Only teachers can update grades'}, status=status.HTTP_403_FORBIDDEN)
         
-        serializer = QuarterlyGradeCreateUpdateSerializer(grade, data=request.data, partial=True)
+        serializer = QuarterlyGradeCreateUpdateSerializer(grade, data=request.data, partial=True,context={"request": request})
         if serializer.is_valid():
             grade = serializer.save()
             output_serializer = QuarterlyGradeSerializer(grade)
