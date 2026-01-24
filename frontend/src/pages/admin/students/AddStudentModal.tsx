@@ -6,6 +6,7 @@ type Student = {
   school_id: string;
   first_name: string;
   last_name: string;
+  email?: string;
 };
 
 type AddStudentModalProps = {
@@ -40,7 +41,7 @@ const AddStudentModal = ({
     if (!q) return availableStudents;
 
     return availableStudents.filter((s) => {
-      const hay = `${s.school_id} ${s.first_name} ${s.last_name}`.toLowerCase();
+      const hay = `${s.school_id} ${s.first_name} ${s.last_name} ${s.email || ""}`.toLowerCase();
       return hay.includes(q);
     });
   }, [availableStudents, query]);
@@ -54,9 +55,11 @@ const AddStudentModal = ({
   };
 
   const selectAllFiltered = () => {
+    if (filtered.length === 0) return;
     const ids = filtered.map((s) => s.id);
     setSelectedStudentIds((prev) => Array.from(new Set([...prev, ...ids])));
   };
+
 
   const clearSelection = () => setSelectedStudentIds([]);
 
@@ -84,6 +87,11 @@ const AddStudentModal = ({
                 Selected:{" "}
                 <span className="font-bold">{selectedStudentIds.length}</span>
               </p>
+              <p className="text-[11px] text-slate-400">
+                Showing <span className="font-bold">{filtered.length}</span> of{" "}
+                <span className="font-bold">{availableStudents.length}</span>
+              </p>
+
             </div>
           </div>
           <button onClick={onClose} type="button">
@@ -165,7 +173,7 @@ const AddStudentModal = ({
           <div className="flex gap-3 pt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => { onClose(); clearSelection(); }}
               className="flex-1 py-2 font-bold text-slate-600 rounded-lg hover:bg-slate-50"
             >
               Cancel

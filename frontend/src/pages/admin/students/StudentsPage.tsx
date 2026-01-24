@@ -43,6 +43,8 @@ export const StudentAccountsPage = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  console.log(sections);
+
   /* =========================
      HELPERS
   ========================= */
@@ -63,7 +65,7 @@ export const StudentAccountsPage = () => {
     return acc;
   }, {} as Record<string, Section[]>);
 
-if (loading) {
+  if (loading) {
     return (
       <main className="flex-1 p-6 text-center text-slate-500">
         Loading sections...
@@ -107,10 +109,6 @@ const handleDeleteSection = async (sectionId: number) => {
         
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          <button className="flex items-center gap-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md transition-colors text-sm font-medium">
-            <Upload size={16} />
-            Import Classlist
-          </button>
           <button
             onClick={() => {navigate('/admin/students/add-section')}}
            className="flex items-center gap-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-md transition-colors text-sm font-medium">
@@ -136,10 +134,10 @@ const handleDeleteSection = async (sectionId: number) => {
               >
                 <div className="mb-4">
                   <h3 className="text-lg font-bold text-slate-800">
-                    {section.name}
+                    {section.name.toUpperCase()}
                   </h3>
                   <p className="text-sm text-slate-500">
-                    Adviser: {section.adviser_name}
+                    Adviser: {section.adviser_name?.toLocaleUpperCase()}
                   </p>
                 </div>
 

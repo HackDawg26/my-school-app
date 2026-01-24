@@ -45,6 +45,18 @@ export const StudentClassList = () => {
   const [availableTeachers, setAvailableTeachers] = useState<Teacher[]>([]);
   const [selectedTeacherId, setSelectedTeacherId] = useState<number | "">("");
 
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredStudents = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return students
+      .filter((s) => {
+        if (!q) return true;
+        const haystack = `${s.school_id} ${s.first_name} ${s.last_name}`.toLowerCase();
+        return haystack.includes(q);
+      });
+  }, [students, searchQuery]);
+
   // -------------------
   // Adviser state
   // -------------------
@@ -308,34 +320,42 @@ export const StudentClassList = () => {
               Adviser: <span className="font-semibold text-slate-700">{adviserLabel}</span>
             </span>
 
-            {hasAdviser ? (
+            {hasAdviser && (
               <button
                 type="button"
                 onClick={handleRemoveAdviser}
-                className="ml-2 inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg transition-colors"
+                className="ml-2 inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg"
               >
                 <Trash2 size={14} />
                 Remove Adviser
               </button>
-            ) : null}
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* ✅ Add Adviser hidden/disabled when adviser already exists */}
+        {/* RIGHT SIDE: search + buttons */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+          {/* 🔍 Search */}
+          <input
+            type="text"
+            placeholder="Search student (name, email, ID)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full md:w-72 px-3 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+          />
+
+          {/* Buttons */}
           {!hasAdviser ? (
             <button
               onClick={() => setIsAdviserModalOpen(true)}
-              className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-100 text-sm font-bold"
+              className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl shadow-md text-sm font-bold"
             >
               <Plus size={18} />
               Add Adviser
             </button>
           ) : (
             <button
-              type="button"
               disabled
-              title="This section already has an adviser"
               className="flex items-center justify-center gap-2 bg-slate-200 text-slate-500 px-5 py-2.5 rounded-xl text-sm font-bold cursor-not-allowed"
             >
               <Plus size={18} />
@@ -345,13 +365,14 @@ export const StudentClassList = () => {
 
           <button
             onClick={() => setIsStudentModalOpen(true)}
-            className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-100 text-sm font-bold"
+            className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl shadow-md text-sm font-bold"
           >
             <Plus size={18} />
             Add Students
           </button>
         </div>
       </div>
+
 
       {/* Table Card */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
