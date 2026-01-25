@@ -30,6 +30,7 @@ import CreateSectionPage from './pages/admin/students/create-subject.tsx';
 import Gradebook from './pages/teacher/gradebook/GradeBook.tsx';
 import QuarterlyGradesPage from './pages/teacher/gradebook/QuarterlyGradesPage.tsx';
 import ExportReportCardPDF from './pages/teacher/advisoryClass/SF9.tsx';
+
 // import SubjectPage from './pages/teacher/subjects/SubjectPage.tsx';
 import SubjectListPage from './pages/teacher/subjects/subject.tsx';
 import SubjectCreationForm from './pages/teacher/subjects/create-subject.tsx';
@@ -40,7 +41,6 @@ import CreateStudentAccountPage from './pages/admin/accounts/create-accounts/Cre
 import CreateAdminAccountPage from './pages/admin/accounts/create-accounts/Create-admin-account.tsx';
 import CreateFacultyPage from './pages/admin/faculty/createFaculty.tsx';
 import StudentDashboard from './pages/student/dashboard/StudentDashboard.tsx';
-import SubjectAnalytics from './pages/teacher/analytics/SubjectAnalytics.tsx';
 
 // Quiz imports
 import TeacherQuizList from './pages/teacher/quiz/TeacherQuizList.tsx';
@@ -52,6 +52,7 @@ import TakeQuiz from './pages/student/quiz/TakeQuiz.tsx';
 import QuizResult from './pages/student/quiz/QuizResult.tsx';
 import StudentGradeForecast from './pages/student/gradeForecast/StudentGradeForecast.tsx';
 import StudentQuarterlyGrades from './pages/student/grades/StudentQuarterlyGrades.tsx';
+import SubjectQuizAnalytics from './pages/teacher/subjects/SubjectQuizAnalytics.tsx';
 
 
 function App() {
@@ -101,7 +102,6 @@ function App() {
                   <Route path=':id' element={<SubjectPage />} />
                 </Route>
               </Route>
-              <Route path='/teacher/analytics' element={<SubjectAnalytics />} />
               <Route path="/teacher/gradebook" element={<Gradebook />} />
               <Route path="/teacher/gradebook/:subjectId" element={<Gradebook />} />
               <Route path="/teacher/grades/quarterly" element={<QuarterlyGradesPage />} />
@@ -111,7 +111,7 @@ function App() {
               <Route path="/teacher/quiz/create" element={<CreateQuiz />} />
               <Route path="/teacher/quiz/:id" element={<ManageQuiz />} />
               <Route path="/teacher/quiz/:id/item-analysis" element={<QuizItemAnalysis />} />
-              
+              <Route path="/teacher/subject/:id/analytics" element={<SubjectQuizAnalytics />} />
 
             </Route>
 

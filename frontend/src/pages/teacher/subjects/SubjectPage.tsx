@@ -478,9 +478,12 @@ export default function SubjectPage() {
                 </div>
               )}
 
-              <button className="w-full mt-8 py-3.5 bg-slate-900 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200">
+              <Link
+              to={`/teacher/subject/${subjectId}/analytics`}
+              className="w-full mt-8 py-3.5 bg-slate-900 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200 block text-center"
+              >
                 Detailed Analytics
-              </button>
+                </Link>
             </div>
           </div>
         </div>
