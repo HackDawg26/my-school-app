@@ -1,7 +1,7 @@
 import os
 import mimetypes
 from django.utils import timezone
-from httpx import request
+
 from rest_framework import viewsets,status
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.response import Response
@@ -23,6 +23,12 @@ from .serializers import (LoginSerializer, StudentSubjectOfferingSerializer, Sub
     QuarterlyGradeSerializer, QuarterlyGradeCreateUpdateSerializer, GradeChangeLogSerializer, SubjectOfferingFileSerializer
 )
 from .grade_analytics import GradeAnalyticsService
+
+
+# this is for submission
+from django.http import HttpResponse
+from django.db.models import Count
+import csv
 
 User = get_user_model()
 
@@ -1269,3 +1275,215 @@ def quiz_item_analysis(request, quiz_id):
         'total_student_attempts': total_student_attempts,
         'questions': analysis
     })
+
+# ==================== SUBMISSION DOWNLOAD VIEW ====================
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def teacher_submissions_summary(request):
+    """
+    GET /api/teacher/submissions/summary/
+
+    Returns:
+    {
+      "totals": {
+        "overall_attempts": 120,
+        "overall_unique_students": 80,
+        "overall_quizzes": 12,
+        "overall_subject_offerings": 4
+      },
+      "by_subject": [
+        {
+          "subject_offering_id": 1,
+          "subject": "Math 7-A",
+          "submitted_attempts": 40,
+          "unique_students": 35,
+          "total_students": 40,
+          "submission_rate": 87.5
+        },
+        ...
+      ]
+    }
+    """
+    if request.user.role != "TEACHER":
+        return Response({"detail": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
+
+    # All offerings that belong to this teacher
+    offerings = (
+        SubjectOffering.objects
+        .filter(teacher=request.user)
+        .select_related("section")
+        .order_by("name")
+    )
+
+    # All submitted attempts for this teacher (across all quizzes)
+    submitted_statuses = ["SUBMITTED", "GRADED"]  # your app currently uses GRADED after submit
+    teacher_attempts_qs = QuizAttempt.objects.filter(
+        quiz__teacher=request.user,
+        status__in=submitted_statuses,
+    )
+
+    overall_attempts = teacher_attempts_qs.count()
+    overall_unique_students = teacher_attempts_qs.values("student_id").distinct().count()
+    overall_quizzes = Quiz.objects.filter(teacher=request.user).count()
+
+    results = []
+    for o in offerings:
+        attempts = QuizAttempt.objects.filter(
+            quiz__SubjectOffering=o,
+            quiz__teacher=request.user,
+            status__in=submitted_statuses,
+        )
+
+        submitted_attempts = attempts.count()
+        unique_students = attempts.values("student_id").distinct().count()
+        total_students = o.section.students.count() if o.section else 0
+        submission_rate = round((unique_students / total_students) * 100, 2) if total_students else 0
+
+        results.append({
+            "subject_offering_id": o.id,
+            "subject": o.name,
+            "submitted_attempts": submitted_attempts,
+            "unique_students": unique_students,
+            "total_students": total_students,
+            "submission_rate": submission_rate,
+        })
+
+    return Response({
+        "totals": {
+            "overall_attempts": overall_attempts,
+            "overall_unique_students": overall_unique_students,
+            "overall_quizzes": overall_quizzes,
+            "overall_subject_offerings": offerings.count(),
+        },
+        "by_subject": results,
+    })
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def teacher_submissions_subject_detail(request, subject_offering_id: int):
+    """
+    GET /api/teacher/submissions/subject/<subject_offering_id>/
+
+    Returns:
+    {
+      "subject_offering_id": 1,
+      "subject": "Math 7-A",
+      "total_students": 40,
+      "totals": { "attempts": 40, "unique_students": 35, "submission_rate": 87.5 },
+      "quizzes": [
+        { "quiz_id": 10, "title": "Quiz 1", "attempts": 35, "unique_students": 35, "status": "CLOSED" },
+        ...
+      ]
+    }
+    """
+    if request.user.role != "TEACHER":
+        return Response({"detail": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
+
+    offering = get_object_or_404(SubjectOffering, id=subject_offering_id, teacher=request.user)
+    submitted_statuses = ["SUBMITTED", "GRADED"]
+
+    quizzes = Quiz.objects.filter(
+        teacher=request.user,
+        SubjectOffering=offering
+    ).order_by("-created_at")
+
+    quiz_rows = []
+    total_attempts = 0
+    all_students = set()
+
+    for q in quizzes:
+        attempts_qs = QuizAttempt.objects.filter(
+            quiz=q,
+            status__in=submitted_statuses
+        )
+        attempts = attempts_qs.count()
+        unique_students = attempts_qs.values("student_id").distinct().count()
+
+        total_attempts += attempts
+        all_students.update(list(attempts_qs.values_list("student_id", flat=True)))
+
+        quiz_rows.append({
+            "quiz_id": q.id,
+            "title": q.title,
+            "attempts": attempts,
+            "unique_students": unique_students,
+            "status": q.status,
+            "open_time": q.open_time,
+            "close_time": q.close_time,
+        })
+
+    total_students = offering.section.students.count() if offering.section else 0
+    unique_students_total = len(all_students)
+    submission_rate = round((unique_students_total / total_students) * 100, 2) if total_students else 0
+
+    return Response({
+        "subject_offering_id": offering.id,
+        "subject": offering.name,
+        "total_students": total_students,
+        "totals": {
+            "attempts": total_attempts,
+            "unique_students": unique_students_total,
+            "submission_rate": submission_rate,
+        },
+        "quizzes": quiz_rows,
+    })
+
+# csv export
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def teacher_submissions_export_csv(request):
+    """
+    GET /api/teacher/submissions/export.csv?scope=overall
+    GET /api/teacher/submissions/export.csv?scope=subject&subject_offering_id=1
+    """
+    if request.user.role != "TEACHER":
+        return Response({"detail": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
+
+    scope = request.query_params.get("scope", "overall")
+    subject_offering_id = request.query_params.get("subject_offering_id")
+
+    submitted_statuses = ["SUBMITTED", "GRADED"]
+
+    response = HttpResponse(content_type="text/csv")
+    writer = csv.writer(response)
+
+    if scope == "subject" and subject_offering_id:
+        offering = get_object_or_404(SubjectOffering, id=int(subject_offering_id), teacher=request.user)
+        response["Content-Disposition"] = f'attachment; filename="submissions_{offering.id}.csv"'
+
+        writer.writerow(["Quiz ID", "Quiz Title", "Attempts", "Unique Students", "Status", "Open Time", "Close Time"])
+
+        quizzes = Quiz.objects.filter(teacher=request.user, SubjectOffering=offering).order_by("-created_at")
+        for q in quizzes:
+            attempts_qs = QuizAttempt.objects.filter(quiz=q, status__in=submitted_statuses)
+            writer.writerow([
+                q.id,
+                q.title,
+                attempts_qs.count(),
+                attempts_qs.values("student_id").distinct().count(),
+                q.status,
+                q.open_time,
+                q.close_time,
+            ])
+
+        return response
+
+    # default: overall export (per subject offering)
+    response["Content-Disposition"] = 'attachment; filename="submissions_overall.csv"'
+    writer.writerow(["Subject Offering ID", "Subject", "Submitted Attempts", "Unique Students", "Total Students", "Submission Rate %"])
+
+    offerings = SubjectOffering.objects.filter(teacher=request.user).select_related("section").order_by("name")
+    for o in offerings:
+        attempts_qs = QuizAttempt.objects.filter(
+            quiz__teacher=request.user,
+            quiz__SubjectOffering=o,
+            status__in=submitted_statuses
+        )
+        submitted_attempts = attempts_qs.count()
+        unique_students = attempts_qs.values("student_id").distinct().count()
+        total_students = o.section.students.count() if o.section else 0
+        rate = round((unique_students / total_students) * 100, 2) if total_students else 0
+
+        writer.writerow([o.id, o.name, submitted_attempts, unique_students, total_students, rate])
+
+    return response
