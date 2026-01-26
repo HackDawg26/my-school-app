@@ -59,13 +59,6 @@ export default function QuarterlyGradesPage() {
     <div className="p-8 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <button
-          onClick={() => navigate('/teacher/gradebook')}
-          className="mb-4 flex items-center gap-2 text-blue-600 hover:underline"
-        >
-          <ArrowLeft size={20} />
-          Back to Gradebook
-        </button>
         <h1 className="text-3xl font-bold mb-2">Quarterly Grades Management</h1>
         <p className="text-gray-600">Select a subject to manage quarterly grades</p>
       </div>
