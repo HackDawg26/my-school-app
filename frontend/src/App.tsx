@@ -15,6 +15,7 @@ import  StudentSubjectpage  from './pages/student/subjects/student-subjects-id.t
 
 import AdvisoryClass from './pages/teacher/advisoryClass/AdvisoryClass.tsx';
 import  TeacherDashboard  from './pages/teacher/dashboard/TeacherDashboard.tsx';
+import SubjectQuizAnalytics from './pages/teacher/subjects/SubjectQuizAnalytics.tsx';
 
 // admin imports
 import AdminDashboard from './pages/admin/dasboard/AdminDashboard.tsx';
@@ -105,15 +106,9 @@ function App() {
                   <Route path="files" element={<SubjectFilesTab />} />
                   <Route path="activities" element={<SubjectActivitiesTab />} />
                   <Route path="activities/create" element={<CreateQuiz />} />
-                  {/* <Route path="activities/assignment/create" element={<CreateAssignment />} />
-                  <Route path="activities/exam/create" element={<CreateExam />} /> */}
                   <Route path="grades" element={<SubjectGradesTab />} />
                   <Route path="classlist" element={<SubjectClassListTab />} />
-                  
-
-                  {/* <Route path="assignment/create" element={<CreateAssignment />} />
-                  <Route path="exam/create" element={<CreateExam />} /> */}
-
+                  <Route path="analytics" element={<SubjectQuizAnalytics />} />
                 </Route>
                 
               </Route>

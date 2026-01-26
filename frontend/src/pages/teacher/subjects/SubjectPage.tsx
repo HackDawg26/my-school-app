@@ -298,14 +298,14 @@ export default function SubjectPage() {
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100">
                 <div className="text-sm font-black text-slate-900 uppercase tracking-widest">Recent Quiz Grades</div>
-                <div className="text-xs text-slate-500 mt-1">Latest 10 submissions</div>
+                <div className="text-xs text-slate-500 mt-1">Latest 5 submissions</div>
               </div>
 
               {recent.length === 0 ? (
                 <div className="p-6 text-sm text-slate-600">No recent quiz grades yet.</div>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {recent.slice(0, 10).map((r, idx) => (
+                  {recent.slice(0, 5).map((r, idx) => (
                     <div key={idx} className="px-6 py-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
