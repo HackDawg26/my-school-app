@@ -1,4 +1,4 @@
-import { CheckCircle, Mail, X, Search } from "lucide-react";
+import { CheckCircle, Mail, Search, X } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 type Teacher = {
@@ -15,23 +15,15 @@ type AddTeacherModalProps = {
   onSelect: (teacherId: number) => void;
 };
 
-const AddTeacherModal = ({
-  isOpen,
-  onClose,
-  teachers,
-  onSelect,
-}: AddTeacherModalProps) => {
+const AddTeacherModal = ({ isOpen, onClose, teachers, onSelect }: AddTeacherModalProps) => {
   const [query, setQuery] = useState("");
 
-  // ✅ filter teachers by name or email
   const filteredTeachers = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return teachers;
 
     return teachers.filter((t) =>
-      `${t.first_name} ${t.last_name} ${t.email}`
-        .toLowerCase()
-        .includes(q)
+      `${t.first_name} ${t.last_name} ${t.email}`.toLowerCase().includes(q)
     );
   }, [query, teachers]);
 
@@ -39,33 +31,21 @@ const AddTeacherModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal */}
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border">
-        {/* Header */}
         <div className="p-6 border-b flex justify-between items-center bg-slate-50">
-          <h3 className="text-lg font-bold text-slate-900">
-            Assign Teacher to Subject
-          </h3>
+          <h3 className="text-lg font-bold text-slate-900">Assign Teacher to Subject</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X size={20} />
           </button>
         </div>
 
-        {/* 🔍 Search Bar */}
+        {/* Search */}
         <div className="p-4 border-b">
           <div className="relative">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
-              type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search teacher by name or email..."
@@ -74,26 +54,21 @@ const AddTeacherModal = ({
           </div>
         </div>
 
-        {/* Teacher List */}
         <div className="max-h-[420px] overflow-y-auto divide-y">
           {filteredTeachers.length === 0 && (
             <div className="p-6 text-center text-slate-500 text-sm">
-              No matching teachers found
+              No available teachers found
             </div>
           )}
 
           {filteredTeachers.map((teacher) => (
-            <div
-              key={teacher.id}
-              className="p-5 flex items-center justify-between hover:bg-slate-50 transition"
-            >
+            <div key={teacher.id} className="p-5 flex items-center justify-between hover:bg-slate-50 transition">
               <div>
                 <p className="font-bold text-slate-800">
                   {teacher.last_name}, {teacher.first_name}
                 </p>
                 <p className="text-sm text-slate-500 flex items-center gap-2">
-                  <Mail size={14} />
-                  {teacher.email}
+                  <Mail size={14} /> {teacher.email}
                 </p>
               </div>
 
