@@ -250,7 +250,7 @@ export default function StudentQuizList() {
                   <div className="shrink-0 flex flex-col gap-2">
                     {canTakeQuiz(quiz) ? (
                       <Link
-                        to={`/student/quiz/${quiz.id}/take`}
+                        to={`/student/activities/${quiz.id}/take`}
                         className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 inline-block text-center"
                       >
                         Take Quiz

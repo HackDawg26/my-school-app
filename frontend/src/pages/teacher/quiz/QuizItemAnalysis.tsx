@@ -95,11 +95,11 @@ export default function QuizItemAnalysis() {
   return (
     <div className="p-8 max-w-7xl mx-auto">
       <button
-        onClick={() => navigate(`/teacher/quiz/${id}`)}
+        onClick={() => navigate(`/teacher/activities/${id}`)}
         className="mb-4 flex items-center gap-2 text-blue-600 hover:underline"
       >
         <ArrowLeft size={20} />
-        Back to Quiz
+        Back to Activities
       </button>
 
       {/* Header */}

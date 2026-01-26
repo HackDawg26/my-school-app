@@ -130,7 +130,7 @@ export default function TakeQuiz() {
         return;
       }
       
-      navigate('/student/quiz/result', {
+      navigate('/student/activities/result', {
         state: {
           result: {
             score: response.data.score,

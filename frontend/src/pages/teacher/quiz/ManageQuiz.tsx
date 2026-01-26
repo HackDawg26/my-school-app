@@ -247,13 +247,32 @@ export default function ManageQuiz() {
       let questionData: any = { ...editQuestion };
       
       // For TRUE_FALSE, ensure proper choices
+      // For TRUE_FALSE, keep existing choice IDs (important for nested updates)
       if (editQuestion.question_type === 'TRUE_FALSE') {
-        const isTrueCorrect = editQuestion.choices[0]?.is_correct || false;
+        const existingChoices = editQuestion.choices || [];
+
+        // find existing True/False choices (fallback to index if needed)
+        const trueChoice = existingChoices.find((c: any) => c.choice_text === "True") || existingChoices[0];
+        const falseChoice = existingChoices.find((c: any) => c.choice_text === "False") || existingChoices[1];
+
+        const isTrueCorrect = trueChoice?.is_correct || false;
+
         questionData.choices = [
-          { choice_text: 'True', is_correct: isTrueCorrect, order: 0 },
-          { choice_text: 'False', is_correct: !isTrueCorrect, order: 1 }
+          {
+            id: trueChoice?.id,                 // ✅ preserve id
+            choice_text: "True",
+            is_correct: isTrueCorrect,
+            order: 0,
+          },
+          {
+            id: falseChoice?.id,                // ✅ preserve id
+            choice_text: "False",
+            is_correct: !isTrueCorrect,
+            order: 1,
+          }
         ];
       }
+
       
       await axios.put(
         `http://127.0.0.1:8000/api/teacher/questions/${editingQuestion.id}/`,
@@ -276,11 +295,11 @@ export default function ManageQuiz() {
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-4">
-        <button onClick={() => navigate('/teacher/quiz')} className="text-blue-600 hover:underline">
-          ← Back to Quizzes
+        <button onClick={() => navigate(`/teacher/activities/`)} className="text-blue-600 hover:underline">
+          ← Back to Activities
         </button>
         <button
-          onClick={() => navigate(`/teacher/quiz/${id}/item-analysis`)}
+          onClick={() => navigate(`/teacher/activities/${id}/item-analysis`)}
           className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center gap-2"
         >
           📊 View Item Analysis
@@ -720,13 +739,13 @@ export default function ManageQuiz() {
                           type="radio"
                           name="edit_true_false"
                           checked={editQuestion.choices[0]?.is_correct === true}
-                          onChange={() => setEditQuestion({
-                            ...editQuestion,
-                            choices: [
-                              { choice_text: 'True', is_correct: true, order: 0 },
-                              { choice_text: 'False', is_correct: false, order: 1 }
-                            ]
-                          })}
+                          onChange={() => {
+                            const choices = [...editQuestion.choices];
+                            // assume [0]=True [1]=False (or map by text if you want)
+                            choices[0] = { ...choices[0], choice_text: "True", is_correct: true, order: 0 };
+                            choices[1] = { ...choices[1], choice_text: "False", is_correct: false, order: 1 };
+                            setEditQuestion({ ...editQuestion, choices });
+                          }}
                         />
                         <span>True</span>
                       </label>
@@ -735,13 +754,13 @@ export default function ManageQuiz() {
                           type="radio"
                           name="edit_true_false"
                           checked={editQuestion.choices[1]?.is_correct === true}
-                          onChange={() => setEditQuestion({
-                            ...editQuestion,
-                            choices: [
-                              { choice_text: 'True', is_correct: false, order: 0 },
-                              { choice_text: 'False', is_correct: true, order: 1 }
-                            ]
-                          })}
+                          onChange={() => {
+                            const choices = [...editQuestion.choices];
+                            // assume [0]=True [1]=False (or map by text if you want)
+                            choices[0] = { ...choices[0], choice_text: "True", is_correct: false, order: 0 };
+                            choices[1] = { ...choices[1], choice_text: "False", is_correct: true, order: 1 };
+                            setEditQuestion({ ...editQuestion, choices });
+                          }}
                         />
                         <span>False</span>
                       </label>
