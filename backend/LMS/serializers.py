@@ -39,7 +39,7 @@ class StudentSerializer(serializers.ModelSerializer):
 class TeacherProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Teacher
-        fields = ["department"]
+        fields = ["id"]
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -110,7 +110,7 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
         elif user.role == "TEACHER":
-            Teacher.objects.create(user=user, department=teacher_data.get("department") if teacher_data else None)
+            Teacher.objects.create(user=user if teacher_data else None)
 
         elif user.role == "ADMIN":
             Admin.objects.create(user=user)
@@ -148,7 +148,6 @@ class UserSerializer(serializers.ModelSerializer):
             Teacher.objects.update_or_create(
                 user=instance,
                 defaults={
-                "department": teacher_data.get("department"),
             }
             )
 
@@ -185,11 +184,10 @@ class SectionSerializer(serializers.ModelSerializer):
     
 class TeacherSerializer(serializers.ModelSerializer):
     advisory = serializers.SerializerMethodField()
-    department = serializers.CharField(source="teacher_profile.department", read_only=True, allow_null=True)
 
     class Meta:
         model = User
-        fields = ("id", "first_name", "last_name", "email", "advisory", 'department')
+        fields = ("id", "first_name", "last_name", "email", "advisory")
 
     def get_advisory(self, obj):
         section = obj.advised_sections.first()

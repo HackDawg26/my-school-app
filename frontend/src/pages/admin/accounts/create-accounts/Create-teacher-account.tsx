@@ -11,15 +11,6 @@ import {
   EyeOff,
 } from "lucide-react";
 
-const DEPARTMENTS = [
-  "Mathematics",
-  "Science",
-  "English",
-  "Filipino",
-  "Social Studies",
-  "Computer Science",
-  "Physical Education",
-];
 
 const CreateTeacherAccountPage = () => {
   const navigate = useNavigate();
@@ -242,28 +233,7 @@ const CreateTeacherAccountPage = () => {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <Fingerprint size={14} /> Department
-                </label>
-                <select
-                    required
-                    name="department"
-                    value={formData.department}
-                    onChange={handleChange}
-                    className="w-full p-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                >
-                    <option value="" disabled>
-                    Select department
-                    </option>
-
-                    {DEPARTMENTS.map((dept) => (
-                    <option key={dept} value={dept}>
-                        {dept}
-                    </option>
-                    ))}
-                </select>
-            </div>
+            
 
 
             {/* Password + Confirm */}
