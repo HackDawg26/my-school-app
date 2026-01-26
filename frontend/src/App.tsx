@@ -54,6 +54,8 @@ import SubjectClassListTab from './pages/teacher/subjects/SubjectClassListTab.ts
 import SubjectGradesTab from './pages/teacher/subjects/SubjectGradesTab.tsx';
 import SubjectActivitiesTab from './pages/teacher/subjects/activity-tab/SubjectActivitiesTab.tsx';
 import SubjectFilesTab from './pages/teacher/subjects/SubjectFilesTab.tsx';
+import TeacherSubmissionsPage from './pages/teacher/submissions/TeacherSubmissionsPage.tsx';
+import TeacherSubjectSubmissionsPage from './pages/teacher/submissions/TeacherSubjectSubmissionPage.tsx';
 
 
 
@@ -118,7 +120,9 @@ function App() {
                 
               </Route>
 
-            
+              <Route path="/teacher/submissions" element={<TeacherSubmissionsPage />} />
+              <Route path="/teacher/submissions/:subject_offering_id" element={<TeacherSubjectSubmissionsPage />} />
+
               <Route path="/teacher/grades/quarterly" element={<QuarterlyGradesPage />} />
               <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />
               <Route path="/teacher/advisory-class/sf9/:studentId" element={<ExportReportCardPDF />} />
