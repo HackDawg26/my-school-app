@@ -63,7 +63,7 @@ export default function SubjectLayout() {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-                {offering.name}
+                {offering.name.toUpperCase()}
               </h1>
               <span className="h-6 w-px bg-slate-200" />
               <span className="text-lg font-medium text-slate-500">

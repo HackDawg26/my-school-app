@@ -122,7 +122,7 @@ export default function SubjectListPage() {
             {/* Top Row */}
             <div className="flex justify-between mb-2 items-start gap-3">
               <div className="min-w-0">
-                <h3 className="text-xl font-bold truncate text-slate-900">{o.name}</h3>
+                <h3 className="text-xl font-bold truncate text-slate-900">{o.name.toUpperCase()}</h3>
                 <p className="text-sm text-slate-400 uppercase truncate">
                   {o.grade} • Section {o.section}
                 </p>

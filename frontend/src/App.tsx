@@ -56,8 +56,7 @@ import SubjectClassListTab from './pages/teacher/subjects/SubjectClassListTab.ts
 import SubjectGradesTab from './pages/teacher/subjects/SubjectGradesTab.tsx';
 import SubjectActivitiesTab from './pages/teacher/subjects/activity-tab/SubjectActivitiesTab.tsx';
 import SubjectFilesTab from './pages/teacher/subjects/SubjectFilesTab.tsx';
-import CreateExam from './pages/teacher/subjects/activity-tab/CreateExam.tsx';
-import CreateAssignment from './pages/teacher/subjects/activity-tab/CreateAssignment.tsx';
+
 
 
 function App() {
@@ -84,9 +83,9 @@ function App() {
               <Route path="/student/subject" element={<SubjectsPage />} />
               <Route path="/student/subject-offering/:id" element={<StudentSubjectpage />} />
               <Route path="/student/grades/quarterly" element={<StudentQuarterlyGrades />} />
-              <Route path="/student/quiz" element={<StudentQuizList />} />
-              <Route path="/student/quiz/:id/take" element={<TakeQuiz />} />
-              <Route path="/student/quiz/result" element={<QuizResult />} />
+              <Route path="/student/activities" element={<StudentQuizList />} />
+              <Route path="/student/activities/:id/take" element={<TakeQuiz />} />
+              <Route path="/student/activities/result" element={<QuizResult />} />
               <Route path="/student/grade-forecast" element={<StudentGradeForecast />} />
               {/* You can add more student pages here like /student/grades */}
             </Route>
@@ -107,10 +106,15 @@ function App() {
                   <Route index element={<SubjectPage />} />
                   <Route path="files" element={<SubjectFilesTab />} />
                   <Route path="activities" element={<SubjectActivitiesTab />} />
+                  <Route path="activities/create" element={<CreateQuiz />} />
+                  {/* <Route path="activities/assignment/create" element={<CreateAssignment />} />
+                  <Route path="activities/exam/create" element={<CreateExam />} /> */}
                   <Route path="grades" element={<SubjectGradesTab />} />
                   <Route path="classlist" element={<SubjectClassListTab />} />
-                  <Route path="assignment/create" element={<CreateAssignment />} />
-                  <Route path="exam/create" element={<CreateExam />} />
+                  
+
+                  {/* <Route path="assignment/create" element={<CreateAssignment />} />
+                  <Route path="exam/create" element={<CreateExam />} /> */}
 
                 </Route>
                 
@@ -123,10 +127,10 @@ function App() {
               <Route path="/teacher/grades/quarterly" element={<QuarterlyGradesPage />} />
               <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />
               <Route path="/teacher/advisory-class/sf9/:studentId" element={<ExportReportCardPDF />} />
-              <Route path="/teacher/quiz" element={<TeacherQuizList />} />
-              <Route path="/teacher/quiz/create" element={<CreateQuiz />} />
-              <Route path="/teacher/quiz/:id" element={<ManageQuiz />} />
-              <Route path="/teacher/quiz/:id/item-analysis" element={<QuizItemAnalysis />} />
+              <Route path="/teacher/activities" element={<TeacherQuizList />} />
+              <Route path="/teacher/activities/create" element={<CreateQuiz />} />
+              <Route path="/teacher/activities/:id" element={<ManageQuiz />} />
+              <Route path="/teacher/activities/:id/item-analysis" element={<QuizItemAnalysis />} />
               
 
             </Route>

@@ -1,14 +1,6 @@
-// SubjectPage.tsx (UPDATED: fetch SubjectOffering + quizzes + recent quiz grades from backend)
-//
-// Assumes backend endpoints exist:
-//   GET /api/subject-offerings/:id/                       -> subject offering detail
-//   GET /api/subject-offerings/:id/quizzes/               -> quizzes for offering
-//   GET /api/subject-offerings/:id/recent-quiz-grades/    -> recent quiz attempts (computed)
-//
-// If your serializer field names differ, tweak the interfaces below.
-
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import axios from "axios";
 import {
   ArrowLeft,
   Users,
@@ -16,10 +8,6 @@ import {
   TrendingUp,
   BookOpen,
   type LucideIcon,
-  MapPin,
-  Calendar,
-  Download,
-  Plus,
 } from "lucide-react";
 
 import type { SubjectOffering } from "./subjectOffering";
@@ -30,57 +18,57 @@ type QuizStatus = "DRAFT" | "SCHEDULED" | "OPEN" | "CLOSED";
 
 type SubjectOfferingDetail = SubjectOffering;
 
-// interface SubjectOfferingDetail {
-//   id: number;
-//   name: string; // offering name (e.g. "Math")
-//   section: string; // e.g. "Diamond"
-//   grade: string | number; // e.g. 7
-//   room_number?: string; // fallback if backend still uses room_number
-//   teacher_name?: string; // optional if serializer provides
-//   students?: number; // optional count
-//   average?: number; // optional
-//   quiz_count?: number; // optional
-// }
-
-interface Quiz {
+type Quiz = {
   id: number;
   title: string;
   open_time: string | null;
   close_time: string | null;
   status: QuizStatus;
-  // optional extras if you have them:
   total_points?: number;
-}
+};
 
-interface RecentQuizGrade {
-  student: string; // "First Last"
-  quiz: string; // quiz title
+type RecentQuizGrade = {
+  student: string;
+  quiz: string;
   score: number;
   total: number;
-  percent: number; // 0-100
+  percent: number;
   submitted_at?: string;
-}
+};
 
-interface StatCardProps {
+type StatCardProps = {
   title: string;
   value: string | number;
   icon: LucideIcon;
-  colorClass:
-    | "stat-green"
-    | "stat-red"
-    | "stat-purple"
-    | "stat-orange"
-    | "stat-blue";
+  colorClass: "stat-green" | "stat-red" | "stat-purple" | "stat-orange" | "stat-blue";
+};
+
+// ---------------- Helpers ----------------
+
+function getToken(): string | null {
+  const savedUser = localStorage.getItem("user");
+  try {
+    return savedUser ? JSON.parse(savedUser).token : null;
+  } catch {
+    return null;
+  }
 }
 
-// ---------------- UI helpers ----------------
+function formatDateShort(iso: string | null | undefined) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString(undefined, { month: "short", day: "2-digit" });
+}
 
-const SubjectStatCard: React.FC<StatCardProps> = ({
-  title,
-  value,
-  icon: Icon,
-  colorClass,
-}) => {
+function quizStatus(q: Quiz): QuizStatus {
+  // backend already provides status
+  return q.status;
+}
+
+// ---------------- UI ----------------
+
+const SubjectStatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, colorClass }) => {
   const colorMap = {
     "stat-green": "bg-emerald-100 text-emerald-600",
     "stat-red": "bg-rose-100 text-rose-600",
@@ -102,38 +90,28 @@ const SubjectStatCard: React.FC<StatCardProps> = ({
   );
 };
 
-function formatDateShort(iso: string | null | undefined) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString(undefined, {
-    month: "short",
-    day: "2-digit",
-  });
-}
+function StatusPill({ status }: { status: QuizStatus }) {
+  const cls =
+    status === "OPEN"
+      ? "bg-emerald-50 border-emerald-100 text-emerald-600"
+      : status === "CLOSED"
+      ? "bg-rose-50 border-rose-100 text-rose-700"
+      : status === "SCHEDULED"
+      ? "bg-amber-50 border-amber-100 text-amber-600"
+      : "bg-slate-50 border-slate-200 text-slate-500";
 
-function quizStatusFromTimes(q: Quiz): QuizStatus {
-  return q.status;
-  // If your backend already provides status, keep it.
-  // if (q.status) return q.status;
-
-  // const now = Date.now();
-  // const start = q.open_time ? new Date(q.open_time).getTime() : null;
-  // const end = q.close_time ? new Date(q.close_time).getTime() : null;
-
-  // if (start && now < start) return "SCHEDULED";
-  // if (start && (!end || now <= end)) return "OPEN";
-  // if (end && now > end) return "CLOSED";
-  // return "DRAFT";
+  return (
+    <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${cls}`}>
+      {status}
+    </span>
+  );
 }
 
 // ---------------- Component ----------------
 
-
 export default function SubjectPage() {
   const { id } = useParams<{ id: string }>();
   const subjectId = Number(id || 0);
-  
 
   const [offering, setOffering] = useState<SubjectOfferingDetail | null>(null);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -141,42 +119,35 @@ export default function SubjectPage() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const token = localStorage.getItem("access");
-
   useEffect(() => {
-    const run = async () => {
-      if (!token) {
-        setErrorMsg("Not authenticated. Please log in again.");
-        setLoading(false);
-        return;
-      }
-      if (!subjectId) {
-        setErrorMsg("Invalid subject offering id.");
-        setLoading(false);
-        return;
-      }
+    const token = getToken();
+    if (!token) {
+      setErrorMsg("Not authenticated. Please log in again.");
+      setLoading(false);
+      return;
+    }
+    if (!subjectId) {
+      setErrorMsg("Invalid subject offering id.");
+      setLoading(false);
+      return;
+    }
 
+    const base = "http://127.0.0.1:8000/api";
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const load = async () => {
       try {
         setLoading(true);
         setErrorMsg(null);
 
-        const base = "http://127.0.0.1:8000/api";
-
-        const [offeringRes, quizzesRes, recentRes] = await Promise.all([
-          fetch(`${base}/subject-offerings/${subjectId}/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${base}/subject-offerings/${subjectId}/quizzes/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${base}/subject-offerings/${subjectId}/recent-quiz-grades/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+        const [offeringRes, quizzesRes, recentRes] = await Promise.allSettled([
+          axios.get<SubjectOfferingDetail>(`${base}/subject-offerings/${subjectId}/`, { headers }),
+          axios.get<Quiz[]>(`${base}/subject-offerings/${subjectId}/quizzes/`, { headers }),
+          axios.get<RecentQuizGrade[]>(`${base}/subject-offerings/${subjectId}/recent-quiz-grades/`, { headers }),
         ]);
 
-        if (!offeringRes.ok) {
-          const err = await offeringRes.json().catch(() => ({}));
-          console.error("Offering load failed:", err);
+        if (offeringRes.status === "rejected") {
+          console.error("Offering load failed:", offeringRes.reason);
           setErrorMsg("Failed to load subject offering.");
           setOffering(null);
           setQuizzes([]);
@@ -184,28 +155,23 @@ export default function SubjectPage() {
           return;
         }
 
-        const offeringData = (await offeringRes.json()) as SubjectOfferingDetail;
-        setOffering(offeringData);
+        setOffering(offeringRes.value.data);
 
-        if (quizzesRes.ok) {
-          const qData = (await quizzesRes.json()) as Quiz[];
-          setQuizzes(Array.isArray(qData) ? qData : []);
+        if (quizzesRes.status === "fulfilled") {
+          setQuizzes(Array.isArray(quizzesRes.value.data) ? quizzesRes.value.data : []);
         } else {
-          const err = await quizzesRes.json().catch(() => ({}));
-          console.error("Quizzes load failed:", err);
+          console.warn("Quizzes load failed:", quizzesRes.reason);
           setQuizzes([]);
         }
 
-        if (recentRes.ok) {
-          const rData = (await recentRes.json()) as RecentQuizGrade[];
-          setRecent(Array.isArray(rData) ? rData : []);
+        if (recentRes.status === "fulfilled") {
+          setRecent(Array.isArray(recentRes.value.data) ? recentRes.value.data : []);
         } else {
-          const err = await recentRes.json().catch(() => ({}));
-          console.error("Recent grades load failed:", err);
+          console.warn("Recent grades load failed:", recentRes.reason);
           setRecent([]);
         }
-      } catch (e) {
-        console.error(e);
+      } catch (err) {
+        console.error(err);
         setErrorMsg("Network error while loading subject page.");
         setOffering(null);
         setQuizzes([]);
@@ -215,39 +181,19 @@ export default function SubjectPage() {
       }
     };
 
-    run();
-  }, [subjectId, token]);
+    load();
+  }, [subjectId]);
 
   const computed = useMemo(() => {
     const totalStudents = offering?.students ?? 0;
 
-    const avg = Number(offering?.average ?? 0);
-    
+    const openQuizzes = quizzes.filter((q) => quizStatus(q) === "OPEN").length;
+    const closedQuizzes = quizzes.filter((q) => quizStatus(q) === "CLOSED").length;
 
-    const now = Date.now();
-    const openQuizzes = quizzes.filter((q) => {
-      const s = quizStatusFromTimes(q);
-      return s === "OPEN";
-    }).length;
-
-    // "Unfinished grading": if you consider quizzes with attempts but not reviewed, you need a backend flag.
-    // For now: treat CLOSED quizzes as "needs checking" (placeholder).
-    const unfinishedGrading = quizzes.filter((q) => quizStatusFromTimes(q) === "CLOSED").length;
-
-    // show next upcoming quiz date as schedule (optional)
-    const nextQuiz = quizzes
-      .map((q) => ({ q, t: q.open_time ? new Date(q.open_time).getTime() : null }))
-      .filter((x) => x.t && x.t > now)
-      .sort((a, b) => (a.t! - b.t!))[0];
-
-    const scheduleText = nextQuiz?.q?.open_time
-      ? `Next quiz • ${new Date(nextQuiz.q.open_time).toLocaleString()}`
-      : "—";
-
-    return { totalStudents,  avg, openQuizzes, unfinishedGrading, scheduleText };
+    return { totalStudents, openQuizzes, closedQuizzes };
   }, [offering, quizzes]);
 
-  // ---------------- States ----------------
+  // ---------------- Render states ----------------
 
   if (loading) {
     return (
@@ -267,19 +213,19 @@ export default function SubjectPage() {
           to="/teacher/subject"
           className="inline-flex items-center px-4 py-2 text-white bg-blue-600 rounded-md"
         >
-          <ArrowLeft size={16} className="mr-2" /> Back to Subject List
+          <ArrowLeft size={16} className="mr-2" />
+          Back to Subject List
         </Link>
       </div>
     );
   }
 
-
-  // ---------------- Render ----------------
+  // ---------------- Main UI ----------------
 
   return (
-    <section className="bg-slate-50/30 min-h-screen p-1 font-sans">
-      <main className="mx-auto space-y-8">
-        {/* METRICS */}
+    <section className="flex flex-col bg-slate-50/30 min-h-screen p-2 font-sans">
+      <main className="mx-auto space-y-8 w-full max-w-screen">
+        {/* Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <SubjectStatCard
             title="Avg. Performance"
@@ -287,36 +233,19 @@ export default function SubjectPage() {
             icon={TrendingUp}
             colorClass={typeof offering.average === "number" && offering.average < 85 ? "stat-red" : "stat-green"}
           />
-          <SubjectStatCard
-            title="Total Students"
-            value={computed.totalStudents}
-            icon={Users}
-            colorClass="stat-purple"
-          />
-          <SubjectStatCard
-            title="Open Quizzes"
-            value={computed.openQuizzes}
-            icon={FileText}
-            colorClass="stat-orange"
-          />
-          <SubjectStatCard
-            title="Closed Quizzes"
-            value={computed.unfinishedGrading}
-            icon={BookOpen}
-            colorClass="stat-blue"
-          />
+          <SubjectStatCard title="Total Students" value={computed.totalStudents} icon={Users} colorClass="stat-purple" />
+          <SubjectStatCard title="Open Quizzes" value={computed.openQuizzes} icon={FileText} colorClass="stat-orange" />
+          <SubjectStatCard title="Closed Quizzes" value={computed.closedQuizzes} icon={BookOpen} colorClass="stat-blue" />
         </div>
 
-        {/* CONTENT GRID */}
+        {/* Content */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* LEFT: QUIZZES LIST */}
+          {/* LEFT: Quizzes */}
           <div className="lg:col-span-8 space-y-4">
             <div className="flex items-center justify-between px-2">
-              <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">
-                Quizzes
-              </h2>
-              <Link to="#" className="text-xs font-bold text-indigo-600">
-                View All
+              <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">Quizzes</h2>
+              <Link to={`/teacher/subject/${subjectId}/activities`} className="text-xs font-bold text-indigo-600 hover:underline">
+                View Activities
               </Link>
             </div>
 
@@ -325,101 +254,82 @@ export default function SubjectPage() {
                 <div className="p-6 text-slate-600">No quizzes yet for this subject offering.</div>
               ) : (
                 quizzes.map((q) => {
-                  const status = quizStatusFromTimes(q);
+                  const status = quizStatus(q);
                   const due = q.close_time ? formatDateShort(q.close_time) : formatDateShort(q.open_time);
 
                   return (
-                    <div
+                    <Link
                       key={q.id}
-                      className="flex items-center justify-between p-5 hover:bg-slate-50 transition-colors group"
+                      to={`/teacher/activities/${q.id}`}
+                      className="block"
                     >
-                      <div className="flex items-center gap-5">
-                        <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-all">
-                          <FileText size={20} />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-slate-800 text-base">{q.title}</h4>
-                          <p className="text-xs font-medium text-slate-400">
-                            {q.open_time ? `Starts ${formatDateShort(q.open_time)}` : "No schedule"} •{" "}
-                            {q.close_time ? `Ends ${formatDateShort(q.close_time)}` : "No end date"}
-                          </p>
-                        </div>
-                      </div>
+                      <div className="flex items-center justify-between p-5 hover:bg-slate-50 transition-colors group">
+                        <div className="flex items-center gap-5">
+                          <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-all">
+                            <FileText size={20} />
+                          </div>
 
-                      <div className="flex items-center gap-6">
-                        <div className="text-right hidden sm:block">
-                          <p className="text-[10px] font-bold text-slate-300 uppercase">Due</p>
-                          <p className="text-xs font-bold text-slate-600">{due}</p>
+                          <div>
+                            <h4 className="font-bold text-slate-800 text-base">{q.title}</h4>
+                            <p className="text-xs font-medium text-slate-400">
+                              {q.open_time ? `Starts ${formatDateShort(q.open_time)}` : "No schedule"} •{" "}
+                              {q.close_time ? `Ends ${formatDateShort(q.close_time)}` : "No end date"}
+                            </p>
+                          </div>
                         </div>
 
-                        <span
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
-                            status === "OPEN"
-                              ? "bg-emerald-50 border-emerald-100 text-emerald-600"
-                              : status === "CLOSED"
-                              ? "bg-rose-50 border-rose-100 text-rose-700"
-                              : status === "SCHEDULED"
-                              ? "bg-amber-50 border-amber-100 text-amber-600"
-                              : "bg-slate-50 border-slate-200 text-slate-500"
-                          }`}
-                        >
-                          {status}
-                        </span>
+                        <div className="flex items-center gap-6">
+                          <div className="text-right hidden sm:block">
+                            <p className="text-[10px] font-bold text-slate-300 uppercase">Due</p>
+                            <p className="text-xs font-bold text-slate-600">{due}</p>
+                          </div>
+                          <StatusPill status={status} />
+                        </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })
               )}
             </div>
           </div>
 
-          {/* RIGHT: RECENT QUIZ GRADES */}
+          {/* RIGHT: Recent Grades */}
           <div className="lg:col-span-4 space-y-4">
-            <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest px-2">
-              Recent Quiz Grades
-            </h2>
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100">
+                <div className="text-sm font-black text-slate-900 uppercase tracking-widest">Recent Quiz Grades</div>
+                <div className="text-xs text-slate-500 mt-1">Latest 10 submissions</div>
+              </div>
 
-            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm">
               {recent.length === 0 ? (
-                <div className="text-slate-600">No recent quiz attempts yet.</div>
+                <div className="p-6 text-sm text-slate-600">No recent quiz grades yet.</div>
               ) : (
-                <div className="space-y-6">
-                  {recent.map((g, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-slate-100 to-slate-50 border border-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-600">
-                          {g.student
-                            .split(" ")
-                            .filter(Boolean)
-                            .slice(0, 2)
-                            .map((n) => n[0])
-                            .join("")}
+                <div className="divide-y divide-slate-100">
+                  {recent.slice(0, 10).map((r, idx) => (
+                    <div key={idx} className="px-6 py-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-900 truncate">{r.student}</div>
+                          <div className="text-xs text-slate-500 truncate">{r.quiz}</div>
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-800">{g.student}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                            {g.quiz} • {g.score}/{g.total}
-                          </p>
+
+                        <div className="text-right shrink-0">
+                          <div className="font-black text-slate-900 text-sm">
+                            {r.score}/{r.total}
+                          </div>
+                          <div className="text-xs text-slate-500">{r.percent.toFixed(1)}%</div>
                         </div>
                       </div>
 
-                      <div
-                        className={`text-sm font-black px-2 py-1 rounded-md ${
-                          g.percent < 80
-                            ? "bg-rose-50 text-rose-600"
-                            : "bg-emerald-50 text-emerald-600"
-                        }`}
-                      >
-                        {g.percent}%
-                      </div>
+                      {r.submitted_at ? (
+                        <div className="mt-2 text-[11px] text-slate-400">
+                          Submitted: {new Date(r.submitted_at).toLocaleString()}
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                 </div>
               )}
-
-              <button className="w-full mt-8 py-3.5 bg-slate-900 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200">
-                Detailed Analytics
-              </button>
             </div>
           </div>
         </div>
