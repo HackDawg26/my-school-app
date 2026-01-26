@@ -1,3 +1,4 @@
+import uuid
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
@@ -358,18 +359,42 @@ class QuizAnswer(models.Model):
     def __str__(self):
         return f"{self.attempt.student.user.email} - Q{self.question.order}"
 
+def offering_file_path(instance, filename: str) -> str:
+    # media/subject_offerings/<subject_offering_id>/<filename>
+    return f"subject_offerings/{instance.subject_offering_id}/{filename}"
 
-class Resource(models.Model):
-    resource_id = models.CharField(max_length=50, unique=True)
-    SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="resources")
+class SubjectOfferingFile(models.Model):
+    subject_offering = models.ForeignKey(
+        "SubjectOffering",
+        on_delete=models.CASCADE,
+        related_name="files",
+    )
+
     title = models.CharField(max_length=255)
-    type = models.CharField(max_length=50)
-    url = models.URLField()
-    description = models.TextField(blank=True)
+    file = models.FileField(upload_to=offering_file_path)
 
-    def __str__(self):
+    file_size = models.PositiveIntegerField(default=0)
+    content_type = models.CharField(max_length=100, blank=True, default="")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
         return self.title
 
+    @property
+    def file_url(self) -> str:
+        try:
+            return self.file.url
+        except Exception:
+            return ""
+
+    def delete(self, *args, **kwargs):
+        # remove physical file from storage too
+        storage = self.file.storage
+        name = self.file.name
+        super().delete(*args, **kwargs)
+        if name and storage.exists(name):
+            storage.delete(name)
 
 # ==================== GRADE FORECASTING MODELS ====================
 

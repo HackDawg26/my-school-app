@@ -1,3 +1,5 @@
+import os
+import mimetypes
 from django.utils import timezone
 from httpx import request
 from rest_framework import viewsets,status
@@ -12,17 +14,26 @@ from django.db.models import Sum
 from rest_framework import serializers
 from .models import (GradeChangeLog, Section, Student, Subject, SubjectOffering, Quiz, QuizQuestion, QuizChoice, QuizAttempt, 
     QuizAnswer, Student, GradeForecast, QuizTopicPerformance,
-    QuarterlyGrade)
+    QuarterlyGrade, SubjectOfferingFile)
 from rest_framework import permissions
 from .serializers import (LoginSerializer, StudentSubjectOfferingSerializer, SubjectListSerializer, SubjectOfferingSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer,QuizSerializer, QuizCreateUpdateSerializer,
     QuizQuestionSerializer, StudentQuizSerializer, QuizAttemptSerializer,
     QuizSubmissionSerializer, QuizChoiceSerializer,
     GradeForecastSerializer, QuizTopicPerformanceSerializer,
-    QuarterlyGradeSerializer, QuarterlyGradeCreateUpdateSerializer, GradeChangeLogSerializer
+    QuarterlyGradeSerializer, QuarterlyGradeCreateUpdateSerializer, GradeChangeLogSerializer, SubjectOfferingFileSerializer
 )
 from .grade_analytics import GradeAnalyticsService
 
 User = get_user_model()
+
+MAX_MB = 10
+MAX_BYTES = MAX_MB * 1024 * 1024
+
+ALLOWED_EXTS = {
+    ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx",
+    ".png", ".jpg", ".jpeg", ".webp",
+    ".txt", ".csv",
+}
 
 class AdminDashboardStatsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -121,6 +132,20 @@ class TeacherSubjectListViewSet(ReadOnlyModelViewSet):
             )
             .order_by("section__grade_level", "section__name")
         )
+class IsTeacherOrAdminWrite(permissions.BasePermission):
+    """
+    - Auth required
+    - Everyone authenticated can READ
+    - Only TEACHER/ADMIN can CREATE/UPDATE/DELETE
+    """
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            return True
+
+        return getattr(request.user, "role", None) in ("TEACHER", "ADMIN")
 
 class SubjectOfferingViewSet(viewsets.ModelViewSet):
     """
@@ -222,6 +247,52 @@ class SubjectOfferingViewSet(viewsets.ModelViewSet):
         offerings = SubjectOffering.objects.filter(section=student.section).order_by("name")
         serializer = self.get_serializer(offerings, many=True)
         return Response(serializer.data)
+    @action(detail=True, methods=["get"], url_path="files")
+    def files(self, request, pk=None):
+        offering = self.get_object()
+        qs = offering.files.all().order_by("-created_at")
+        ser = SubjectOfferingFileSerializer(qs, many=True, context={"request": request})
+        return Response(ser.data)
+
+    @action(detail=True, methods=["post"], url_path="files/upload")
+    def upload_file(self, request, pk=None):
+        offering = self.get_object()
+
+        f = request.FILES.get("file")
+        if not f:
+            return Response({"detail": "file is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # size limit
+        if f.size > MAX_BYTES:
+            return Response({"detail": f"File too large. Max is {MAX_MB}MB."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # extension allowlist
+        ext = os.path.splitext(f.name)[1].lower()
+        if ext not in ALLOWED_EXTS:
+            return Response({"detail": f"File type not allowed: {ext}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        title = (request.data.get("title") or "").strip() or f.name
+
+        # content type
+        content_type = getattr(f, "content_type", "") or (mimetypes.guess_type(f.name)[0] or "")
+
+        obj = SubjectOfferingFile.objects.create(
+            subject_offering=offering,
+            title=title,
+            file=f,
+            file_size=f.size,
+            content_type=content_type,
+        )
+
+        ser = SubjectOfferingFileSerializer(obj, context={"request": request})
+        return Response(ser.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["delete"], url_path=r"files/(?P<file_id>\d+)")
+    def delete_file(self, request, pk=None, file_id=None):
+        offering = self.get_object()
+        obj = get_object_or_404(SubjectOfferingFile, subject_offering=offering, id=file_id)
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
     
 class StudentSubjectOfferingViewSet(viewsets.ReadOnlyModelViewSet):
     """
