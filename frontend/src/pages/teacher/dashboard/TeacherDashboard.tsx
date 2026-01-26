@@ -102,6 +102,7 @@ export default function Dashboard({ teacherName = "Mr. Camacho" }: DashboardProp
 
     fetchSubjects();
   }, [token]);
+  console.log(subjects);
 
   // --- Computed Statistics ---
   const { totalClasses, totalStudents, totalPendingTasks, overallAvg } = useMemo(() => {

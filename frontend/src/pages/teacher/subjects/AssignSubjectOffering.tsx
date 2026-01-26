@@ -1,5 +1,5 @@
 import React, { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 /* ---------- Types ---------- */
 interface Section {
@@ -17,6 +17,7 @@ interface SubjectOfferingFormData {
 
 /* ---------- Component ---------- */
 export default function AssignSubjectOffering() {
+  const navigate = useNavigate();
   const [sections, setSections] = useState<Section[]>([]);
   const [formData, setFormData] = useState<SubjectOfferingFormData>({
     name: "",
@@ -72,7 +73,9 @@ export default function AssignSubjectOffering() {
     }
 
     alert("Subject offering created successfully");
+    navigate("/teacher/subject");
     setFormData({ name: "", section: "", room_number: "", schedule: "" });
+    
   };
 
   const selectedSection = sections.find(
@@ -81,15 +84,15 @@ export default function AssignSubjectOffering() {
 
   /* ---------- Styles ---------- */
   const inputClasses =
-    "w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white";
+    "w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ";
   const labelClasses =
-    "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
+    "block text-sm font-medium text-gray-700 mb-1";
 
   /* ---------- Render ---------- */
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
-      <div className="w-full max-w-xl bg-white dark:bg-gray-800 p-8 rounded-xl shadow-xl">
-        <h2 className="text-3xl font-bold text-center mb-6 dark:text-white">
+    <div className="flex justify-center items-center min-h-screen bg-gray-50  p-4">
+      <div className="w-full max-w-xl bg-gray-100 p-8 rounded-xl shadow-xl">
+        <h2 className="text-3xl font-bold text-center mb-6 ">
           Assign Subject Offering
         </h2>
 
@@ -170,6 +173,7 @@ export default function AssignSubjectOffering() {
           {/* Submit */}
           <button
             type="submit"
+            onClick={handleSubmit}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg"
           >
             Assign Subject Offering

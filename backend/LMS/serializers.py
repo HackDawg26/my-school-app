@@ -449,6 +449,38 @@ class QuizQuestionSerializer(serializers.ModelSerializer):
             QuizChoice.objects.create(question=question, **choice_data)
         
         return question
+    
+    def update(self, instance, validated_data):
+        choices_data = validated_data.pop('choices', [])
+        
+        # Update question fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Update choices
+        existing_choice_ids = [choice.id for choice in instance.choices.all()]
+        new_choice_ids = [choice_data.get('id') for choice_data in choices_data if 'id' in choice_data]
+        
+        # Delete removed choices
+        for choice_id in existing_choice_ids:
+            if choice_id not in new_choice_ids:
+                QuizChoice.objects.filter(id=choice_id).delete()
+        
+        # Update or create choices
+        for choice_data in choices_data:
+            choice_id = choice_data.get('id', None)
+            if choice_id:
+                # Update existing choice
+                choice = QuizChoice.objects.get(id=choice_id, question=instance)
+                for attr, value in choice_data.items():
+                    setattr(choice, attr, value)
+                choice.save()
+            else:
+                # Create new choice
+                QuizChoice.objects.create(question=instance, **choice_data)
+        
+        return instance
 
 
 class QuizSerializer(serializers.ModelSerializer):
