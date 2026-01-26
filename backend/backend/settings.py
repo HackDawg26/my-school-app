@@ -169,3 +169,8 @@ AUTH_USER_MODEL = 'LMS.User'
 # OpenAI Configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 OPENAI_MODEL = 'gpt-3.5-turbo'
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")

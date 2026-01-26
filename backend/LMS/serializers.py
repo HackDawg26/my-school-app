@@ -264,7 +264,7 @@ class SubjectSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "faculty_count", "teachers"]
 
 from rest_framework import serializers
-from .models import SubjectOffering
+from .models import SubjectOffering, SubjectOfferingFile
 
 
 class SubjectListSerializer(serializers.ModelSerializer):
@@ -424,6 +424,25 @@ class GradeChangeLogSerializer(serializers.ModelSerializer):
 
         return f"{prev} → {new}"
     
+class SubjectOfferingFileSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SubjectOfferingFile
+        fields = ["id", "title", "file_url", "file_size", "content_type", "created_at"]
+        read_only_fields = ["id", "file_url", "file_size", "content_type", "created_at"]
+
+    def get_file_url(self, obj):
+        request = self.context.get("request")
+        url = obj.file_url
+        # If you want absolute URLs:
+        if request and url and url.startswith("/"):
+            return request.build_absolute_uri(url)
+        return url
+
+
+
+
 # Quiz Serializers
 class QuizChoiceSerializer(serializers.ModelSerializer):
     class Meta:
