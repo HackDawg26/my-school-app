@@ -31,9 +31,8 @@ import Gradebook from './pages/teacher/gradebook/GradeBook.tsx';
 import QuarterlyGradesPage from './pages/teacher/gradebook/QuarterlyGradesPage.tsx';
 import ExportReportCardPDF from './pages/teacher/advisoryClass/SF9.tsx';
 // import SubjectPage from './pages/teacher/subjects/SubjectPage.tsx';
-import SubjectListPage from './pages/teacher/subjects/subject.tsx';
-import SubjectCreationForm from './pages/teacher/subjects/create-subject.tsx';
-import SubjectProvider from './pages/teacher/subjects/SubjectProvider.tsx';
+import SubjectListPage from './pages/teacher/subjects/SubjectListPage.tsx';
+import SubjectCreationForm from './pages/teacher/subjects/AssignSubjectOffering.tsx';
 import SubjectPage from './pages/teacher/subjects/SubjectPage.tsx';
 import CreateTeacherAccountPage from './pages/admin/accounts/create-accounts/Create-teacher-account.tsx';
 import CreateStudentAccountPage from './pages/admin/accounts/create-accounts/Create-student-account.tsx';
@@ -52,6 +51,13 @@ import TakeQuiz from './pages/student/quiz/TakeQuiz.tsx';
 import QuizResult from './pages/student/quiz/QuizResult.tsx';
 import StudentGradeForecast from './pages/student/gradeForecast/StudentGradeForecast.tsx';
 import StudentQuarterlyGrades from './pages/student/grades/StudentQuarterlyGrades.tsx';
+import SubjectLayout from './pages/teacher/subjects/SubjectLayout.tsx';
+import SubjectClassListTab from './pages/teacher/subjects/SubjectClassListTab.tsx';
+import SubjectGradesTab from './pages/teacher/subjects/SubjectGradesTab.tsx';
+import SubjectActivitiesTab from './pages/teacher/subjects/activity-tab/SubjectActivitiesTab.tsx';
+import SubjectFilesTab from './pages/teacher/subjects/SubjectFilesTab.tsx';
+import CreateExam from './pages/teacher/subjects/activity-tab/CreateExam.tsx';
+import CreateAssignment from './pages/teacher/subjects/activity-tab/CreateAssignment.tsx';
 
 
 function App() {
@@ -88,19 +94,29 @@ function App() {
             {/* Teacher Domain */}
             <Route element={<ProtectedRoute allowedRoles={['TEACHER']} />}>
               <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-              <Route element={<SubjectProvider />}>
-                {/* Subject Routes */}
-                <Route path='teacher/subject'>
-                  {/* Renders the list of subjects */}
-                  <Route index element={<SubjectListPage />} /> 
-                  
-                  {/* Renders the form for creating a new subject */}
-                  <Route path='create-subject' element={<SubjectCreationForm />} />
-                  
-                  {/* Renders the detail page for a specific subject */}
-                  <Route path=':id' element={<SubjectPage />} />
+            
+              <Route path='teacher/subject'>
+                {/* Renders the list of subjects */}
+                <Route index element={<SubjectListPage />} /> 
+                
+                {/* Renders the form for creating a new subject */}
+                <Route path='create-subject' element={<SubjectCreationForm />} />
+                
+                {/* Renders the detail page for a specific subject */}
+                <Route path=':id' element={<SubjectLayout />}>
+                  <Route index element={<SubjectPage />} />
+                  <Route path="files" element={<SubjectFilesTab />} />
+                  <Route path="activities" element={<SubjectActivitiesTab />} />
+                  <Route path="grades" element={<SubjectGradesTab />} />
+                  <Route path="classlist" element={<SubjectClassListTab />} />
+                  <Route path="assignment/create" element={<CreateAssignment />} />
+                  <Route path="exam/create" element={<CreateExam />} />
+
                 </Route>
+                
               </Route>
+
+            
               <Route path='/teacher/analytics' element={<SubjectAnalytics />} />
               <Route path="/teacher/gradebook" element={<Gradebook />} />
               <Route path="/teacher/gradebook/:subjectId" element={<Gradebook />} />

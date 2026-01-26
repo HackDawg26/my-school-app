@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum
+from rest_framework import serializers
 from .models import (GradeChangeLog, Section, Student, Subject, SubjectOffering, Quiz, QuizQuestion, QuizChoice, QuizAttempt, 
     QuizAnswer, Student, GradeForecast, QuizTopicPerformance,
     QuarterlyGrade)
@@ -160,7 +161,7 @@ class SubjectOfferingViewSet(viewsets.ModelViewSet):
         """
         List all SubjectOfferings for a specific section.
         """
-        offerings = self.queryset.filter(section_id=section_id)
+        offerings = self.get_queryset().filter(section_id=section_id)
         serializer = self.get_serializer(offerings, many=True)
         return Response(serializer.data)
 

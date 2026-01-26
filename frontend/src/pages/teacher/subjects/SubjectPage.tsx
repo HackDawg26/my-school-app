@@ -22,21 +22,25 @@ import {
   Plus,
 } from "lucide-react";
 
+import type { SubjectOffering } from "./subjectOffering";
+
 // ---------------- Types ----------------
 
 type QuizStatus = "DRAFT" | "SCHEDULED" | "OPEN" | "CLOSED";
 
-interface SubjectOfferingDetail {
-  id: number;
-  name: string; // offering name (e.g. "Math")
-  section: string; // e.g. "Diamond"
-  grade: string | number; // e.g. 7
-  room_number?: string; // fallback if backend still uses room_number
-  teacher_name?: string; // optional if serializer provides
-  students?: number; // optional count
-  average?: number; // optional
-  quiz_count?: number; // optional
-}
+type SubjectOfferingDetail = SubjectOffering;
+
+// interface SubjectOfferingDetail {
+//   id: number;
+//   name: string; // offering name (e.g. "Math")
+//   section: string; // e.g. "Diamond"
+//   grade: string | number; // e.g. 7
+//   room_number?: string; // fallback if backend still uses room_number
+//   teacher_name?: string; // optional if serializer provides
+//   students?: number; // optional count
+//   average?: number; // optional
+//   quiz_count?: number; // optional
+// }
 
 interface Quiz {
   id: number;
@@ -109,24 +113,27 @@ function formatDateShort(iso: string | null | undefined) {
 }
 
 function quizStatusFromTimes(q: Quiz): QuizStatus {
+  return q.status;
   // If your backend already provides status, keep it.
-  if (q.status) return q.status;
+  // if (q.status) return q.status;
 
-  const now = Date.now();
-  const start = q.open_time ? new Date(q.open_time).getTime() : null;
-  const end = q.close_time ? new Date(q.close_time).getTime() : null;
+  // const now = Date.now();
+  // const start = q.open_time ? new Date(q.open_time).getTime() : null;
+  // const end = q.close_time ? new Date(q.close_time).getTime() : null;
 
-  if (start && now < start) return "SCHEDULED";
-  if (start && (!end || now <= end)) return "OPEN";
-  if (end && now > end) return "CLOSED";
-  return "DRAFT";
+  // if (start && now < start) return "SCHEDULED";
+  // if (start && (!end || now <= end)) return "OPEN";
+  // if (end && now > end) return "CLOSED";
+  // return "DRAFT";
 }
 
 // ---------------- Component ----------------
 
+
 export default function SubjectPage() {
   const { id } = useParams<{ id: string }>();
   const subjectId = Number(id || 0);
+  
 
   const [offering, setOffering] = useState<SubjectOfferingDetail | null>(null);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -215,7 +222,7 @@ export default function SubjectPage() {
     const totalStudents = offering?.students ?? 0;
 
     const avg = Number(offering?.average ?? 0);
-    const avgText = offering?.average != null ? `${avg}%` : "—";
+    
 
     const now = Date.now();
     const openQuizzes = quizzes.filter((q) => {
@@ -237,7 +244,7 @@ export default function SubjectPage() {
       ? `Next quiz • ${new Date(nextQuiz.q.open_time).toLocaleString()}`
       : "—";
 
-    return { totalStudents, avgText, avg, openQuizzes, unfinishedGrading, scheduleText };
+    return { totalStudents,  avg, openQuizzes, unfinishedGrading, scheduleText };
   }, [offering, quizzes]);
 
   // ---------------- States ----------------
@@ -266,87 +273,19 @@ export default function SubjectPage() {
     );
   }
 
-  const room = offering.room_number ?? "—";
 
   // ---------------- Render ----------------
 
   return (
     <section className="bg-slate-50/30 min-h-screen p-1 font-sans">
-      {/* HEADER */}
-      <header className="mx-auto mb-10">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-          <div className="space-y-4">
-            <Link
-              to="/teacher/subject"
-              className="inline-flex items-center text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-widest"
-            >
-              <ArrowLeft size={16} className="mr-2" />
-              Back to Subjects
-            </Link>
-
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-                  {offering.name}
-                </h1>
-                <span className="h-6 w-px bg-slate-200" />
-                <span className="text-lg font-medium text-slate-500">
-                  {offering.grade} — {offering.section}
-                </span>
-              </div>
-
-              <p className="text-slate-500 flex items-center gap-4 text-sm flex-wrap">
-                <span className="flex items-center gap-1.5">
-                  <MapPin size={14} /> Room {room}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Calendar size={14} /> {computed.scheduleText}
-                </span>
-                {offering.teacher_name ? (
-                  <span className="flex items-center gap-1.5">
-                    <BookOpen size={14} /> {offering.teacher_name}
-                  </span>
-                ) : null}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl shadow-sm hover:bg-slate-50 transition-all">
-              <Download size={18} /> Export List
-            </button>
-          </div>
-        </div>
-
-        {/* NAV */}
-        <nav className="flex items-center p-1 bg-slate-100/50 w-fit rounded-xl border border-slate-200/60">
-          {["Overview", "Files", "Quizzes", "Grades"].map((tab) => {
-            const isActive = tab === "Overview";
-            return (
-              <Link
-                key={tab}
-                to="#"
-                className={`px-6 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${
-                  isActive
-                    ? "bg-white text-indigo-600 shadow-sm"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                {tab}
-              </Link>
-            );
-          })}
-        </nav>
-      </header>
-
       <main className="mx-auto space-y-8">
         {/* METRICS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <SubjectStatCard
             title="Avg. Performance"
-            value={offering.average != null ? `${computed.avg.toFixed(1)}%` : "—"}
+            value={offering.average != null ? `${Number(offering.average).toFixed(1)}%` : "—"}
             icon={TrendingUp}
-            colorClass={computed.avg < 85 ? "stat-red" : "stat-green"}
+            colorClass={typeof offering.average === "number" && offering.average < 85 ? "stat-red" : "stat-green"}
           />
           <SubjectStatCard
             title="Total Students"
