@@ -30,9 +30,8 @@ import QuarterlyGradesPage from './pages/teacher/gradebook/QuarterlyGradesPage.t
 import ExportReportCardPDF from './pages/teacher/advisoryClass/SF9.tsx';
 
 // import SubjectPage from './pages/teacher/subjects/SubjectPage.tsx';
-import SubjectListPage from './pages/teacher/subjects/subject.tsx';
-import SubjectCreationForm from './pages/teacher/subjects/create-subject.tsx';
-import SubjectProvider from './pages/teacher/subjects/SubjectProvider.tsx';
+import SubjectListPage from './pages/teacher/subjects/SubjectListPage.tsx';
+import SubjectCreationForm from './pages/teacher/subjects/AssignSubjectOffering.tsx';
 import SubjectPage from './pages/teacher/subjects/SubjectPage.tsx';
 import CreateTeacherAccountPage from './pages/admin/accounts/create-accounts/Create-teacher-account.tsx';
 import CreateStudentAccountPage from './pages/admin/accounts/create-accounts/Create-student-account.tsx';
@@ -50,7 +49,12 @@ import TakeQuiz from './pages/student/quiz/TakeQuiz.tsx';
 import QuizResult from './pages/student/quiz/QuizResult.tsx';
 import StudentGradeForecast from './pages/student/gradeForecast/StudentGradeForecast.tsx';
 import StudentQuarterlyGrades from './pages/student/grades/StudentQuarterlyGrades.tsx';
-import SubjectQuizAnalytics from './pages/teacher/subjects/SubjectQuizAnalytics.tsx';
+import SubjectLayout from './pages/teacher/subjects/SubjectLayout.tsx';
+import SubjectClassListTab from './pages/teacher/subjects/SubjectClassListTab.tsx';
+import SubjectGradesTab from './pages/teacher/subjects/SubjectGradesTab.tsx';
+import SubjectActivitiesTab from './pages/teacher/subjects/activity-tab/SubjectActivitiesTab.tsx';
+import SubjectFilesTab from './pages/teacher/subjects/SubjectFilesTab.tsx';
+
 
 
 function App() {
@@ -77,9 +81,9 @@ function App() {
               <Route path="/student/subject" element={<SubjectsPage />} />
               <Route path="/student/subject-offering/:id" element={<StudentSubjectpage />} />
               <Route path="/student/grades/quarterly" element={<StudentQuarterlyGrades />} />
-              <Route path="/student/quiz" element={<StudentQuizList />} />
-              <Route path="/student/quiz/:id/take" element={<TakeQuiz />} />
-              <Route path="/student/quiz/result" element={<QuizResult />} />
+              <Route path="/student/activities" element={<StudentQuizList />} />
+              <Route path="/student/activities/:id/take" element={<TakeQuiz />} />
+              <Route path="/student/activities/result" element={<QuizResult />} />
               <Route path="/student/grade-forecast" element={<StudentGradeForecast />} />
               {/* You can add more student pages here like /student/grades */}
             </Route>
@@ -87,27 +91,42 @@ function App() {
             {/* Teacher Domain */}
             <Route element={<ProtectedRoute allowedRoles={['TEACHER']} />}>
               <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-              <Route element={<SubjectProvider />}>
-                {/* Subject Routes */}
-                <Route path='teacher/subject'>
-                  {/* Renders the list of subjects */}
-                  <Route index element={<SubjectListPage />} /> 
+            
+              <Route path='teacher/subject'>
+                {/* Renders the list of subjects */}
+                <Route index element={<SubjectListPage />} /> 
+                
+                {/* Renders the form for creating a new subject */}
+                <Route path='create-subject' element={<SubjectCreationForm />} />
+                
+                {/* Renders the detail page for a specific subject */}
+                <Route path=':id' element={<SubjectLayout />}>
+                  <Route index element={<SubjectPage />} />
+                  <Route path="files" element={<SubjectFilesTab />} />
+                  <Route path="activities" element={<SubjectActivitiesTab />} />
+                  <Route path="activities/create" element={<CreateQuiz />} />
+                  {/* <Route path="activities/assignment/create" element={<CreateAssignment />} />
+                  <Route path="activities/exam/create" element={<CreateExam />} /> */}
+                  <Route path="grades" element={<SubjectGradesTab />} />
+                  <Route path="classlist" element={<SubjectClassListTab />} />
                   
-                  {/* Renders the form for creating a new subject */}
-                  <Route path='create-subject' element={<SubjectCreationForm />} />
-                  
-                  {/* Renders the detail page for a specific subject */}
-                  <Route path=':id' element={<SubjectPage />} />
+
+                  {/* <Route path="assignment/create" element={<CreateAssignment />} />
+                  <Route path="exam/create" element={<CreateExam />} /> */}
+
                 </Route>
+                
               </Route>
+
+            
               <Route path="/teacher/grades/quarterly" element={<QuarterlyGradesPage />} />
               <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />
               <Route path="/teacher/advisory-class/sf9/:studentId" element={<ExportReportCardPDF />} />
-              <Route path="/teacher/quiz" element={<TeacherQuizList />} />
-              <Route path="/teacher/quiz/create" element={<CreateQuiz />} />
-              <Route path="/teacher/quiz/:id" element={<ManageQuiz />} />
-              <Route path="/teacher/quiz/:id/item-analysis" element={<QuizItemAnalysis />} />
-              <Route path="/teacher/subject/:id/analytics" element={<SubjectQuizAnalytics />} />
+              <Route path="/teacher/activities" element={<TeacherQuizList />} />
+              <Route path="/teacher/activities/create" element={<CreateQuiz />} />
+              <Route path="/teacher/activities/:id" element={<ManageQuiz />} />
+              <Route path="/teacher/activities/:id/item-analysis" element={<QuizItemAnalysis />} />
+              
 
             </Route>
 

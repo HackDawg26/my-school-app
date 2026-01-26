@@ -34,7 +34,7 @@ export default function QuizResult() {
       }
     } else {
       // If no data, redirect back to quiz list
-      navigate('/student/quiz');
+      navigate('/student/activities');
     }
   }, [location, navigate]);
 
@@ -195,7 +195,7 @@ export default function QuizResult() {
         {/* Action Buttons */}
         <div className="flex gap-4">
           <button
-            onClick={() => navigate('/student/quiz')}
+            onClick={() => navigate('/student/activities')}
             className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
           >
             Back to Quizzes

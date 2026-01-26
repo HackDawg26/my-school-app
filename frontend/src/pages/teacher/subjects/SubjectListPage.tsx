@@ -3,17 +3,7 @@ import { Link } from "react-router-dom";
 import { BookOpen, Users, BarChart, Plus, AlertCircle, Trash2 } from "lucide-react";
 
 /* ---------- Types ---------- */
-interface SubjectOffering {
-  id: number;
-  name: string;
-  section: string;
-  grade: string;
-  room_number: string;
-  schedule: string;
-  students: number;
-  average: number;
-  pendingTasks: number;
-}
+import type {SubjectOffering} from "./subjectOffering";
 
 /* ---------- Component ---------- */
 export default function SubjectListPage() {
@@ -74,6 +64,7 @@ export default function SubjectListPage() {
       setDeletingId(null);
     }
   };
+  console.log(offerings);
 
   if (loading) {
     return (
@@ -96,7 +87,7 @@ export default function SubjectListPage() {
 
   const totalClasses = offerings.length;
   const totalStudents = offerings.reduce((sum, o) => sum + (o.students ?? 0), 0);
-
+  
   return (
     <section className="bg-slate-50 min-h-screen p-4">
       {/* Header */}
@@ -131,7 +122,7 @@ export default function SubjectListPage() {
             {/* Top Row */}
             <div className="flex justify-between mb-2 items-start gap-3">
               <div className="min-w-0">
-                <h3 className="text-xl font-bold truncate text-slate-900">{o.name}</h3>
+                <h3 className="text-xl font-bold truncate text-slate-900">{o.name.toUpperCase()}</h3>
                 <p className="text-sm text-slate-400 uppercase truncate">
                   {o.grade} • Section {o.section}
                 </p>
@@ -183,7 +174,9 @@ export default function SubjectListPage() {
                   <BarChart size={16} />
                   Average
                 </span>
-                <strong className={o.average < 85 ? "text-rose-500" : "text-emerald-600"}>{o.average}%</strong>
+                <strong className={o.average !== null && o.average < 85 ? "text-rose-500" : "text-emerald-600"}>
+                  {o.average !== null ? `${o.average}%` : "—"}
+                </strong>
               </div>
 
               <div className="flex justify-between text-sm text-amber-700">
