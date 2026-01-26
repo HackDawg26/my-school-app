@@ -503,7 +503,7 @@ export default function TeacherQuarterlyGrades({ subjectoffering_id, subjectName
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-600">
         <p><strong>Note:</strong> This interface allows you to enter quarterly grades for all students across Q1-Q4.</p>
         <p className="mt-2">
-          For detailed grade entry per activity, use: <button onClick={() => navigate('/teacher/gradebook')} className="text-blue-600 hover:underline">Main Gradebook</button>
+          For detailed grade entry per activity, use: <button type="button" onClick={() => navigate(`/teacher/subject/${subjectoffering_id}/analytics`)} className="text-blue-600 hover:underline font-semibold">Recent Activities</button>
         </p>
       </div>
     </div>

@@ -40,7 +40,7 @@ const teacherLinks: NavItem[] = [
   { name: "Dashboard", to: "/teacher/dashboard", Icon: LayoutDashboard },
   { name: "Subjects", to: "/teacher/subject", Icon: BookCopy },
   { name: "Quizzes", to: "/teacher/quiz", Icon: ClipboardList },
-  { name: "Gradebook", to: "/teacher/gradebook", Icon: Book },
+  { name: "Gradebook", to: "/teacher/grades/quarterly", Icon: Book },
   { name: "Advisory Class", to: "/teacher/advisory-class", Icon: Banknote },
 ];
 

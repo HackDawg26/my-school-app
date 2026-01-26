@@ -26,8 +26,6 @@ import { StudentAccountsPage} from './pages/admin/students/StudentsPage.tsx';
 import GradeLogs from './pages/admin/gradelogs/GradeLogs.tsx';
 import AccountListPage from './pages/admin/accounts/Account-list.tsx';
 import CreateSectionPage from './pages/admin/students/create-subject.tsx';
-
-import Gradebook from './pages/teacher/gradebook/GradeBook.tsx';
 import QuarterlyGradesPage from './pages/teacher/gradebook/QuarterlyGradesPage.tsx';
 import ExportReportCardPDF from './pages/teacher/advisoryClass/SF9.tsx';
 
@@ -102,8 +100,6 @@ function App() {
                   <Route path=':id' element={<SubjectPage />} />
                 </Route>
               </Route>
-              <Route path="/teacher/gradebook" element={<Gradebook />} />
-              <Route path="/teacher/gradebook/:subjectId" element={<Gradebook />} />
               <Route path="/teacher/grades/quarterly" element={<QuarterlyGradesPage />} />
               <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />
               <Route path="/teacher/advisory-class/sf9/:studentId" element={<ExportReportCardPDF />} />
