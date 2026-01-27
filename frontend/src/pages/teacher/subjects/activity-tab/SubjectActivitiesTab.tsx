@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
-import { Plus, ChevronDown, FileQuestion, Calendar, Trash2 } from "lucide-react";
+import { Plus, FileQuestion, Calendar, Trash2 } from "lucide-react";
 
 type ActivityType = "QUIZ";
 

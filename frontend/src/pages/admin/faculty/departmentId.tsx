@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, MoreHorizontal, UserPlus, Trash2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import AddTeacherModal from "./AddTeacherModal";

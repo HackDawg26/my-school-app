@@ -1,5 +1,5 @@
 import { CheckCircle, Mail, Search, X } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type Teacher = {
   id: number;
