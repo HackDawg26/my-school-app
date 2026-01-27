@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Download, Link2, PlayCircle } from 'lucide-react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 

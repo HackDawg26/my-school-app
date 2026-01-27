@@ -94,11 +94,6 @@ function remarkFromFinal(final: number | null) {
   return final >= 75 ? "Passed" : "Failed";
 }
 
-function gradeLabel(grade_level: string | number | undefined) {
-  if (!grade_level) return "";
-  if (typeof grade_level === "string" && grade_level.startsWith("GRADE_")) return grade_level.replace("GRADE_", "Grade ");
-  return `Grade ${grade_level}`;
-}
 
 // ---------------- Component ----------------
 

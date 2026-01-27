@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 interface TopicPerformance {
@@ -31,7 +30,6 @@ interface SubjectOffering {
 }
 
 export default function StudentGradeForecast() {
-  const navigate = useNavigate();
   const [subjects, setSubjects] = useState<SubjectOffering[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const [forecast, setForecast] = useState<GradeForecast | null>(null);

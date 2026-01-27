@@ -18,7 +18,7 @@ import { useNavigate } from "react-router-dom";
 
 type AdvisorySection = {
   id: number;
-  name: string;
+  section: string;
   grade_level: string | number; // could be "GRADE_7" or 7
   adviser_name?: string;
 };
@@ -224,7 +224,7 @@ export default function Advisory(): JSX.Element {
       };
     }
     return {
-      title: `${gradeLabel(sec.grade_level)} - ${sec.name}`,
+      title: `${gradeLabel(sec.grade_level)} - ${sec.section}`,
       subtitle: `SY 2024-2025 • ${students.length} Students Enrolled`,
     };
   }, [teacher, students.length]);

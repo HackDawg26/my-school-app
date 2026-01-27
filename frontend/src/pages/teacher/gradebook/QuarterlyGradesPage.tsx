@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BookOpen } from 'lucide-react';
 import axios from 'axios';
 import TeacherQuarterlyGrades from './TeacherQuarterlyGrades.tsx';
@@ -11,7 +10,6 @@ interface Subject {
 }
 
 export default function QuarterlyGradesPage() {
-  const navigate = useNavigate();
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);

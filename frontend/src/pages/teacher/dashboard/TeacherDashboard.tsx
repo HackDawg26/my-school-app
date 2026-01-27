@@ -31,9 +31,6 @@ interface StatCardProps {
   colorClass: string;
 }
 
-interface DashboardProps {
-  teacherName?: string;
-}
 
 // --- Sub-components ---
 
@@ -58,7 +55,7 @@ const StatCard: React.FC<StatCardProps> = ({
 
 // --- Main Component ---
 
-export default function Dashboard({ teacherName = "Mr. Camacho" }: DashboardProps) {
+export default function Dashboard() {
   const [subjects, setSubjects] = useState<SubjectOffering[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
