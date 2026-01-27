@@ -1,8 +1,6 @@
 import { 
   ArrowRight, 
-  Plus, 
-  Users, 
-  Upload, 
+  Users,  
   PlusCircle 
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";

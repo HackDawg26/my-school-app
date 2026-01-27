@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router-dom";
 import { ArrowLeft, MapPin } from "lucide-react";
 import type { SubjectOffering } from "./subjectOffering";

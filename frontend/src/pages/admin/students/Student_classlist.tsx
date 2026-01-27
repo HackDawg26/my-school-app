@@ -47,15 +47,6 @@ export const StudentClassList = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredStudents = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return students
-      .filter((s) => {
-        if (!q) return true;
-        const haystack = `${s.school_id} ${s.first_name} ${s.last_name}`.toLowerCase();
-        return haystack.includes(q);
-      });
-  }, [students, searchQuery]);
 
   // -------------------
   // Adviser state

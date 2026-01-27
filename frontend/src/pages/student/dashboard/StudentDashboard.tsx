@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Clock, ChevronRight } from 'lucide-react';
 
 // ---------------- Types ----------------
@@ -40,10 +40,6 @@ type Task = {
 
 // ---------------- Helpers ----------------
 
-function safeNumber(v: any, fallback = 0) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
-}
 
 function formatDate(iso?: string | null) {
   if (!iso) return '—';

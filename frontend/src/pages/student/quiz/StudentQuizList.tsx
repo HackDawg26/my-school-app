@@ -192,7 +192,6 @@ export default function StudentQuizList() {
           </div>
         ) : (
           visibleQuizzes.map((quiz) => {
-            const hasAttempt = latestAttemptByQuizId.has(quiz.id);
 
             return (
               <div

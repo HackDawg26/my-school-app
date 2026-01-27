@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   BarChart3,
   BookCopy,
-  CheckSquare,
   Book,
   Users,
   Banknote,
