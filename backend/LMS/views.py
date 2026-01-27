@@ -406,6 +406,13 @@ class StudentSubjectOfferingViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
     
+    @action(detail=True, methods=["get"], url_path="files")
+    def files(self, request, pk=None):
+        offering = self.get_object()  # already restricted to student's section via get_queryset
+        qs = offering.files.all().order_by("-created_at")
+        ser = SubjectOfferingFileSerializer(qs, many=True, context={"request": request})
+        return Response(ser.data)
+    
 class GradeChangeLogViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GradeChangeLogSerializer
     permission_classes = [permissions.IsAuthenticated]
