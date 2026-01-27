@@ -223,4 +223,4 @@ class GradeAnalyticsService:
         except Student.DoesNotExist:
             return []
         
-        return GradeForecast.objects.filter(student=student).select_related('subject')
+        return GradeForecast.objects.filter(student=student).select_related('Subject')

@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import GradeChangeLogViewSet, StudentSubjectOfferingViewSet, StudentViewSet, SubjectOfferingViewSet, SubjectViewSet, TeacherQuizViewSet, TeacherSubjectListViewSet, TeacherViewSet, grade_forecast, list_users, LoginView, create_user, manage_quiz_question, quarterly_grade_detail, quarterly_grades, quiz_item_analysis, start_quiz, student_grade_analytics, student_quiz_attempts, student_quiz_detail, student_quizzes, student_topic_performance, submit_quiz, user_detail, SectionViewSet, AdminDashboardStatsView
+from .views import GradeChangeLogViewSet, StudentSubjectOfferingViewSet, StudentViewSet, SubjectOfferingViewSet, SubjectViewSet, TeacherQuizViewSet, TeacherSubjectListViewSet, TeacherViewSet, ai_chat, explain_concept, generate_quiz, generate_study_plan, grade_forecast, list_users, LoginView, create_user, manage_quiz_question, provide_feedback, quarterly_grade_detail, quarterly_grades, quiz_item_analysis, start_quiz, student_grade_analytics, student_quiz_attempts, student_quiz_detail, student_quizzes, student_topic_performance, submit_quiz, user_detail, SectionViewSet, AdminDashboardStatsView
 
 from .views import teacher_submissions_summary, teacher_submissions_subject_detail, teacher_submissions_export_csv
 
@@ -48,9 +48,17 @@ urlpatterns = [
     path('quarterly-grades/', quarterly_grades, name='quarterly_grades'),
     path('quarterly-grades/<int:grade_id>/', quarterly_grade_detail, name='quarterly_grade_detail'),
 
+<<<<<<< HEAD
     # Teacher Submissions Summary and Export
     path("teacher/submissions/summary/", teacher_submissions_summary, name="teacher_submissions_summary"),
     path("teacher/submissions/subject/<int:subject_offering_id>/", teacher_submissions_subject_detail, name="teacher_submissions_subject_detail"),
     path("teacher/submissions/export.csv", teacher_submissions_export_csv, name="teacher_submissions_export_csv"),
+=======
+    path('ai/chat/', ai_chat, name='ai_chat'),
+    path('ai/generate-quiz/', generate_quiz, name='generate_quiz'),
+    path('ai/explain-concept/', explain_concept, name='explain_concept'),
+    path('ai/feedback/', provide_feedback, name='provide_feedback'),
+    path('ai/study-plan/', generate_study_plan, name='generate_study_plan'),
+>>>>>>> origin/Backup
     
 ]

@@ -25,14 +25,14 @@ interface GradeForecast {
   generated_at: string;
 }
 
-interface Subject {
+interface SubjectOffering {
   id: number;
   name: string;
 }
 
 export default function StudentGradeForecast() {
   const navigate = useNavigate();
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjects, setSubjects] = useState<SubjectOffering[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const [forecast, setForecast] = useState<GradeForecast | null>(null);
   const [topicPerformance, setTopicPerformance] = useState<TopicPerformance[]>([]);
@@ -57,7 +57,7 @@ export default function StudentGradeForecast() {
     }
   };
 
-  const fetchForecast = async (subjectId: number) => {
+  const fetchForecast = async (SubjectOfferingId: number) => {
     setLoading(true);
     setError('');
     try {
@@ -66,14 +66,14 @@ export default function StudentGradeForecast() {
       
       // Try to get existing forecast
       const response = await axios.get(
-        `http://127.0.0.1:8000/api/student/grade-forecast/${subjectId}/`,
+        `http://127.0.0.1:8000/api/student/grade-forecast/${SubjectOfferingId}/`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setForecast(response.data);
       
       // Get topic performance
       const topicResponse = await axios.get(
-        `http://127.0.0.1:8000/api/student/topic-performance/${subjectId}/`,
+        `http://127.0.0.1:8000/api/student/topic-performance/${SubjectOfferingId}/`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setTopicPerformance(topicResponse.data || []);
