@@ -47,18 +47,10 @@ urlpatterns = [
     # Quarterly Grades
     path('quarterly-grades/', quarterly_grades, name='quarterly_grades'),
     path('quarterly-grades/<int:grade_id>/', quarterly_grade_detail, name='quarterly_grade_detail'),
-
-<<<<<<< HEAD
-    # Teacher Submissions Summary and Export
-    path("teacher/submissions/summary/", teacher_submissions_summary, name="teacher_submissions_summary"),
-    path("teacher/submissions/subject/<int:subject_offering_id>/", teacher_submissions_subject_detail, name="teacher_submissions_subject_detail"),
-    path("teacher/submissions/export.csv", teacher_submissions_export_csv, name="teacher_submissions_export_csv"),
-=======
     path('ai/chat/', ai_chat, name='ai_chat'),
     path('ai/generate-quiz/', generate_quiz, name='generate_quiz'),
     path('ai/explain-concept/', explain_concept, name='explain_concept'),
     path('ai/feedback/', provide_feedback, name='provide_feedback'),
     path('ai/study-plan/', generate_study_plan, name='generate_study_plan'),
->>>>>>> origin/Backup
     
 ]
