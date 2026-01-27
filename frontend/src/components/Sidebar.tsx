@@ -49,6 +49,7 @@ const studentLinks: NavItem[] = [
   { name: "Subjects", to: "/student/subject", Icon: BookCopy },
   { name: "Activities", to: "/student/activities", Icon: ClipboardList },
   { name: "Gradebook", to: "/student/grades/quarterly", Icon: Book },
+  { name: "Grade Forecast", to: "/student/grade-forecast", Icon: BarChart3 },
 ];
 
 const SideBar: React.FC<SideBarProps> = ({ isDesktop = false, open = false, onClose = () => {} }) => {

@@ -29,19 +29,19 @@ class AIService:
         except Exception as e:
             return f"Error: {str(e)}"
     
-    def generate_quiz_questions(self, subject, topic, num_questions=5):
+    def generate_quiz_questions(self, SubjectOffering, topic, num_questions=5):
         """Generate quiz questions for a subject and topic"""
         messages = [
             {"role": "system", "content": "You are an educational assistant that creates quiz questions."},
-            {"role": "user", "content": f"Generate {num_questions} multiple choice questions about {topic} in {subject}. Format each question with 4 options (A, B, C, D) and indicate the correct answer."}
+            {"role": "user", "content": f"Generate {num_questions} multiple choice questions about {topic} in {SubjectOffering.name}. Format each question with 4 options (A, B, C, D) and indicate the correct answer."}
         ]
         return self.chat(messages, temperature=0.8, max_tokens=1000)
     
-    def explain_concept(self, concept, subject):
+    def explain_concept(self, concept, SubjectOffering):
         """Explain a concept in simple terms"""
         messages = [
             {"role": "system", "content": "You are a helpful teacher explaining concepts to students in a clear and simple way."},
-            {"role": "user", "content": f"Explain the concept of '{concept}' in {subject} in simple terms that a student can understand."}
+            {"role": "user", "content": f"Explain the concept of '{concept}' in {SubjectOffering.name} in simple terms that a student can understand."}
         ]
         return self.chat(messages, temperature=0.7)
     
@@ -53,11 +53,11 @@ class AIService:
         ]
         return self.chat(messages, temperature=0.6, max_tokens=300)
     
-    def generate_study_plan(self, subject, topics, difficulty_level):
+    def generate_study_plan(self, SubjectOffering, topics, difficulty_level):
         """Create a personalized study plan"""
         messages = [
             {"role": "system", "content": "You are an educational planner helping students organize their studies."},
-            {"role": "user", "content": f"Create a study plan for {subject} covering these topics: {', '.join(topics)}. The difficulty level is {difficulty_level}. Include time allocation and learning strategies."}
+            {"role": "user", "content": f"Create a study plan for {SubjectOffering.name} covering these topics: {', '.join(topics)}. The difficulty level is {difficulty_level}. Include time allocation and learning strategies."}
         ]
         return self.chat(messages, temperature=0.7, max_tokens=800)
     

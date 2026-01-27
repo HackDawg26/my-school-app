@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .views import GradeChangeLogViewSet, StudentSubjectOfferingViewSet, StudentViewSet, SubjectOfferingViewSet, SubjectViewSet, TeacherQuizViewSet, TeacherSubjectListViewSet, TeacherViewSet, grade_forecast, list_users, LoginView, create_user, manage_quiz_question, quarterly_grade_detail, quarterly_grades, quiz_item_analysis, start_quiz, student_grade_analytics, student_quiz_attempts, student_quiz_detail, student_quizzes, student_topic_performance, submit_quiz, user_detail, SectionViewSet, AdminDashboardStatsView
+from .views import GradeChangeLogViewSet, StudentSubjectOfferingViewSet, StudentViewSet, SubjectOfferingViewSet, SubjectViewSet, TeacherQuizViewSet, TeacherSubjectListViewSet, TeacherViewSet, ai_chat, explain_concept, generate_quiz, generate_study_plan, grade_forecast, list_users, LoginView, create_user, manage_quiz_question, provide_feedback, quarterly_grade_detail, quarterly_grades, quiz_item_analysis, start_quiz, student_grade_analytics, student_quiz_attempts, student_quiz_detail, student_quizzes, student_topic_performance, submit_quiz, user_detail, SectionViewSet, AdminDashboardStatsView
 
 router = DefaultRouter()
 router.register(r"sections", SectionViewSet, basename="section")
@@ -45,5 +45,11 @@ urlpatterns = [
     # Quarterly Grades
     path('quarterly-grades/', quarterly_grades, name='quarterly_grades'),
     path('quarterly-grades/<int:grade_id>/', quarterly_grade_detail, name='quarterly_grade_detail'),
+
+    path('ai/chat/', ai_chat, name='ai_chat'),
+    path('ai/generate-quiz/', generate_quiz, name='generate_quiz'),
+    path('ai/explain-concept/', explain_concept, name='explain_concept'),
+    path('ai/feedback/', provide_feedback, name='provide_feedback'),
+    path('ai/study-plan/', generate_study_plan, name='generate_study_plan'),
     
 ]

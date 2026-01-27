@@ -12,6 +12,8 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum
 from rest_framework import serializers
+
+from .ai_service import AIService
 from .models import (GradeChangeLog, Section, Student, Subject, SubjectOffering, Quiz, QuizQuestion, QuizChoice, QuizAttempt, 
     QuizAnswer, Student, GradeForecast, QuizTopicPerformance,
     QuarterlyGrade, SubjectOfferingFile)
@@ -878,81 +880,81 @@ def student_quiz_attempts(request):
 # AI-powered endpoints (Temporarily disabled - ready for future use)
 # Uncomment when ready to enable AI features
 
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def ai_chat(request):
-#     """General AI chat endpoint"""
-#     ai_service = AIService()
-#     messages = request.data.get('messages', [])
-#     
-#     if not messages:
-#         return Response({'error': 'Messages are required'}, status=status.HTTP_400_BAD_REQUEST)
-#     
-#     response = ai_service.chat(messages)
-#     return Response({'response': response})
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def ai_chat(request):
+     """General AI chat endpoint"""
+     ai_service = AIService()
+     messages = request.data.get('messages', [])
+     
+     if not messages:
+         return Response({'error': 'Messages are required'}, status=status.HTTP_400_BAD_REQUEST)
+     
+     response = ai_service.chat(messages)
+     return Response({'response': response})
 
 
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def generate_quiz(request):
-#     """Generate quiz questions using AI"""
-#     ai_service = AIService()
-#     subject = request.data.get('subject', '')
-#     topic = request.data.get('topic', '')
-#     num_questions = request.data.get('num_questions', 5)
-#     
-#     if not subject or not topic:
-#         return Response({'error': 'Subject and topic are required'}, status=status.HTTP_400_BAD_REQUEST)
-#     
-#     questions = ai_service.generate_quiz_questions(subject, topic, num_questions)
-#     return Response({'questions': questions})
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def generate_quiz(request):
+     """Generate quiz questions using AI"""
+     ai_service = AIService()
+     SubjectOffering = request.data.get('name', '')
+     topic = request.data.get('topic', '')
+     num_questions = request.data.get('num_questions', 5)
+     
+     if not SubjectOffering or not topic:
+         return Response({'error': 'Subject and topic are required'}, status=status.HTTP_400_BAD_REQUEST)
+     
+     questions = ai_service.generate_quiz_questions(SubjectOffering, topic, num_questions)
+     return Response({'questions': questions})
 
 
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def explain_concept(request):
-#     """Get AI explanation of a concept"""
-#     ai_service = AIService()
-#     concept = request.data.get('concept', '')
-#     subject = request.data.get('subject', '')
-#     
-#     if not concept or not subject:
-#         return Response({'error': 'Concept and subject are required'}, status=status.HTTP_400_BAD_REQUEST)
-#     
-#     explanation = ai_service.explain_concept(concept, subject)
-#     return Response({'explanation': explanation})
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def explain_concept(request):
+     """Get AI explanation of a concept"""
+     ai_service = AIService()
+     concept = request.data.get('concept', '')
+     SubjectOffering = request.data.get('name', '')
+     
+     if not concept or not SubjectOffering:
+         return Response({'error': 'Concept and subject are required'}, status=status.HTTP_400_BAD_REQUEST)
+     
+     explanation = ai_service.explain_concept(concept, SubjectOffering)
+     return Response({'explanation': explanation})
 
 
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def provide_feedback(request):
-#     """Get AI feedback on student answer"""
-#     ai_service = AIService()
-#     student_answer = request.data.get('student_answer', '')
-#     correct_answer = request.data.get('correct_answer', '')
-#     question = request.data.get('question', '')
-#     
-#     if not all([student_answer, correct_answer, question]):
-#         return Response({'error': 'All fields are required'}, status=status.HTTP_400_BAD_REQUEST)
-#     
-#     feedback = ai_service.provide_feedback(student_answer, correct_answer, question)
-#     return Response({'feedback': feedback})
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def provide_feedback(request):
+     """Get AI feedback on student answer"""
+     ai_service = AIService()
+     student_answer = request.data.get('student_answer', '')
+     correct_answer = request.data.get('correct_answer', '')
+     question = request.data.get('question', '')
+     
+     if not all([student_answer, correct_answer, question]):
+         return Response({'error': 'All fields are required'}, status=status.HTTP_400_BAD_REQUEST)
+     
+     feedback = ai_service.provide_feedback(student_answer, correct_answer, question)
+     return Response({'feedback': feedback})
 
 
-# @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
-# def generate_study_plan(request):
-#     """Generate personalized study plan"""
-#     ai_service = AIService()
-#     subject = request.data.get('subject', '')
-#     topics = request.data.get('topics', [])
-#     difficulty_level = request.data.get('difficulty_level', 'intermediate')
-#     
-#     if not subject or not topics:
-#         return Response({'error': 'Subject and topics are required'}, status=status.HTTP_400_BAD_REQUEST)
-#     
-#     study_plan = ai_service.generate_study_plan(subject, topics, difficulty_level)
-#     return Response({'study_plan': study_plan})
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def generate_study_plan(request):
+     """Generate personalized study plan"""
+     ai_service = AIService()
+     SubjectOffering = request.data.get('name', '')
+     topics = request.data.get('topics', [])
+     difficulty_level = request.data.get('difficulty_level', 'intermediate')
+     
+     if not SubjectOffering or not topics:
+         return Response({'error': 'Subject and topics are required'}, status=status.HTTP_400_BAD_REQUEST)
+     
+     study_plan = ai_service.generate_study_plan(SubjectOffering, topics, difficulty_level)
+     return Response({'study_plan': study_plan})
 
 
 # ==================== GRADE FORECASTING VIEWS ====================
