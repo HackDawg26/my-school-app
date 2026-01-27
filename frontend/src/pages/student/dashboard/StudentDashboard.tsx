@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Clock,
   ChevronRight,
-  BookOpen,
   ClipboardList,
   GraduationCap,
   Layers,
@@ -54,12 +53,6 @@ function formatDate(iso?: string | null) {
   return d.toLocaleDateString(undefined, { month: 'short', day: '2-digit' });
 }
 
-function formatDateTime(iso?: string | null) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString();
-}
 
 function dueIso(q: Quiz) {
   return q.close_time ?? q.open_time ?? null;

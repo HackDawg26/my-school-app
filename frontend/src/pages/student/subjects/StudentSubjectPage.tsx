@@ -5,8 +5,6 @@ import {
   ArrowLeft,
   Download,
   FileText,
-  Eye,
-  X,
   Search,
   ArrowUpDown,
   PlayCircle,
@@ -109,13 +107,7 @@ function formatBytes(bytes: number) {
   return `${num.toFixed(num >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
-function isPreviewable(ct: string, url: string) {
-  const lower = (url || '').toLowerCase();
-  if ((ct || '').startsWith('image/')) return 'image' as const;
-  if (ct === 'application/pdf' || lower.endsWith('.pdf')) return 'pdf' as const;
-  if (lower.match(/\.(png|jpg|jpeg|webp)$/)) return 'image' as const;
-  return null;
-}
+
 
 function SkeletonLine({ w = 'w-full' }: { w?: string }) {
   return <div className={`h-3 ${w} rounded-full bg-slate-200/80 animate-pulse`} />;
@@ -213,7 +205,6 @@ export default function StudentSubjectpage() {
   // files UI state
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<'newest' | 'oldest' | 'name'>('newest');
-  const [preview, setPreview] = useState<{ kind: 'pdf' | 'image'; url: string; title: string } | null>(null);
   const [refreshingFiles, setRefreshingFiles] = useState(false);
 
   const token = localStorage.getItem('access');
@@ -757,7 +748,6 @@ export default function StudentSubjectpage() {
                   <div className="mt-6 rounded-3xl border border-slate-200 overflow-hidden">
                     <div className="max-h-[560px] overflow-auto divide-y divide-slate-100">
                       {visibleFiles.map((f) => {
-                        const kind = isPreviewable(f.content_type || '', f.file_url || '');
                         return (
                           <div
                             key={f.id}
