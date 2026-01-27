@@ -110,7 +110,7 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
         elif user.role == "TEACHER":
-            Teacher.objects.create(user=user if teacher_data else None)
+            Teacher.objects.create(user=user)
 
         elif user.role == "ADMIN":
             Admin.objects.create(user=user)
