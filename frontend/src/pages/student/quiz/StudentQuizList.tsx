@@ -224,11 +224,6 @@ export default function StudentQuizList() {
               Filter and take quizzes for your enrolled subjects.
             </p>
           </div>
-<<<<<<< HEAD
-        ) : (
-          visibleQuizzes.map((quiz) => {
-=======
->>>>>>> student-ui
 
           {/* Search */}
           <div className="w-full md:w-[380px]">

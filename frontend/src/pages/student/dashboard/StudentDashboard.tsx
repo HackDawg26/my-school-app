@@ -1,9 +1,5 @@
 'use client';
 
-<<<<<<< HEAD
-import { useEffect, useMemo, useState } from 'react';
-import { Clock, ChevronRight } from 'lucide-react';
-=======
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -15,7 +11,6 @@ import {
   Layers,
   Search,
 } from 'lucide-react';
->>>>>>> student-ui
 
 // ---------------- Types ----------------
 
@@ -47,6 +42,10 @@ type Quiz = {
 
 // ---------------- Helpers ----------------
 
+function safeNumber(v: any, fallback = 0) {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
 
 function formatDate(iso?: string | null) {
   if (!iso) return '—';

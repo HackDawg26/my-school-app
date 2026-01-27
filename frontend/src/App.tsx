@@ -57,9 +57,9 @@ import SubjectActivitiesTab from './pages/teacher/subjects/activity-tab/SubjectA
 import SubjectFilesTab from './pages/teacher/subjects/SubjectFilesTab.tsx';
 import TeacherSubmissionsPage from './pages/teacher/submissions/TeacherSubmissionsPage.tsx';
 import TeacherSubjectSubmissionsPage from './pages/teacher/submissions/TeacherSubjectSubmissionPage.tsx';
-import StudentMaterialsPage from './pages/student/subjects/materials-id.tsx';
+
 import StudentFilesTab from './pages/student/subjects/StudentFilesTab.tsx';
-import MaterialsPage from './pages/student/subjects/materials.tsx';
+
 
 
 
@@ -92,7 +92,7 @@ function App() {
               <Route path="/student/activities/:id/take" element={<TakeQuiz />} />
               <Route path="/student/activities/result" element={<QuizResult />} />
               <Route path="/student/grade-forecast" element={<StudentGradeForecast />} />
-              <Route path="/student/materials" element={<MaterialsPage />} />
+
               {/* You can add more student pages here like /student/grades */}
             </Route>
 
