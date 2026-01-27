@@ -428,35 +428,7 @@ export default function StudentSubjectpage() {
   return (
     <main className="min-h-screen bg-slate-50">
       {/* Preview modal (files) */}
-      {preview && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm p-4 flex items-center justify-center">
-          <div className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden border border-white/10">
-            <div className="flex items-center justify-between px-5 py-4 border-b">
-              <div className="min-w-0">
-                <div className="text-[11px] font-black uppercase tracking-widest text-slate-400">Preview</div>
-                <div className="font-black text-slate-900 truncate">{preview.title}</div>
-              </div>
-              <button
-                onClick={() => setPreview(null)}
-                className="p-2 rounded-2xl hover:bg-slate-100 text-slate-600"
-                aria-label="Close preview"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="h-[72vh] bg-slate-50">
-              {preview.kind === 'image' ? (
-                <div className="h-full flex items-center justify-center p-6">
-                  <img src={preview.url} alt={preview.title} className="max-h-full max-w-full rounded-2xl shadow-sm" />
-                </div>
-              ) : (
-                <iframe title={preview.title} src={preview.url} className="w-full h-full" />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      
 
       {/* Sticky top bar */}
       <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/85 backdrop-blur">
@@ -563,23 +535,7 @@ export default function StudentSubjectpage() {
                 </div>
               </div>
 
-              {activeTab === 'files' ? (
-                <button
-                  type="button"
-                  onClick={refreshFiles}
-                  disabled={refreshingFiles}
-                  className={[
-                    'inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black transition border',
-                    refreshingFiles
-                      ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50',
-                  ].join(' ')}
-                  title="Refresh files"
-                >
-                  <RefreshCw size={16} className={refreshingFiles ? 'animate-spin' : ''} />
-                  Refresh
-                </button>
-              ) : null}
+              
             </div>
           </div>
 
@@ -821,16 +777,7 @@ export default function StudentSubjectpage() {
                             </div>
 
                             <div className="flex items-center gap-2 justify-end">
-                              {kind ? (
-                                <button
-                                  onClick={() => setPreview({ kind, url: f.file_url, title: f.title })}
-                                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50"
-                                  title="Preview"
-                                >
-                                  <Eye size={16} />
-                                  Preview
-                                </button>
-                              ) : null}
+                              
 
                               <a
                                 href={f.file_url}
