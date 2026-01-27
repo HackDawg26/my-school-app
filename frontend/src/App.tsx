@@ -7,8 +7,8 @@ import Layout from '../src/components/Layout.tsx'; // Import your new Layout
 import { useAuth } from '../src/context/AuthContext.tsx'; // Import your auth hook
 
 // student imports
-import SubjectsPage from './pages/student/subjects/student-subjects.tsx';
-import  StudentSubjectpage  from './pages/student/subjects/student-subjects-id.tsx';
+import SubjectsPage from './pages/student/subjects/SubjectListPage.tsx';
+import  StudentSubjectpage  from './pages/student/subjects/StudentSubjectPage.tsx';
 
 // teacher imports
 
@@ -57,6 +57,9 @@ import SubjectActivitiesTab from './pages/teacher/subjects/activity-tab/SubjectA
 import SubjectFilesTab from './pages/teacher/subjects/SubjectFilesTab.tsx';
 import TeacherSubmissionsPage from './pages/teacher/submissions/TeacherSubmissionsPage.tsx';
 import TeacherSubjectSubmissionsPage from './pages/teacher/submissions/TeacherSubjectSubmissionPage.tsx';
+import StudentMaterialsPage from './pages/student/subjects/materials-id.tsx';
+import StudentFilesTab from './pages/student/subjects/StudentFilesTab.tsx';
+import MaterialsPage from './pages/student/subjects/materials.tsx';
 
 
 
@@ -83,11 +86,13 @@ function App() {
               <Route path="/student/dashboard" element={<StudentDashboard />} />
               <Route path="/student/subject" element={<SubjectsPage />} />
               <Route path="/student/subject-offering/:id" element={<StudentSubjectpage />} />
+              <Route path="/student/subject-offering/:id/files" element={<StudentFilesTab />} />
               <Route path="/student/grades/quarterly" element={<StudentQuarterlyGrades />} />
               <Route path="/student/activities" element={<StudentQuizList />} />
               <Route path="/student/activities/:id/take" element={<TakeQuiz />} />
               <Route path="/student/activities/result" element={<QuizResult />} />
               <Route path="/student/grade-forecast" element={<StudentGradeForecast />} />
+              <Route path="/student/materials" element={<MaterialsPage />} />
               {/* You can add more student pages here like /student/grades */}
             </Route>
 

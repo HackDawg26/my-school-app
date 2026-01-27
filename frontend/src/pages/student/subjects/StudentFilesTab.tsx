@@ -24,14 +24,14 @@ function formatBytes(bytes: number) {
 }
 
 function isPreviewable(ct: string, url: string) {
-  const lower = url.toLowerCase();
-  if (ct.startsWith("image/")) return "image" as const;
+  const lower = (url || "").toLowerCase();
+  if ((ct || "").startsWith("image/")) return "image" as const;
   if (ct === "application/pdf" || lower.endsWith(".pdf")) return "pdf" as const;
   if (lower.match(/\.(png|jpg|jpeg|webp)$/)) return "image" as const;
   return null;
 }
 
-export default function StudentMaterialsPage() {
+export default function StudentFilesTab() {
   const { id } = useParams<{ id: string }>();
   const offeringId = Number(id || 0);
   const token = localStorage.getItem("access");
@@ -45,7 +45,7 @@ export default function StudentMaterialsPage() {
     if (!token || !offeringId) return;
     try {
       setLoading(true);
-      const res = await fetch(`${base}/student/subject-offerings/${offeringId}/resources/`, {
+      const res = await fetch(`${base}/student/subject-offerings/${offeringId}/files/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json().catch(() => []);
@@ -65,7 +65,7 @@ export default function StudentMaterialsPage() {
 
   const emptyState = useMemo(() => files.length === 0 && !loading, [files.length, loading]);
 
-  if (loading) return <div className="p-6">Loading materials…</div>;
+  if (loading) return <div className="p-6">Loading files…</div>;
 
   return (
     <>
@@ -95,7 +95,7 @@ export default function StudentMaterialsPage() {
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm">
         <div className="p-6 flex items-center justify-between">
           <h2 className="text-sm font-black text-slate-900 uppercase tracking-widest">
-            Materials ({files.length})
+            Files ({files.length})
           </h2>
           <button onClick={loadFiles} className="text-xs font-bold text-indigo-600 hover:underline">
             Refresh
@@ -103,11 +103,11 @@ export default function StudentMaterialsPage() {
         </div>
 
         {emptyState ? (
-          <div className="px-6 pb-6 text-slate-600">No materials uploaded yet.</div>
+          <div className="px-6 pb-6 text-slate-600">No files uploaded yet.</div>
         ) : (
           <div className="divide-y divide-slate-100">
             {files.map((f) => {
-              const kind = isPreviewable(f.content_type || "", f.file_url || "");
+              const kind = isPreviewable(f.content_type, f.file_url);
               return (
                 <div key={f.id} className="p-5 flex items-center justify-between hover:bg-slate-50">
                   <div className="flex items-center gap-4 min-w-0">

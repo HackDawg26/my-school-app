@@ -86,7 +86,7 @@ export default function TakeQuiz() {
       console.error('Error starting quiz:', error);
       console.error('Error response:', error.response?.data);
       alert(error.response?.data?.error || error.message || 'Failed to start quiz');
-      navigate('/student/quiz');
+      navigate('/student/activities');
     } finally {
       setLoading(false);
     }
