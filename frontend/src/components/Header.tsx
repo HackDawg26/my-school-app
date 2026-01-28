@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Sun, Moon, Menu } from "lucide-react";
-import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext"; // Import your Auth hook
 
 // Import your avatar
@@ -117,13 +117,6 @@ export default function Topbar({ isDesktop = false, onOpenSidebar }: TopbarProps
                 <p className="text-xs text-gray-500">Online</p>
               </div>
               
-              <Link
-                to="/profile"
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                onClick={() => setDropdownOpen(false)}
-              >
-                My Profile
-              </Link>
 
               <button
                 className="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium"
