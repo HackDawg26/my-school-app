@@ -24,6 +24,8 @@ urlpatterns = [
     path("user/<int:pk>/", user_detail),
     path("", include(router.urls)),
     path("dashboard/stats/", AdminDashboardStatsView.as_view()),
+    path("teacher/submissions/summary/", teacher_submissions_summary),
+    path("teacher/submissions/subject/<int:subject_offering_id>/", teacher_submissions_subject_detail),
     # Teacher Quiz Management
     path('teacher/questions/<int:question_id>/', manage_quiz_question, name='manage_quiz_question'),
     

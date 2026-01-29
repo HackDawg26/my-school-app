@@ -121,7 +121,7 @@ function App() {
               </Route>
 
               <Route path="/teacher/submissions" element={<TeacherSubmissionsPage />} />
-              <Route path="/teacher/submissions/:subject_offering_id" element={<TeacherSubjectSubmissionsPage />} />
+              <Route path="/teacher/submissions/:subjectOfferingId" element={<TeacherSubjectSubmissionsPage />} />
 
               <Route path="/teacher/grades/quarterly" element={<QuarterlyGradesPage />} />
               <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />

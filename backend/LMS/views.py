@@ -426,6 +426,98 @@ class GradeChangeLogViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(SubjectOffering_id=subject_offering_id)
 
         return qs
+    
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def teacher_submissions_summary(request):
+    # Only teachers (or admins) should access this
+    if request.user.role not in ("TEACHER", "ADMIN"):
+        return Response({"detail": "Not authorized"}, status=403)
+
+    # If TEACHER, limit to their offerings
+    offerings = SubjectOffering.objects.all()
+    if request.user.role == "TEACHER":
+        offerings = offerings.filter(teacher=request.user)
+
+    # Example summary payload (adjust to what your frontend expects)
+    data = []
+    for o in offerings.select_related("subject", "section"):
+        total_students = Student.objects.filter(section=o.section).count()
+        # If you track "submissions" via QuizAttempt, you can compute here
+        attempts = QuizAttempt.objects.filter(quiz__SubjectOffering=o).count()
+        unique_students = (
+            QuizAttempt.objects.filter(quiz__SubjectOffering=o)
+            .values("student_id").distinct().count()
+        )
+        submission_rate = round((unique_students / total_students) * 100, 2) if total_students else 0
+
+        data.append({
+            "subject_offering_id": o.id,
+            "subject": o.name,
+            "total_students": total_students,
+            "totals": {
+                "attempts": attempts,
+                "unique_students": unique_students,
+                "submission_rate": submission_rate,
+            },
+        })
+
+    return Response(data)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def teacher_submissions_subject_detail(request, subject_offering_id: int):
+    # Optional: restrict to teacher’s own subject offerings
+    if request.user.role not in ("TEACHER", "ADMIN"):
+        return Response({"detail": "Not authorized"}, status=403)
+
+    try:
+        offering = SubjectOffering.objects.select_related("section").get(id=subject_offering_id)
+    except SubjectOffering.DoesNotExist:
+        return Response({"detail": "Subject offering not found"}, status=404)
+
+    if request.user.role == "TEACHER" and getattr(offering, "teacher_id", None) != request.user.id:
+        return Response({"detail": "Not authorized for this subject offering"}, status=403)
+
+    # total students in the offering’s section
+    total_students = Student.objects.filter(section=offering.section_id).count()
+
+    # quizzes under this subject offering
+    quizzes = Quiz.objects.filter(SubjectOffering=offering).order_by("-id")
+
+    quiz_rows = []
+    total_attempts = 0
+    total_unique_students = 0
+
+    for q in quizzes:
+        attempts = QuizAttempt.objects.filter(quiz=q).count()
+        unique_students = QuizAttempt.objects.filter(quiz=q).values("student_id").distinct().count()
+        total_attempts += attempts
+        total_unique_students += unique_students
+
+        quiz_rows.append({
+            "quiz_id": q.id,
+            "title": q.title,
+            "attempts": attempts,
+            "unique_students": unique_students,
+            "status": getattr(q, "status", ""),        # keep if you have status
+            "open_time": getattr(q, "open_time", None),
+            "close_time": getattr(q, "close_time", None),
+        })
+
+    submission_rate = round((total_unique_students / total_students) * 100, 2) if total_students else 0
+
+    return Response({
+        "subject_offering_id": offering.id,
+        "subject": getattr(offering, "name", str(offering)),
+        "total_students": total_students,
+        "totals": {
+            "attempts": total_attempts,
+            "unique_students": total_unique_students,
+            "submission_rate": submission_rate,
+        },
+        "quizzes": quiz_rows,
+    })
 # =========================
 # CREATE USER (ADMIN ONLY)
 # =========================
