@@ -47,12 +47,23 @@ export const LoginPage = () => {
     setIsLoading(true);
     setError("");
 
+    // Validate input
+    if (!email || !password) {
+      setError("Please enter both email and password");
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      console.log("Attempting login with:", { email });
+      
       // Call backend
       const res = await axios.post("http://127.0.0.1:8000/api/token/", {
         email,
         password,
       });
+
+      console.log("Login response:", res.data);
 
       const { access, refresh, user } = res.data;
 
@@ -86,11 +97,15 @@ export const LoginPage = () => {
       navigate(dashboardMap[role]);
     } catch (err: any) {
       console.error("Login error:", err);
+      console.error("Error response:", err.response?.data);
 
       // Axios error handling
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 401) {
           setError("Invalid email or password. Please try again.");
+        } else if (err.response?.status === 400) {
+          const errorMsg = err.response?.data?.email?.[0] || err.response?.data?.password?.[0] || "Invalid email or password.";
+          setError(errorMsg);
         } else {
           setError("An error occurred during login. Please try again later.");
         }

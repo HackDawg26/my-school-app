@@ -254,12 +254,19 @@ class Quiz(models.Model):
         ('CLOSED', 'Closed'),
     ]
     
+    GRADE_TYPE_CHOICES = [
+        ('WRITTEN_WORK', 'Written Work'),
+        ('PERFORMANCE_TASK', 'Performance Task'),
+        ('QUARTERLY_EXAM', 'Quarterly Exam'),
+    ]
+    
     quiz_id = models.CharField(max_length=50, unique=True, blank=True)
     quarter = models.CharField(max_length=2, choices=QuarterlyGrade.QUARTER_CHOICES, default='Q1')
     SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="quizzes")
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_quizzes", null=True, blank=True)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    grade_type = models.CharField(max_length=20, choices=GRADE_TYPE_CHOICES, default='WRITTEN_WORK')
     
     # Time management
     posted_at = models.DateTimeField(auto_now_add=True, null=True)
@@ -348,16 +355,32 @@ class QuizAttempt(models.Model):
         return f"{self.student.user.email} - {self.quiz.title}"
 
 
+def quiz_answer_file_path(instance, filename: str) -> str:
+    # media/quiz_answers/<attempt_id>/<question_id>/<filename>
+    return f"quiz_answers/{instance.attempt.id}/{instance.question.id}/{filename}"
+
 class QuizAnswer(models.Model):
     attempt = models.ForeignKey(QuizAttempt, on_delete=models.CASCADE, related_name="answers")
     question = models.ForeignKey(QuizQuestion, on_delete=models.CASCADE)
     selected_choice = models.ForeignKey(QuizChoice, on_delete=models.CASCADE, null=True, blank=True)
     text_answer = models.TextField(blank=True)
+    answer_file = models.FileField(upload_to=quiz_answer_file_path, null=True, blank=True)
     is_correct = models.BooleanField(null=True, blank=True)
     points_earned = models.FloatField(default=0)
+    manually_graded = models.BooleanField(default=False)
+    teacher_feedback = models.TextField(blank=True)
+    graded_at = models.DateTimeField(null=True, blank=True)
+    graded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="graded_answers")
     
     def __str__(self):
         return f"{self.attempt.student.user.email} - Q{self.question.order}"
+    
+    @property
+    def answer_file_url(self) -> str:
+        try:
+            return self.answer_file.url if self.answer_file else ""
+        except Exception:
+            return ""
 
 def offering_file_path(instance, filename: str) -> str:
     # media/subject_offerings/<subject_offering_id>/<filename>

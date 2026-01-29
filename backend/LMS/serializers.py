@@ -519,7 +519,7 @@ class QuizSerializer(serializers.ModelSerializer):
             'time_limit', 'quarter', 'total_points', 'passing_score', 'status',
             'show_correct_answers', 'shuffle_questions', 'allow_multiple_attempts',
             'questions', 'question_count', 'is_open', 'is_upcoming', 'is_closed',
-            'created_at', 'updated_at', 
+            'created_at', 'updated_at', 'grade_type'
         ]
         read_only_fields = ['quiz_id', 'posted_at', 'teacher', 'created_at', 'updated_at']
     
@@ -547,7 +547,8 @@ class QuizCreateUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'SubjectOffering', 'title', 'description', 'open_time', 'close_time',
             'time_limit', 'quarter', 'total_points', 'passing_score', 'status',
-            'show_correct_answers', 'shuffle_questions', 'allow_multiple_attempts'
+            'show_correct_answers', 'shuffle_questions', 'allow_multiple_attempts',
+            'grade_type'
         ]
         read_only_fields = ['total_points']
         
@@ -595,9 +596,27 @@ class StudentQuizSerializer(serializers.ModelSerializer):
 
 
 class QuizAnswerSerializer(serializers.ModelSerializer):
+    answer_file_url = serializers.SerializerMethodField()
+    graded_by_name = serializers.SerializerMethodField()
+    question_text = serializers.CharField(source='question.question_text', read_only=True)
+    question_points = serializers.FloatField(source='question.points', read_only=True)
+    
     class Meta:
         model = QuizAnswer
-        fields = ['question', 'selected_choice', 'text_answer']
+        fields = [
+            'id', 'question', 'question_text', 'question_points',
+            'selected_choice', 'text_answer', 'answer_file', 'answer_file_url',
+            'is_correct', 'points_earned', 'manually_graded', 
+            'teacher_feedback', 'graded_at', 'graded_by', 'graded_by_name'
+        ]
+    
+    def get_answer_file_url(self, obj):
+        return obj.answer_file_url
+    
+    def get_graded_by_name(self, obj):
+        if obj.graded_by:
+            return f"{obj.graded_by.first_name} {obj.graded_by.last_name}"
+        return None
 
 
 class QuizAttemptSerializer(serializers.ModelSerializer):
@@ -777,7 +796,7 @@ class LoginSerializer(serializers.Serializer):
         email = data.get("email")
         password = data.get("password")
 
-        user = authenticate(email=email, password=password)
+        user = authenticate(username=email, password=password)
         if not user:
             raise serializers.ValidationError("Invalid email or password")
 
