@@ -2,6 +2,7 @@ import os
 import mimetypes
 from django.utils import timezone
 
+from httpx import request
 from rest_framework import viewsets,status
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.response import Response
@@ -42,6 +43,46 @@ ALLOWED_EXTS = {
     ".png", ".jpg", ".jpeg", ".webp",
     ".txt", ".csv",
 }
+
+def recalc_quarterly_component(*, student, offering, quarter, grade_type):
+    """
+    Recompute QuarterlyGrade component totals based on quiz attempts for the quarter.
+    This prevents drift when teachers edit grades.
+    """
+    # quizzes that belong to that offering + quarter + grade type
+    quizzes = Quiz.objects.filter(
+        SubjectOffering=offering,
+        quarter=quarter,
+        grade_type=grade_type,
+    )
+
+    attempts = QuizAttempt.objects.filter(
+        quiz__in=quizzes,
+        student=student,
+        status__in=["SUBMITTED", "GRADED"],  # include both if you want submitted-but-not-fully-graded
+    )
+
+    total_score = attempts.aggregate(s=Sum("score"))["s"] or 0.0
+    total_points = quizzes.aggregate(s=Sum("total_points"))["s"] or 0.0
+
+    grade, _ = QuarterlyGrade.objects.get_or_create(
+        student=student,
+        SubjectOffering=offering,
+        quarter=quarter,
+        defaults={}
+    )
+
+    if grade_type == "WRITTEN_WORK":
+        grade.written_work_score = float(total_score)
+        grade.written_work_total = float(total_points)
+    elif grade_type == "PERFORMANCE_TASK":
+        grade.performance_task_score = float(total_score)
+        grade.performance_task_total = float(total_points)
+    elif grade_type == "QUARTERLY_EXAM":
+        grade.quarterly_assessment_score = float(total_score)
+        grade.quarterly_assessment_total = float(total_points)
+
+    grade.save()
 
 class AdminDashboardStatsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -426,6 +467,98 @@ class GradeChangeLogViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(SubjectOffering_id=subject_offering_id)
 
         return qs
+    
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def teacher_submissions_summary(request):
+    # Only teachers (or admins) should access this
+    if request.user.role not in ("TEACHER", "ADMIN"):
+        return Response({"detail": "Not authorized"}, status=403)
+
+    # If TEACHER, limit to their offerings
+    offerings = SubjectOffering.objects.all()
+    if request.user.role == "TEACHER":
+        offerings = offerings.filter(teacher=request.user)
+
+    # Example summary payload (adjust to what your frontend expects)
+    data = []
+    for o in offerings.select_related("subject", "section"):
+        total_students = Student.objects.filter(section=o.section).count()
+        # If you track "submissions" via QuizAttempt, you can compute here
+        attempts = QuizAttempt.objects.filter(quiz__SubjectOffering=o).count()
+        unique_students = (
+            QuizAttempt.objects.filter(quiz__SubjectOffering=o)
+            .values("student_id").distinct().count()
+        )
+        submission_rate = round((unique_students / total_students) * 100, 2) if total_students else 0
+
+        data.append({
+            "subject_offering_id": o.id,
+            "subject": o.name,
+            "total_students": total_students,
+            "totals": {
+                "attempts": attempts,
+                "unique_students": unique_students,
+                "submission_rate": submission_rate,
+            },
+        })
+
+    return Response(data)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def teacher_submissions_subject_detail(request, subject_offering_id: int):
+    # Optional: restrict to teacher’s own subject offerings
+    if request.user.role not in ("TEACHER", "ADMIN"):
+        return Response({"detail": "Not authorized"}, status=403)
+
+    try:
+        offering = SubjectOffering.objects.select_related("section").get(id=subject_offering_id)
+    except SubjectOffering.DoesNotExist:
+        return Response({"detail": "Subject offering not found"}, status=404)
+
+    if request.user.role == "TEACHER" and getattr(offering, "teacher_id", None) != request.user.id:
+        return Response({"detail": "Not authorized for this subject offering"}, status=403)
+
+    # total students in the offering’s section
+    total_students = Student.objects.filter(section=offering.section_id).count()
+
+    # quizzes under this subject offering
+    quizzes = Quiz.objects.filter(SubjectOffering=offering).order_by("-id")
+
+    quiz_rows = []
+    total_attempts = 0
+    total_unique_students = 0
+
+    for q in quizzes:
+        attempts = QuizAttempt.objects.filter(quiz=q).count()
+        unique_students = QuizAttempt.objects.filter(quiz=q).values("student_id").distinct().count()
+        total_attempts += attempts
+        total_unique_students += unique_students
+
+        quiz_rows.append({
+            "quiz_id": q.id,
+            "title": q.title,
+            "attempts": attempts,
+            "unique_students": unique_students,
+            "status": getattr(q, "status", ""),        # keep if you have status
+            "open_time": getattr(q, "open_time", None),
+            "close_time": getattr(q, "close_time", None),
+        })
+
+    submission_rate = round((total_unique_students / total_students) * 100, 2) if total_students else 0
+
+    return Response({
+        "subject_offering_id": offering.id,
+        "subject": getattr(offering, "name", str(offering)),
+        "total_students": total_students,
+        "totals": {
+            "attempts": total_attempts,
+            "unique_students": total_unique_students,
+            "submission_rate": submission_rate,
+        },
+        "quizzes": quiz_rows,
+    })
 # =========================
 # CREATE USER (ADMIN ONLY)
 # =========================
@@ -708,44 +841,47 @@ class TeacherQuizViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'], url_path='grade-answer')
     def grade_answer(self, request):
-        """Manually grade a quiz answer"""
         from django.utils import timezone
-        
+
         answer_id = request.data.get('answer_id')
         points_earned = request.data.get('points_earned')
         feedback = request.data.get('feedback', '')
-        
+
         try:
             answer = QuizAnswer.objects.get(id=answer_id)
-            
-            # Check if teacher owns this quiz
+
             if answer.attempt.quiz.teacher != request.user:
-                return Response(
-                    {'error': 'You do not have permission to grade this answer'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            
-            # Update answer
+                return Response({'error': 'You do not have permission to grade this answer'},
+                            status=status.HTTP_403_FORBIDDEN)
+
             answer.points_earned = float(points_earned)
             answer.teacher_feedback = feedback
             answer.manually_graded = True
             answer.graded_by = request.user
             answer.graded_at = timezone.now()
             answer.save()
-            
-            # Recalculate attempt score
+
             attempt = answer.attempt
             total_score = attempt.answers.aggregate(total=Sum('points_earned'))['total'] or 0
             attempt.score = total_score
             attempt.status = 'GRADED'
             attempt.save()
-            
+
+            # ✅ NEW: recompute quarterly component so written_work_score updates
+            quiz = attempt.quiz
+            recalc_quarterly_component(
+                student=attempt.student,
+                offering=quiz.SubjectOffering,
+                quarter=quiz.quarter,
+                grade_type=quiz.grade_type,
+            )
+
             return Response({
                 'message': 'Answer graded successfully',
                 'answer': QuizAnswerSerializer(answer).data,
                 'new_total_score': total_score
             })
-            
+
         except QuizAnswer.DoesNotExist:
             return Response({'error': 'Answer not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
