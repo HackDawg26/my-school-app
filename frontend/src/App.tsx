@@ -45,6 +45,7 @@ import TeacherQuizList from './pages/teacher/quiz/TeacherQuizList.tsx';
 import CreateQuiz from './pages/teacher/quiz/CreateQuiz.tsx';
 import ManageQuiz from './pages/teacher/quiz/ManageQuiz.tsx';
 import QuizItemAnalysis from './pages/teacher/quiz/QuizItemAnalysis.tsx';
+import QuizGradingPage from './pages/teacher/quiz/QuizGradingPage.tsx';
 import StudentQuizList from './pages/student/quiz/StudentQuizList.tsx';
 import TakeQuiz from './pages/student/quiz/TakeQuiz.tsx';
 import QuizResult from './pages/student/quiz/QuizResult.tsx';
@@ -130,6 +131,7 @@ function App() {
               <Route path="/teacher/activities/create" element={<CreateQuiz />} />
               <Route path="/teacher/activities/:id" element={<ManageQuiz />} />
               <Route path="/teacher/activities/:id/item-analysis" element={<QuizItemAnalysis />} />
+              <Route path="/teacher/activities/:id/grading" element={<QuizGradingPage />} />
               
 
             </Route>

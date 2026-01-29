@@ -33,6 +33,7 @@ export default function TakeQuiz() {
   const [attemptId, setAttemptId] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [textAnswers, setTextAnswers] = useState<Record<number, string>>({});
+  const [fileAnswers, setFileAnswers] = useState<Record<number, File>>({});
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
@@ -118,10 +119,25 @@ export default function TakeQuiz() {
     try {
       const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
+      
+      // Create FormData to support file uploads
+      const formData = new FormData();
+      formData.append('answers', JSON.stringify(answersArray));
+      
+      // Add file uploads
+      Object.entries(fileAnswers).forEach(([questionId, file]) => {
+        formData.append(`answer_file_${questionId}`, file);
+      });
+      
       const response = await axios.post(
         `http://127.0.0.1:8000/api/student/quiz-attempts/${attemptId}/submit/`,
-        { answers: answersArray },
-        { headers: { Authorization: `Bearer ${token}` } }
+        formData,
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          } 
+        }
       );
       
       // Navigate to results page with quiz data
@@ -240,12 +256,40 @@ export default function TakeQuiz() {
             )}
 
             {question.question_type === 'SHORT_ANSWER' && (
-              <textarea
-                value={textAnswers[question.id] || ''}
-                onChange={(e) => setTextAnswers({ ...textAnswers, [question.id]: e.target.value })}
-                className="w-full border rounded p-3 min-h-[100px]"
-                placeholder="Type your answer here..."
-              />
+              <div>
+                <textarea
+                  value={textAnswers[question.id] || ''}
+                  onChange={(e) => setTextAnswers({ ...textAnswers, [question.id]: e.target.value })}
+                  className="w-full border rounded p-3 min-h-[100px] mb-3"
+                  placeholder="Type your answer here..."
+                />
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Or upload a file (optional):
+                  </label>
+                  <input
+                    type="file"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setFileAnswers({ ...fileAnswers, [question.id]: file });
+                      }
+                    }}
+                    className="block w-full text-sm text-gray-500
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded file:border-0
+                      file:text-sm file:font-semibold
+                      file:bg-blue-50 file:text-blue-700
+                      hover:file:bg-blue-100"
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+                  />
+                  {fileAnswers[question.id] && (
+                    <p className="text-sm text-green-600 mt-2">
+                      ✓ File selected: {fileAnswers[question.id].name}
+                    </p>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         )) : (

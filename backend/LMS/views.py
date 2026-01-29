@@ -20,7 +20,7 @@ from .models import (GradeChangeLog, Section, Student, Subject, SubjectOffering,
 from rest_framework import permissions
 from .serializers import (LoginSerializer, StudentSubjectOfferingSerializer, SubjectListSerializer, SubjectOfferingSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer,QuizSerializer, QuizCreateUpdateSerializer,
     QuizQuestionSerializer, StudentQuizSerializer, QuizAttemptSerializer,
-    QuizSubmissionSerializer, QuizChoiceSerializer,
+    QuizSubmissionSerializer, QuizChoiceSerializer, QuizAnswerSerializer,
     GradeForecastSerializer, QuizTopicPerformanceSerializer,
     QuarterlyGradeSerializer, QuarterlyGradeCreateUpdateSerializer, GradeChangeLogSerializer, SubjectOfferingFileSerializer
 )
@@ -562,7 +562,14 @@ def user_detail(request, pk):
 # =========================
 class LoginView(APIView):
     def post(self, request):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Login attempt - Data received: {request.data}")
+        logger.info(f"Content-Type: {request.content_type}")
+        
         serializer = LoginSerializer(data=request.data)
+        if not serializer.is_valid():
+            logger.error(f"Validation errors: {serializer.errors}")
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
     
@@ -675,6 +682,74 @@ class TeacherQuizViewSet(viewsets.ModelViewSet):
         attempts = quiz.attempts.all().order_by('-started_at')
         serializer = QuizAttemptSerializer(attempts, many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def student_answers(self, request, pk=None):
+        """Get all student answers for manual grading"""
+        quiz = self.get_object()
+        attempts = quiz.attempts.filter(status__in=['SUBMITTED', 'GRADED']).select_related('student__user')
+        
+        result = []
+        for attempt in attempts:
+            answers = attempt.answers.select_related('question', 'selected_choice').all()
+            student_data = {
+                'attempt_id': attempt.id,
+                'student_id': attempt.student.id,
+                'student_name': f"{attempt.student.user.first_name} {attempt.student.user.last_name}",
+                'student_email': attempt.student.user.email,
+                'submitted_at': attempt.submitted_at,
+                'score': attempt.score,
+                'status': attempt.status,
+                'answers': QuizAnswerSerializer(answers, many=True).data
+            }
+            result.append(student_data)
+        
+        return Response(result)
+    
+    @action(detail=False, methods=['post'], url_path='grade-answer')
+    def grade_answer(self, request):
+        """Manually grade a quiz answer"""
+        from django.utils import timezone
+        
+        answer_id = request.data.get('answer_id')
+        points_earned = request.data.get('points_earned')
+        feedback = request.data.get('feedback', '')
+        
+        try:
+            answer = QuizAnswer.objects.get(id=answer_id)
+            
+            # Check if teacher owns this quiz
+            if answer.attempt.quiz.teacher != request.user:
+                return Response(
+                    {'error': 'You do not have permission to grade this answer'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Update answer
+            answer.points_earned = float(points_earned)
+            answer.teacher_feedback = feedback
+            answer.manually_graded = True
+            answer.graded_by = request.user
+            answer.graded_at = timezone.now()
+            answer.save()
+            
+            # Recalculate attempt score
+            attempt = answer.attempt
+            total_score = attempt.answers.aggregate(total=Sum('points_earned'))['total'] or 0
+            attempt.score = total_score
+            attempt.status = 'GRADED'
+            attempt.save()
+            
+            return Response({
+                'message': 'Answer graded successfully',
+                'answer': QuizAnswerSerializer(answer).data,
+                'new_total_score': total_score
+            })
+            
+        except QuizAnswer.DoesNotExist:
+            return Response({'error': 'Answer not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['PUT', 'DELETE'])
@@ -790,7 +865,7 @@ def start_quiz(request, quiz_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def submit_quiz(request, attempt_id):
-    """Submit quiz answers"""
+    """Submit quiz answers with optional file uploads"""
     if not hasattr(request.user, 'student_profile'):
         return Response({'error': 'Not a student'}, status=status.HTTP_403_FORBIDDEN)
     
@@ -807,12 +882,23 @@ def submit_quiz(request, attempt_id):
     if not attempt.quiz.is_open():
         return Response({'error': 'Quiz has closed'}, status=status.HTTP_400_BAD_REQUEST)
     
-    serializer = QuizSubmissionSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # Handle both JSON and multipart form data
+    if request.content_type and 'multipart' in request.content_type:
+        answers_data = []
+        # Parse form data
+        import json
+        answers_json = request.data.get('answers', '[]')
+        if isinstance(answers_json, str):
+            answers_data = json.loads(answers_json)
+        else:
+            answers_data = answers_json
+    else:
+        serializer = QuizSubmissionSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        answers_data = serializer.validated_data['answers']
     
     # Process answers
-    answers_data = serializer.validated_data['answers']
     total_score = 0
     
     for answer_data in answers_data:
@@ -825,12 +911,20 @@ def submit_quiz(request, attempt_id):
         except QuizQuestion.DoesNotExist:
             continue
         
-        # Create answer record
-        answer = QuizAnswer.objects.create(
+        # Create or update answer record
+        answer, created = QuizAnswer.objects.get_or_create(
             attempt=attempt,
             question=question,
-            text_answer=text_answer
+            defaults={'text_answer': text_answer}
         )
+        
+        if not created:
+            answer.text_answer = text_answer
+        
+        # Handle file upload if present
+        file_key = f'answer_file_{question_id}'
+        if file_key in request.FILES:
+            answer.answer_file = request.FILES[file_key]
         
         # Grade multiple choice and true/false questions
         if (question.question_type == 'MULTIPLE_CHOICE' or question.question_type == 'TRUE_FALSE') and selected_choice_id:
@@ -849,24 +943,38 @@ def submit_quiz(request, attempt_id):
     # Update attempt
     attempt.submitted_at = timezone.now()
     attempt.score = total_score
-    attempt.status = 'GRADED'
+    attempt.status = 'SUBMITTED'  # Changed to SUBMITTED for manual grading
     attempt.save()
+    
+    # Record quiz score
     quiz = attempt.quiz
     student = attempt.student
     quarter = quiz.quarter
     
+    # Get or create quarterly grade
     grade, created = QuarterlyGrade.objects.get_or_create(
         student=student,
         SubjectOffering=quiz.SubjectOffering,
         quarter=quarter,
         defaults={
             'written_work_score': 0.0,
-            'written_work_total': 0.0,  # start at 0 so accumulation works cleanly
+            'written_work_total': 0.0,
         }
     )
-    grade.written_work_score += float(total_score)
-    grade.written_work_total += float(quiz.total_points or 0)
-    grade.save()  # auto recalculates final_grade via QuarterlyGrade.save() :contentReference[oaicite:7]{index=7}
+    
+    # Record based on grade_type
+    if quiz.grade_type == 'WRITTEN_WORK':
+        grade.written_work_score += float(total_score)
+        grade.written_work_total += float(quiz.total_points or 0)
+    elif quiz.grade_type == 'PERFORMANCE_TASK':
+        grade.performance_task_score = (grade.performance_task_score or 0) + float(total_score)
+        grade.performance_task_total = (grade.performance_task_total or 0) + float(quiz.total_points or 0)
+    elif quiz.grade_type == 'QUARTERLY_EXAM':
+        grade.quarterly_exam_score = float(total_score)
+        grade.quarterly_exam_total = float(quiz.total_points or 0)
+    
+    grade.save()
+    
     return Response({
         'message': 'Quiz submitted successfully',
         'score': total_score,
