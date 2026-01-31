@@ -18,6 +18,16 @@ type Detail = {
   }>;
 };
 
+type SubmissionRow = {
+  attempt_id: number;
+  student_id: number;
+  student_name: string;
+  student_email: string;
+  submitted_at: string;
+  score: number;
+  status: string;
+};
+
 function getToken(): string | null {
   const savedUser = localStorage.getItem("user");
   try {
@@ -25,6 +35,44 @@ function getToken(): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Deduplicate by student_id, keeping the HIGHEST score.
+ * If scores tie, keep the most recently submitted.
+ */
+function uniqueByStudentHighestScore(rows: SubmissionRow[]) {
+  const map = new Map<number, SubmissionRow>();
+
+  for (const r of rows) {
+    const prev = map.get(r.student_id);
+    if (!prev) {
+      map.set(r.student_id, r);
+      continue;
+    }
+
+    const prevScore = Number.isFinite(prev.score) ? prev.score : 0;
+    const currScore = Number.isFinite(r.score) ? r.score : 0;
+
+    if (currScore > prevScore) {
+      map.set(r.student_id, r);
+      continue;
+    }
+
+    if (currScore === prevScore) {
+      const prevTime = new Date(prev.submitted_at).getTime();
+      const currTime = new Date(r.submitted_at).getTime();
+      if (currTime > prevTime) map.set(r.student_id, r);
+    }
+  }
+
+  // Sort: highest score first; if tie, latest submission first
+  return Array.from(map.values()).sort((a, b) => {
+    const sa = Number.isFinite(a.score) ? a.score : 0;
+    const sb = Number.isFinite(b.score) ? b.score : 0;
+    if (sb !== sa) return sb - sa;
+    return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
+  });
 }
 
 export default function TeacherSubjectSubmissionsPage() {
@@ -35,6 +83,11 @@ export default function TeacherSubjectSubmissionsPage() {
   const [data, setData] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const [openQuizId, setOpenQuizId] = useState<number | null>(null);
+  const [quizSubs, setQuizSubs] = useState<Record<number, SubmissionRow[]>>({});
+  const [subsLoadingQuizId, setSubsLoadingQuizId] = useState<number | null>(null);
+  const [subsError, setSubsError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -63,19 +116,38 @@ export default function TeacherSubjectSubmissionsPage() {
     load();
   }, [id]);
 
-  const downloadCsv = async () => {
+  const loadQuizSubmissions = async (quizId: number) => {
     const token = getToken();
     if (!token) return;
 
-    const url = `${base}/teacher/submissions/export.csv?scope=subject&subject_offering_id=${id}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const blob = await res.blob();
+    if (quizSubs[quizId]) return;
 
-    const a = document.createElement("a");
-    a.href = window.URL.createObjectURL(blob);
-    a.download = `submissions_${id}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(a.href);
+    setSubsError(null);
+    setSubsLoadingQuizId(quizId);
+
+    try {
+      // Submitted + graded attempts
+      const res = await axios.get<SubmissionRow[]>(
+        `${base}/teacher/quizzes/${quizId}/student_answers/`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setQuizSubs((prev) => ({ ...prev, [quizId]: res.data || [] }));
+    } catch {
+      setSubsError("Failed to load submitted students for this quiz.");
+    } finally {
+      setSubsLoadingQuizId(null);
+    }
+  };
+
+  const toggleQuiz = async (quizId: number) => {
+    if (openQuizId === quizId) {
+      setOpenQuizId(null);
+      setSubsError(null);
+      return;
+    }
+    setOpenQuizId(quizId);
+    await loadQuizSubmissions(quizId);
   };
 
   if (loading) return <div className="p-10 text-center">Loading…</div>;
@@ -92,44 +164,119 @@ export default function TeacherSubjectSubmissionsPage() {
             </Link>
             <h1 className="text-2xl font-bold text-gray-900 mt-2">{data.subject}</h1>
             <p className="text-sm text-gray-600">
-              Unique students: {data.totals.unique_students}/{data.total_students} • {data.totals.submission_rate}% • Attempts: {data.totals.attempts}
+              Unique students: {data.totals.unique_students}/{data.total_students} •{" "}
+              {data.totals.submission_rate}% • Attempts: {data.totals.attempts}
             </p>
           </div>
-
-          <button
-            onClick={downloadCsv}
-            className="px-3 py-2 rounded-lg text-sm font-bold border bg-white hover:bg-gray-50"
-          >
-            Export CSV
-          </button>
         </div>
 
         <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100">
             <div className="text-sm font-black text-slate-900 uppercase tracking-widest">Quizzes</div>
-            <div className="text-xs text-slate-500 mt-1">Attempts and unique students per quiz</div>
+            <div className="text-xs text-slate-500 mt-1">
+              Click a quiz to see submitted students (deduped by student, highest score shown)
+            </div>
           </div>
 
           {data.quizzes.length === 0 ? (
             <div className="p-6 text-sm text-slate-600">No quizzes yet.</div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {data.quizzes.map((q) => (
-                <div key={q.quiz_id} className="px-6 py-4 flex items-center justify-between">
-                  <div className="min-w-0">
-                    <div className="font-bold text-slate-900 truncate">{q.title}</div>
-                    <div className="text-xs text-slate-500">Status: {q.status}</div>
+              {data.quizzes.map((q) => {
+                const isOpen = openQuizId === q.quiz_id;
+
+                const rawSubs = quizSubs[q.quiz_id] || [];
+                const subs = uniqueByStudentHighestScore(rawSubs);
+
+                const isSubsLoading = subsLoadingQuizId === q.quiz_id;
+
+                return (
+                  <div key={q.quiz_id}>
+                    <button
+                      type="button"
+                      onClick={() => void toggleQuiz(q.quiz_id)}
+                      className="w-full text-left px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-bold text-slate-900 truncate">{q.title}</div>
+                        <div className="text-xs text-slate-500">Status: {q.status}</div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-sm font-black text-slate-900">Attempts: {q.attempts}</div>
+                        <div className="text-xs text-slate-500">Unique Students: {q.unique_students}</div>
+                        <div className="text-xs text-indigo-600 font-bold mt-1">
+                          {isOpen ? "Hide students ▲" : "View students ▼"}
+                        </div>
+                      </div>
+                    </button>
+
+                    {isOpen && (
+                      <div className="bg-slate-50 border-t border-slate-100 px-6 py-4">
+                        {isSubsLoading && <div className="text-sm text-slate-600">Loading students…</div>}
+
+                        {!isSubsLoading && subsError && (
+                          <div className="text-sm text-red-600">{subsError}</div>
+                        )}
+
+                        {!isSubsLoading && !subsError && subs.length === 0 && (
+                          <div className="text-sm text-slate-600">No submissions yet.</div>
+                        )}
+
+                        {!isSubsLoading && !subsError && subs.length > 0 && (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="text-xs font-black text-slate-700 uppercase tracking-widest">
+                                Submitted Students ({subs.length})
+                              </div>
+
+                              {/* ✅ matches your route: /teacher/activities/:id/grading */}
+                              <Link
+                                to={`/teacher/activities/${q.quiz_id}/grading`}
+                                className="text-xs text-indigo-600 font-bold hover:underline"
+                              >
+                                Open grading →
+                              </Link>
+                            </div>
+
+                            <div className="divide-y divide-slate-200 rounded-xl bg-white border border-slate-200 overflow-hidden">
+                              {subs.map((s) => (
+                                <div
+                                  key={s.attempt_id}
+                                  className="px-4 py-3 flex items-center justify-between gap-4"
+                                >
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-slate-900 truncate">{s.student_name}</div>
+                                    <div className="text-xs text-slate-500 truncate">{s.student_email}</div>
+                                    <div className="text-xs text-slate-500">
+                                      Best attempt submitted: {new Date(s.submitted_at).toLocaleString()}
+                                    </div>
+                                  </div>
+
+                                  <div className="text-right shrink-0">
+                                    <div className="text-sm font-black text-slate-900">
+                                      {(s.score ?? 0).toFixed(1)}
+                                    </div>
+                                    <div className="text-xs text-slate-500">{s.status}</div>
+
+                                    {/* ✅ matches your route */}
+                                    <Link
+                                      to={`/teacher/activities/${q.quiz_id}/grading`}
+                                      className="text-xs text-indigo-600 font-bold hover:underline"
+                                    >
+                                      Grade →
+                                    </Link>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-black text-slate-900">
-                      Attempts: {q.attempts}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      Unique Students: {q.unique_students}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

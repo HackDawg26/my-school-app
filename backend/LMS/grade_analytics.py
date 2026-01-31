@@ -145,8 +145,8 @@ class GradeAnalyticsService:
         """Update QuizTopicPerformance records in database"""
         try:
             student = Student.objects.get(id=student_id)
-            subject = Subject.objects.get(id=SubjectOffering_id)
-        except (Student.DoesNotExist, Subject.DoesNotExist):
+            offering = SubjectOffering.objects.get(id=SubjectOffering_id)
+        except (Student.DoesNotExist, SubjectOffering.DoesNotExist):
             return False
         
         topic_data = self._calculate_topic_performance(student, SubjectOffering_id)
@@ -155,7 +155,7 @@ class GradeAnalyticsService:
         for topic_info in topic_data:
             obj, created = QuizTopicPerformance.objects.update_or_create(
                 student=student,
-                subject=subject,
+                SubjectOffering=offering,
                 topic=topic_info['topic'],
                 defaults={
                     'total_questions': topic_info['total'],
