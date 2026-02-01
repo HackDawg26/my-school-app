@@ -11,7 +11,7 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from django.db.models import Sum
+from django.db.models import Sum, Max
 from rest_framework import serializers
 
 from .ai_service import AIService
@@ -46,23 +46,29 @@ ALLOWED_EXTS = {
 
 def recalc_quarterly_component(*, student, offering, quarter, grade_type):
     """
-    Recompute QuarterlyGrade component totals based on quiz attempts for the quarter.
-    This prevents drift when teachers edit grades.
+    Recompute QuarterlyGrade component totals based on BEST attempt per quiz for the quarter.
+    Prevents adding totals when multiple attempts exist.
     """
-    # quizzes that belong to that offering + quarter + grade type
     quizzes = Quiz.objects.filter(
         SubjectOffering=offering,
         quarter=quarter,
         grade_type=grade_type,
     )
 
-    attempts = QuizAttempt.objects.filter(
+    attempts_qs = QuizAttempt.objects.filter(
         quiz__in=quizzes,
         student=student,
-        status__in=["SUBMITTED", "GRADED"],  # include both if you want submitted-but-not-fully-graded
+        status__in=["SUBMITTED", "GRADED"],
     )
 
-    total_score = attempts.aggregate(s=Sum("score"))["s"] or 0.0
+    # ✅ best score per quiz
+    best_rows = (
+        attempts_qs.values("quiz_id")
+        .annotate(best=Max("score"))
+    )
+    total_score = sum((r["best"] or 0.0) for r in best_rows)
+
+    # ✅ total_points counted once per quiz (not per attempt)
     total_points = quizzes.aggregate(s=Sum("total_points"))["s"] or 0.0
 
     grade, _ = QuarterlyGrade.objects.get_or_create(
@@ -1004,116 +1010,97 @@ def submit_quiz(request, attempt_id):
     """Submit quiz answers with optional file uploads"""
     if not hasattr(request.user, 'student_profile'):
         return Response({'error': 'Not a student'}, status=status.HTTP_403_FORBIDDEN)
-    
+
     try:
         attempt = QuizAttempt.objects.get(
-            id=attempt_id, 
+            id=attempt_id,
             student=request.user.student_profile,
             status='IN_PROGRESS'
         )
     except QuizAttempt.DoesNotExist:
         return Response({'error': 'Attempt not found'}, status=status.HTTP_404_NOT_FOUND)
-    
+
     # Check if quiz is still open
     if not attempt.quiz.is_open():
         return Response({'error': 'Quiz has closed'}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     # Handle both JSON and multipart form data
     if request.content_type and 'multipart' in request.content_type:
-        answers_data = []
-        # Parse form data
         import json
         answers_json = request.data.get('answers', '[]')
-        if isinstance(answers_json, str):
-            answers_data = json.loads(answers_json)
-        else:
-            answers_data = answers_json
+        answers_data = json.loads(answers_json) if isinstance(answers_json, str) else answers_json
     else:
         serializer = QuizSubmissionSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         answers_data = serializer.validated_data['answers']
-    
+
     # Process answers
-    total_score = 0
-    
+    total_score = 0.0
+
     for answer_data in answers_data:
         question_id = answer_data.get('question_id')
         selected_choice_id = answer_data.get('selected_choice_id')
         text_answer = answer_data.get('text_answer', '')
-        
+
         try:
             question = QuizQuestion.objects.get(id=question_id, quiz=attempt.quiz)
         except QuizQuestion.DoesNotExist:
             continue
-        
-        # Create or update answer record
+
         answer, created = QuizAnswer.objects.get_or_create(
             attempt=attempt,
             question=question,
             defaults={'text_answer': text_answer}
         )
-        
+
         if not created:
             answer.text_answer = text_answer
-        
-        # Handle file upload if present
+
+        # file upload
         file_key = f'answer_file_{question_id}'
         if file_key in request.FILES:
             answer.answer_file = request.FILES[file_key]
-        
-        # Grade multiple choice and true/false questions
-        if (question.question_type == 'MULTIPLE_CHOICE' or question.question_type == 'TRUE_FALSE') and selected_choice_id:
+
+        # Grade objective questions
+        if question.question_type in ['MULTIPLE_CHOICE', 'TRUE_FALSE'] and selected_choice_id:
             try:
                 choice = QuizChoice.objects.get(id=selected_choice_id, question=question)
                 answer.selected_choice = choice
                 answer.is_correct = choice.is_correct
                 if choice.is_correct:
-                    answer.points_earned = question.points
-                    total_score += question.points
+                    answer.points_earned = float(question.points or 0)
+                else:
+                    answer.points_earned = 0.0
             except QuizChoice.DoesNotExist:
-                pass
-        
+                answer.points_earned = 0.0
+        else:
+            # subjective items default 0 until teacher grades
+            if answer.points_earned is None:
+                answer.points_earned = 0.0
+
         answer.save()
-    
+        total_score += float(answer.points_earned or 0.0)
+
     # Update attempt
     attempt.submitted_at = timezone.now()
-    attempt.score = total_score
-    attempt.status = 'SUBMITTED'  # Changed to SUBMITTED for manual grading
+    attempt.score = float(total_score)
+    attempt.status = 'SUBMITTED'
     attempt.save()
-    
-    # Record quiz score
+
+    # ✅ IMPORTANT: do NOT += to QuarterlyGrade here.
+    # ✅ Recompute/overwrite using BEST attempt per quiz.
     quiz = attempt.quiz
-    student = attempt.student
-    quarter = quiz.quarter
-    
-    # Get or create quarterly grade
-    grade, created = QuarterlyGrade.objects.get_or_create(
-        student=student,
-        SubjectOffering=quiz.SubjectOffering,
-        quarter=quarter,
-        defaults={
-            'written_work_score': 0.0,
-            'written_work_total': 0.0,
-        }
+    recalc_quarterly_component(
+        student=attempt.student,
+        offering=quiz.SubjectOffering,
+        quarter=quiz.quarter,
+        grade_type=quiz.grade_type,
     )
-    
-    # Record based on grade_type
-    if quiz.grade_type == 'WRITTEN_WORK':
-        grade.written_work_score += float(total_score)
-        grade.written_work_total += float(quiz.total_points or 0)
-    elif quiz.grade_type == 'PERFORMANCE_TASK':
-        grade.performance_task_score = (grade.performance_task_score or 0) + float(total_score)
-        grade.performance_task_total = (grade.performance_task_total or 0) + float(quiz.total_points or 0)
-    elif quiz.grade_type == 'QUARTERLY_EXAM':
-        grade.quarterly_exam_score = float(total_score)
-        grade.quarterly_exam_total = float(quiz.total_points or 0)
-    
-    grade.save()
-    
+
     return Response({
         'message': 'Quiz submitted successfully',
-        'score': total_score,
+        'score': float(total_score),
         'total_points': attempt.quiz.total_points,
         'percentage': (total_score / attempt.quiz.total_points * 100) if attempt.quiz.total_points > 0 else 0
     })
