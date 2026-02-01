@@ -12,27 +12,19 @@ interface TopbarProps {
   onOpenSidebar: () => void;
 }
 
-// 2. Define Theme Type
-type Theme = "light" | "dark";
+
 
 export default function Topbar({ isDesktop = false, onOpenSidebar }: TopbarProps) {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const { logout, user } = useAuth(); // Get logout and user info from your context
   const navigate = useNavigate();
   
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "light";
-    return (localStorage.getItem("theme") as Theme) || "light";
-  });
 
   // 3. Type the Ref (HTMLDivElement because it's a <div> container)
   const dropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("theme", theme);
-  }, [theme]);
+
 
   useEffect(() => {
     // 4. Properly type the Event
@@ -61,7 +53,7 @@ export default function Topbar({ isDesktop = false, onOpenSidebar }: TopbarProps
   }, [location.pathname]);
 
   const toggleDropdown = () => setDropdownOpen((s) => !s);
-  const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"));
+  
 
   const handleLogout = () => {
     logout(); // This clears localStorage and AuthContext
@@ -90,14 +82,6 @@ export default function Topbar({ isDesktop = false, onOpenSidebar }: TopbarProps
       </div>
 
       <div className="flex items-center space-x-4">
-        <button
-          onClick={toggleTheme}
-          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-          className="rounded-full p-2 hover:bg-gray-100 transition-colors"
-        >
-          {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-        </button>
-
         <div className="relative z-50" ref={dropdownRef}>
           <button
             onClick={toggleDropdown}

@@ -101,16 +101,28 @@ export default function AssignSubjectOffering() {
           {/* Subject Name */}
           <div>
             <label className={labelClasses}>Subject Name</label>
-            <input
-              type="text"
+            <select
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
               className={inputClasses}
               required
-            />
+            >
+              <option value="" disabled>
+                Select a subject
+              </option>
+              <option value="Filipino">Filipino</option>
+              <option value="English">English</option>
+              <option value="Mathematics">Mathematics</option>
+              <option value="Science">Science</option>
+              <option value="Araling Panlipunan">Araling Panlipunan</option>
+              <option value="Edukasyon sa Pagpapakatao">Edukasyon sa Pagpapakatao</option>
+              <option value="Edukasyong Pantahanan at Pangkabuhayan">Edukasyong Pantahanan at Pangkabuhayan</option>
+              <option value="MAPEH">MAPEH</option>
+            </select>
           </div>
+
 
           {/* Section Selector */}
           <div>

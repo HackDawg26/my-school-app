@@ -1435,55 +1435,65 @@ def quarterly_grade_detail(request, grade_id):
 
 
 # ==================== QUIZ ITEM ANALYSIS VIEWS ====================
+# ==================== QUIZ ITEM ANALYSIS VIEWS ====================
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def quiz_item_analysis(request, quiz_id):
-    """Get per-question statistics for a quiz"""
-    # Only teachers can access item analysis
+    """Get per-question statistics for a quiz (includes SUBMITTED + GRADED)"""
     if request.user.role != 'TEACHER':
         return Response({'error': 'Only teachers can access item analysis'}, status=status.HTTP_403_FORBIDDEN)
-    
+
     try:
         quiz = Quiz.objects.get(id=quiz_id, teacher=request.user)
     except Quiz.DoesNotExist:
         return Response({'error': 'Quiz not found'}, status=status.HTTP_404_NOT_FOUND)
-    
+
     questions = quiz.questions.all().order_by('order')
     analysis = []
-    
+
+    # ✅ include submissions + graded attempts
+    included_statuses = ['SUBMITTED', 'GRADED']
+
     for question in questions:
-        # Get all answers for this question from graded attempts
+        # ✅ answers from submitted/graded attempts (not just graded)
         answers = QuizAnswer.objects.filter(
             question=question,
-            attempt__status='GRADED'
+            attempt__status__in=included_statuses,
         ).select_related('selected_choice')
-        
+
         total_attempts = answers.count()
-        
+
         if total_attempts == 0:
-            # No attempts yet
             analysis.append({
                 'question_id': question.id,
                 'question_text': question.question_text,
                 'question_type': question.question_type,
                 'points': question.points,
+                'order': question.order,
                 'total_attempts': 0,
                 'correct_count': 0,
                 'incorrect_count': 0,
+                'ungraded_count': 0,
                 'correct_percentage': 0,
                 'difficulty': 'N/A',
                 'choice_distribution': {}
             })
             continue
-        
-        # Calculate statistics
+
+        # ✅ handle NULL is_correct (manual/ungraded answers)
         correct_count = answers.filter(is_correct=True).count()
-        incorrect_count = total_attempts - correct_count
-        correct_percentage = (correct_count / total_attempts * 100) if total_attempts > 0 else 0
-        
-        # Determine difficulty
-        if correct_percentage >= 75:
+        ungraded_count = answers.filter(is_correct__isnull=True).count()
+        incorrect_count = total_attempts - correct_count - ungraded_count
+
+        # ✅ percent based only on graded answers (so ungraded doesn't look incorrect)
+        graded_total = correct_count + incorrect_count
+        correct_percentage = (correct_count / graded_total * 100) if graded_total > 0 else 0
+
+        # Difficulty based on graded correctness
+        if graded_total == 0:
+            difficulty = 'N/A'
+        elif correct_percentage >= 75:
             difficulty = 'Easy'
         elif correct_percentage >= 50:
             difficulty = 'Medium'
@@ -1491,8 +1501,8 @@ def quiz_item_analysis(request, quiz_id):
             difficulty = 'Hard'
         else:
             difficulty = 'Very Hard'
-        
-        # Choice distribution (for multiple choice and true/false)
+
+        # Choice distribution (for MCQ / True-False)
         choice_distribution = {}
         if question.question_type in ['MULTIPLE_CHOICE', 'TRUE_FALSE']:
             for choice in question.choices.all():
@@ -1502,7 +1512,7 @@ def quiz_item_analysis(request, quiz_id):
                     'percentage': (choice_count / total_attempts * 100) if total_attempts > 0 else 0,
                     'is_correct': choice.is_correct
                 }
-        
+
         analysis.append({
             'question_id': question.id,
             'question_text': question.question_text,
@@ -1512,15 +1522,15 @@ def quiz_item_analysis(request, quiz_id):
             'total_attempts': total_attempts,
             'correct_count': correct_count,
             'incorrect_count': incorrect_count,
+            'ungraded_count': ungraded_count,
             'correct_percentage': round(correct_percentage, 2),
             'difficulty': difficulty,
             'choice_distribution': choice_distribution
         })
-    
-    # Overall quiz statistics
+
     total_questions = len(questions)
-    total_student_attempts = quiz.attempts.filter(status='GRADED').count()
-    
+    total_student_attempts = quiz.attempts.filter(status__in=included_statuses).count()
+
     return Response({
         'quiz_id': quiz.id,
         'quiz_title': quiz.title,
