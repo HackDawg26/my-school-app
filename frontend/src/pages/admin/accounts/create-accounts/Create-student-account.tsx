@@ -9,6 +9,8 @@ import {
   GraduationCap,
   Eye,
   EyeOff,
+  Upload,
+  FileSpreadsheet,
 } from "lucide-react";
 
 const CreateStudentAccountPage = () => {
@@ -18,12 +20,16 @@ const CreateStudentAccountPage = () => {
 
   const [loading, setLoading] = useState(false);
 
-  // NEW: show/hide toggles
+  // show/hide toggles
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // NEW: inline errors
+  // inline errors
   const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
+
+  // Excel upload state
+  const [excelFile, setExcelFile] = useState<File | null>(null);
+  const [excelLoading, setExcelLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -42,47 +48,53 @@ const CreateStudentAccountPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
 
     // clear inline error as user types
-    if (name === "password" || name === "confirmPassword") {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
+    if (name === "password") setErrors((prev) => ({ ...prev, password: undefined }));
+    if (name === "confirmPassword") setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
   };
 
-  // NEW: strength rules (customize if you want)
-  const passwordRules = useMemo(() => {
-    const pwd = formData.password;
+  // Strength: 0..4
+  const getPasswordScore = (pwd: string) => {
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[a-z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++; // symbol
+    return Math.min(score, 4);
+  };
 
-    return {
-      length: pwd.length >= 8,
-      upper: /[A-Z]/.test(pwd),
-      lower: /[a-z]/.test(pwd),
-      number: /[0-9]/.test(pwd),
-      special: /[^A-Za-z0-9]/.test(pwd),
-    };
-  }, [formData.password]);
+  const getStrengthLabel = (score: number) => {
+    if (score <= 1) return "Weak";
+    if (score === 2) return "Fair";
+    if (score === 3) return "Good";
+    return "Strong";
+  };
 
-  const isPasswordStrong = useMemo(() => {
-    return (
-      passwordRules.length &&
-      passwordRules.upper &&
-      passwordRules.lower &&
-      passwordRules.number &&
-      passwordRules.special
-    );
-  }, [passwordRules]);
+  const getStrengthClass = (score: number) => {
+    if (score <= 1) return "bg-red-500";
+    if (score === 2) return "bg-yellow-500";
+    if (score === 3) return "bg-blue-500";
+    return "bg-green-500";
+  };
+
+  const passwordScore = useMemo(() => getPasswordScore(formData.password), [formData.password]);
+  const passwordStrengthLabel = useMemo(() => getStrengthLabel(passwordScore), [passwordScore]);
+
+  // recommend >= 3 = good enough
+  const isPasswordStrongEnough = passwordScore >= 3;
 
   const doPasswordsMatch = useMemo(() => {
     return formData.password.length > 0 && formData.password === formData.confirmPassword;
   }, [formData.password, formData.confirmPassword]);
 
-  // NEW: validate before submit
+  // validate before submit
   const validatePasswords = () => {
     const nextErrors: { password?: string; confirmPassword?: string } = {};
 
     if (!isPasswordStrongEnough) {
-      errors.password =
-        "Password is too weak. Use at least 8 characters with uppercase, lowercase, number, and a symbol.";
+      nextErrors.password =
+        "Password is too weak. Use 8+ characters with uppercase, lowercase, number, and a symbol.";
     }
-
 
     if (formData.confirmPassword.length === 0) {
       nextErrors.confirmPassword = "Please re-enter the password.";
@@ -94,45 +106,8 @@ const CreateStudentAccountPage = () => {
     return Object.keys(nextErrors).length === 0;
   };
 
-    // Strength: 0..4
-  const getPasswordScore = (pwd: string) => {
-    let score = 0;
-    if (pwd.length >= 8) score++;
-    if (/[A-Z]/.test(pwd)) score++;
-    if (/[a-z]/.test(pwd)) score++;
-    if (/[0-9]/.test(pwd)) score++;
-    if (/[^A-Za-z0-9]/.test(pwd)) score++; // optional
-    // cap at 4 if you want 4-level meter
-    return Math.min(score, 4);
-  };
-
-  // Map score -> label
-  const getStrengthLabel = (score: number) => {
-    if (score <= 1) return "Weak";
-    if (score === 2) return "Fair";
-    if (score === 3) return "Good";
-    return "Strong";
-  };
-
-  // Map score -> tailwind class for bar color
-  const getStrengthClass = (score: number) => {
-    if (score <= 1) return "bg-red-500";
-    if (score === 2) return "bg-yellow-500";
-    if (score === 3) return "bg-blue-500";
-    return "bg-green-500";
-  };
-
-  const passwordScore = useMemo(() => getPasswordScore(formData.password), [formData.password]);
-  const passwordStrengthLabel = useMemo(() => getStrengthLabel(passwordScore), [passwordScore]);
-
-  // decide what "strong enough" means (recommend 4 if special char required)
-  const isPasswordStrongEnough = passwordScore >= 3;
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // ✅ stops account creation if invalid
     if (!validatePasswords()) return;
 
     setLoading(true);
@@ -159,10 +134,8 @@ const CreateStudentAccountPage = () => {
         }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || "Failed to create user");
-      }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Failed to create user");
 
       alert("Account created successfully!");
       navigate("/admin/accounts", { state: { activeTab } });
@@ -173,13 +146,80 @@ const CreateStudentAccountPage = () => {
     }
   };
 
-  // NEW: disable submit if invalid
-  const canSubmit = isPasswordStrongEnough && doPasswordsMatch && !loading;
+  // Excel upload handler
+  const handleExcelUpload = async () => {
+    if (!excelFile) {
+      alert("Please select an Excel file first.");
+      return;
+    }
 
+    setExcelLoading(true);
+
+    try {
+      const token = localStorage.getItem("access");
+      const form = new FormData();
+      form.append("file", excelFile);
+
+      const res = await fetch("http://127.0.0.1:8000/api/user/import-students/", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: form,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Excel import failed");
+
+      alert(`Import done! Created: ${data.created}, Failed: ${data.failed}`);
+      navigate("/admin/accounts", { state: { activeTab } });
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setExcelLoading(false);
+    }
+  };
+
+  const canSubmit = isPasswordStrongEnough && doPasswordsMatch && !loading;
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Excel Import Card */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-gray-50 p-6 border-b border-gray-200 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <FileSpreadsheet className="text-emerald-600" size={24} />
+                Import Students (Excel)
+              </h2>
+              <p className="text-sm text-gray-500">
+                Upload an .xlsx file with columns: email, school_id, first_name, last_name, grade_level, password
+              </p>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-3">
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={(e) => setExcelFile(e.target.files?.[0] || null)}
+              className="w-full p-2.5 border border-gray-300 rounded-lg bg-white"
+            />
+
+            <button
+              type="button"
+              disabled={!excelFile || excelLoading}
+              onClick={handleExcelUpload}
+              className="w-full px-4 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all shadow-md disabled:bg-emerald-300 flex items-center justify-center gap-2"
+            >
+              <Upload size={18} />
+              {excelLoading ? "Uploading..." : "Upload Excel & Create Accounts"}
+            </button>
+          </div>
+        </div>
+
+        {/* Single Create Card */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="bg-gray-50 p-6 border-b border-gray-200 flex justify-between items-center">
             <div>
@@ -187,14 +227,11 @@ const CreateStudentAccountPage = () => {
                 <UserPlus className="text-indigo-600" size={24} />
                 Create Student Account
               </h2>
-              <p className="text-sm text-gray-500">
-                Fill in the details to register a new student.
-              </p>
+              <p className="text-sm text-gray-500">Fill in the details to register a new student.</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            {/* Role Display */}
             <div className="flex items-center gap-3 px-1">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                 Account Role
@@ -205,7 +242,6 @@ const CreateStudentAccountPage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* First Name */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <User size={14} /> First Name
@@ -214,29 +250,25 @@ const CreateStudentAccountPage = () => {
                   required
                   type="text"
                   name="firstName"
-                  placeholder="e.g. Juan"
                   value={formData.firstName}
                   onChange={handleChange}
-                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
 
-              {/* Last Name */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-gray-700">Last Name</label>
                 <input
                   required
                   type="text"
                   name="lastName"
-                  placeholder="e.g. Dela Cruz"
                   value={formData.lastName}
                   onChange={handleChange}
-                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
             </div>
 
-            {/* Email Address */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <Mail size={14} /> Email Address
@@ -245,15 +277,13 @@ const CreateStudentAccountPage = () => {
                 required
                 type="email"
                 name="email"
-                placeholder="juan.student@claroed.com"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* ID Number */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <Fingerprint size={14} /> Student ID
@@ -262,7 +292,6 @@ const CreateStudentAccountPage = () => {
                   required
                   type="text"
                   name="school_id"
-                  placeholder="2024-XXXX"
                   value={formData.school_id}
                   onChange={handleChange}
                   className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -278,7 +307,7 @@ const CreateStudentAccountPage = () => {
                   name="grade_level"
                   value={formData.grade_level}
                   onChange={handleChange}
-                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white cursor-pointer transition-all"
+                  className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
                 >
                   <option value="">Select Grade</option>
                   {[7, 8, 9, 10].map((grade) => (
@@ -301,61 +330,38 @@ const CreateStudentAccountPage = () => {
                   required
                   type={showPassword ? "text" : "password"}
                   name="password"
-                  placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full p-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  className="w-full p-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
 
-              {/* Inline password strength error */}
               {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
 
-              {/* Strength checklist */}
               {formData.password.length > 0 && (
-                <div className="text-xs text-gray-600 space-y-1 mt-1">
-                  {formData.password.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-600">Strength</span>
-                        <span
-                          className={`text-xs font-medium ${
-                            passwordScore <= 1
-                              ? "text-red-600"
-                              : passwordScore === 2
-                              ? "text-yellow-600"
-                              : passwordScore === 3
-                              ? "text-blue-600"
-                              : "text-green-600"
-                          }`}
-                        >
-                          {passwordStrengthLabel}
-                        </span>
-                      </div>
-
-                      <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all duration-300 ${getStrengthClass(passwordScore)}`}
-                          style={{ width: `${(passwordScore / 4) * 100}%` }}
-                        />
-                      </div>
-
-                      <p className="text-[11px] text-gray-500">
-                        Use 8+ chars with upper/lowercase, a number, and a symbol.
-                      </p>
-                    </div>
-                  )}
+                <div className="mt-2 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">Strength</span>
+                    <span className="text-xs font-medium">{passwordStrengthLabel}</span>
+                  </div>
+                  <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${getStrengthClass(passwordScore)}`}
+                      style={{ width: `${(passwordScore / 4) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    Use 8+ chars with upper/lowercase, a number, and a symbol.
+                  </p>
                 </div>
               )}
-              
 
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mt-3">
                 <ShieldCheck size={14} /> Repeat Password
@@ -366,27 +372,21 @@ const CreateStudentAccountPage = () => {
                   required
                   type={showConfirmPassword ? "text" : "password"}
                   name="confirmPassword"
-                  placeholder="••••••••"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="w-full p-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  className="w-full p-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword((s) => !s)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700"
-                  aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                 >
                   {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
 
-              {/* Inline match error */}
-              {errors.confirmPassword && (
-                <p className="text-sm text-red-600">{errors.confirmPassword}</p>
-              )}
+              {errors.confirmPassword && <p className="text-sm text-red-600">{errors.confirmPassword}</p>}
 
-              {/* Optional inline success indicator */}
               {formData.confirmPassword.length > 0 && !errors.confirmPassword && (
                 <p className={`text-sm ${doPasswordsMatch ? "text-green-600" : "text-red-600"}`}>
                   {doPasswordsMatch ? "Passwords match." : "Passwords do not match."}
@@ -394,15 +394,11 @@ const CreateStudentAccountPage = () => {
               )}
             </div>
 
-            {/* Action Buttons */}
             <div className="pt-4 flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => navigate(
-                  '/admin/accounts', 
-                  {state: {activeTab}, }
-                )}
-                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                onClick={() => navigate("/admin/accounts", { state: { activeTab } })}
+                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
               >
                 Cancel
               </button>
@@ -410,18 +406,11 @@ const CreateStudentAccountPage = () => {
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all shadow-md disabled:bg-indigo-300"
+                className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 shadow-md disabled:bg-indigo-300"
               >
                 {loading ? "Creating..." : "Create Account"}
               </button>
             </div>
-
-            {/* Small helper note */}
-            {!isPasswordStrong && formData.password.length > 0 && (
-              <p className="text-xs text-gray-500">
-                Tip: Use a mix of uppercase, lowercase, numbers, and symbols.
-              </p>
-            )}
           </form>
         </div>
       </div>
