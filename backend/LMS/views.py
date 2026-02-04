@@ -1,5 +1,7 @@
 import os
 import mimetypes
+import pandas as pd
+from django.db import transaction
 from django.utils import timezone
 
 from httpx import request
@@ -7,7 +9,8 @@ from rest_framework import viewsets,status
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.decorators import api_view, permission_classes, action, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
@@ -589,6 +592,84 @@ def create_user(request):
         {"message": "User created successfully"},
         status=status.HTTP_201_CREATED
     )
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
+def import_students_excel(request):
+    if request.user.role != "ADMIN":
+        return Response({"detail": "Not authorized"}, status=403)
+
+    file = request.FILES.get("file")
+    if not file:
+        return Response({"detail": "Excel file is required"}, status=400)
+
+    try:
+        df = pd.read_excel(file)
+    except Exception as e:
+        return Response({"detail": f"Invalid Excel file: {e}"}, status=400)
+
+    required_cols = {
+        "email",
+        "school_id",
+        "first_name",
+        "last_name",
+        "grade_level",
+        "password",
+    }
+
+    missing = required_cols - set(df.columns)
+    if missing:
+        return Response(
+            {"detail": f"Missing columns: {list(missing)}"},
+            status=400
+        )
+
+    df = df.where(pd.notnull(df), None)
+
+    created = 0
+    errors = []
+
+    with transaction.atomic():
+        for index, row in df.iterrows():
+            excel_row = index + 2  # header = row 1
+
+            try:
+                if User.objects.filter(email=row["email"]).exists():
+                    raise ValueError("Email already exists")
+
+                if User.objects.filter(school_id=row["school_id"]).exists():
+                    raise ValueError("School ID already exists")
+
+                user = User.objects.create_user(
+                    email=str(row["email"]).lower().strip(),
+                    password=str(row["password"]).strip(),  # ✅ Excel password
+                    school_id=str(row["school_id"]).strip(),
+                    first_name=str(row["first_name"]).strip(),
+                    last_name=str(row["last_name"]).strip(),
+                    role="STUDENT",
+                    status="ACTIVE",
+                )
+
+                Student.objects.create(
+                    user=user,
+                    grade_level=str(row["grade_level"]).upper().strip(),
+                )
+
+                created += 1
+
+            except Exception as e:
+                errors.append({
+                    "row": excel_row,
+                    "error": str(e),
+                })
+
+    return Response({
+        "message": "Student import completed",
+        "created": created,
+        "failed": len(errors),
+        "errors": errors,
+    })
 
 
 # =========================

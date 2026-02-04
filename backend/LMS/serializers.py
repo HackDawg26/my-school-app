@@ -93,21 +93,21 @@ class UserSerializer(serializers.ModelSerializer):
 
 
     def create(self, validated_data):
-        password = validated_data.pop("password")
+        password = validated_data.pop("password", None)
         student_data = validated_data.pop("student_profile", None)
         teacher_data = validated_data.pop("teacher_profile", None)
 
         user = User.objects.create_user(
-        password=password,
-        **validated_data
-    )
-
-        if user.role == "STUDENT":
-            Student.objects.create(
-            user=user,
-            grade_level=student_data["grade_level"] if student_data else None,
-            section=student_data.get("section") if student_data else None
+            password=password,
+            **validated_data
         )
+
+        if user.role == "STUDENT" and student_data:
+            Student.objects.create(
+                user=user,
+                grade_level=student_data.get("grade_level"),
+                section=student_data.get("section"),
+            )
 
         elif user.role == "TEACHER":
             Teacher.objects.create(user=user)
