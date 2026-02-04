@@ -60,6 +60,7 @@ import TeacherSubmissionsPage from './pages/teacher/submissions/TeacherSubmissio
 import TeacherSubjectSubmissionsPage from './pages/teacher/submissions/TeacherSubjectSubmissionPage.tsx';
 
 import StudentFilesTab from './pages/student/subjects/StudentFilesTab.tsx';
+import TeacherQuarterlyGrades from './pages/teacher/gradebook/SubjectQuarterlyGrades.tsx';
 
 
 
@@ -125,6 +126,7 @@ function App() {
               <Route path="/teacher/submissions/:subjectOfferingId" element={<TeacherSubjectSubmissionsPage />} />
 
               <Route path="/teacher/grades/quarterly" element={<QuarterlyGradesPage />} />
+              <Route path='/teacher/grades/quarterly/:id' element={<TeacherQuarterlyGrades />} />
               <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />
               <Route path="/teacher/advisory-class/sf9/:studentId" element={<ExportReportCardPDF />} />
               <Route path="/teacher/activities" element={<TeacherQuizList />} />

@@ -13,6 +13,7 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum, Max
 from rest_framework import serializers
+from django.db import transaction
 
 from .ai_service import AIService
 from .models import (GradeChangeLog, Section, Student, Subject, SubjectOffering, Quiz, QuizQuestion, QuizChoice, QuizAttempt, 
@@ -431,6 +432,7 @@ class StudentSubjectOfferingViewSet(viewsets.ReadOnlyModelViewSet):
 
         qs = QuarterlyGrade.objects.filter(student=student, Subject_Offering_id=pk).order_by("quarter")
         return Response(QuarterlyGradeSerializer(qs, many=True).data)
+    
     @action(detail=True, methods=["get"], url_path="quizzes")
     def quizzes(self, request, pk=None):
         offering = self.get_object()
@@ -1335,7 +1337,7 @@ def quarterly_grades(request):
             SubjectOffering_id = request.query_params.get('SubjectOffering_id')
             quarter = request.query_params.get('quarter')
             
-            grades_query = QuarterlyGrade.objects.all()
+            grades_query = QuarterlyGrade.objects.filter(SubjectOffering__teacher=request.user)
             # Only filter by SubjectOffering_id if it's a valid integer
             if SubjectOffering_id and SubjectOffering_id != 'NaN':
                 try:
@@ -1420,6 +1422,54 @@ def quarterly_grade_detail(request, grade_id):
         grade.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def quarterly_grades_bulk_apply_weights(request):
+    # Only teachers can apply weights
+    if request.user.role != "TEACHER":
+        return Response({"error": "Only teachers can apply weights"}, status=403)
+
+    SubjectOffering_id = request.data.get("SubjectOffering")
+    quarter = request.data.get("quarter")
+    ww = request.data.get("ww_weight")
+    pt = request.data.get("pt_weight")
+    qa = request.data.get("qa_weight")
+
+    if not SubjectOffering_id or not quarter:
+        return Response({"detail": "SubjectOffering and quarter are required."}, status=400)
+
+    try:
+        ww = float(ww)
+        pt = float(pt)
+        qa = float(qa)
+    except (TypeError, ValueError):
+        return Response({"detail": "Weights must be numbers."}, status=400)
+
+    total = ww + pt + qa
+    if abs(total - 1.0) > 0.01:
+        return Response({"detail": f"Weights must sum to 1.0. Got {total}"}, status=400)
+
+    # ✅ Recommended: make sure teacher owns this offering
+    from .models import SubjectOffering, QuarterlyGrade
+
+    if not SubjectOffering.objects.filter(id=SubjectOffering_id, teacher=request.user).exists():
+        return Response({"detail": "Not authorized for this subject offering"}, status=403)
+
+    grades = QuarterlyGrade.objects.filter(
+        SubjectOffering_id=SubjectOffering_id,
+        quarter=quarter
+    )
+
+    updated = 0
+    with transaction.atomic():
+        for g in grades:
+            g.ww_weight = ww
+            g.pt_weight = pt
+            g.qa_weight = qa
+            g.save()  # ✅ triggers model.save() => recalculates final_grade
+            updated += 1
+
+    return Response({"updated": updated}, status=200)
 
 # ==================== QUIZ ITEM ANALYSIS VIEWS ====================
 # ==================== QUIZ ITEM ANALYSIS VIEWS ====================

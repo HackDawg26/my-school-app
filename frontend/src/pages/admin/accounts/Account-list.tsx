@@ -22,10 +22,7 @@ type UserAccount = {
   email: string;
   password?: string;
 
-  // ✅ TEACHER: subjects list (backend should return `subjects`)
   subjects?: { id: number; name: string }[];
-
-  // ✅ STUDENT
   gradeLevel?: string;
 
   role: "STUDENT" | "TEACHER" | "ADMIN";
@@ -78,10 +75,7 @@ const AccountListPage: React.FC = () => {
             email: u.email ?? "",
             role: u.role,
 
-            // ✅ STUDENT
             gradeLevel: u.student_profile?.grade_level ?? undefined,
-
-            // ✅ TEACHER: subjects array (must be returned by backend)
             subjects: Array.isArray(u.subjects) ? u.subjects : [],
 
             status: u.status === "ACTIVE" ? "Active" : "Inactive",
@@ -186,12 +180,10 @@ const AccountListPage: React.FC = () => {
       email: selectedItem.email,
     };
 
-    // ✅ STUDENT update
     if (selectedItem.role === "STUDENT") {
       payload.student_profile = { grade_level: selectedItem.gradeLevel };
     }
 
-    // ✅ PASSWORD update (optional)
     if (selectedItem.password?.trim()) {
       payload.password = selectedItem.password;
     }
@@ -211,7 +203,6 @@ const AccountListPage: React.FC = () => {
       return;
     }
 
-    // ✅ update UI
     setUsers((prev) => prev.map((u) => (u.id === selectedItem.id ? selectedItem : u)));
 
     setIsEditModalOpen(false);
@@ -219,162 +210,285 @@ const AccountListPage: React.FC = () => {
   };
 
   return (
-    <div className="p-4 max-w-screen mx-auto space-y-6">
+    <div className="px-3 sm:px-4 md:px-6 py-4 max-w-7xl mx-auto space-y-5">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Account Management</h1>
-          <p className="text-gray-500 text-sm">Manage and monitor all school accounts.</p>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900">Account Management</h1>
+          <p className="text-slate-500 text-sm">Manage and monitor all school accounts.</p>
         </div>
 
-        <button
-          onClick={handleCreateAccount}
-          className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-sm"
-        >
-          <UserPlus size={18} /> Create New Account
-        </button>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          <button
+            onClick={handleCreateAccount}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl font-black text-sm transition-all shadow-sm"
+          >
+            <UserPlus size={18} /> Create Account
+          </button>
 
-        <AccountRole isOpen={isOpen} />
-      </div>
-
-      {/* Tabs & Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 gap-4">
-        <div className="flex gap-8">
-          <TabButton
-            active={activeTab === "student"}
-            onClick={() => setActiveTab("student")}
-            icon={<GraduationCap size={18} />}
-            label="Students"
-          />
-          <TabButton
-            active={activeTab === "teacher"}
-            onClick={() => setActiveTab("teacher")}
-            icon={<UsersRound size={18} />}
-            label="Teachers"
-          />
-          <TabButton
-            active={activeTab === "admin"}
-            onClick={() => setActiveTab("admin")}
-            icon={<Settings size={18} />}
-            label="Admins"
-          />
-        </div>
-
-        <div className="relative mb-2">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            size={18}
-          />
-          <input
-            type="text"
-            placeholder={`Search ${activeTab}s...`}
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none w-full md:w-72"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <AccountRole isOpen={isOpen} />
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden overflow-y-auto h-screen">
+      {/* Tabs & Search (phone friendly) */}
+      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-3 sm:p-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            <TabButton
+              active={activeTab === "student"}
+              onClick={() => setActiveTab("student")}
+              icon={<GraduationCap size={16} />}
+              label="Students"
+            />
+            <TabButton
+              active={activeTab === "teacher"}
+              onClick={() => setActiveTab("teacher")}
+              icon={<UsersRound size={16} />}
+              label="Teachers"
+            />
+            <TabButton
+              active={activeTab === "admin"}
+              onClick={() => setActiveTab("admin")}
+              icon={<Settings size={16} />}
+              label="Admins"
+            />
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="text"
+              placeholder={`Search ${activeTab}s...`}
+              className="w-full pl-10 pr-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop table + Mobile cards */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-4 text-center text-gray-500">Loading users...</div>
+          <div className="p-6 text-center text-slate-500">Loading users...</div>
         ) : (
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">
-                  Name
-                </th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">
-                  Email
-                </th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">
-                  {activeTab === "teacher"
-                    ? "Subject"
-                    : activeTab === "student"
-                    ? "Grade Level"
-                    : "Role"}
-                </th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase">
-                  Status
-                </th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase text-right">
-                  Actions
-                </th>
-              </tr>
-            </thead>
+          <>
+            {/* ✅ Desktop/tablet */}
+            <div className="hidden md:block">
+              <div className="max-h-[70vh] overflow-auto">
+                <table className="w-full text-left  border-collapse">
+                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">
+                        Name
+                      </th>
+                      <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">
+                        Email
+                      </th>
+                      <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">
+                        {activeTab === "teacher"
+                          ? "Subjects"
+                          : activeTab === "student"
+                          ? "Grade Level"
+                          : "Role"}
+                      </th>
+                      <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-widest text-right">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
 
-            <tbody className="divide-y divide-gray-100">
-              {currentList.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-900">
-                    {user.firstname} {user.lastname}
-                  </td>
+                  <tbody className="divide-y divide-slate-100">
+                    {currentList.map((user) => (
+                      <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4 font-semibold text-slate-900">
+                          {user.firstname} {user.lastname}
+                        </td>
 
-                  <td className="px-6 py-4 text-gray-600">
-                    <span className="inline-flex items-center gap-2">
-                      <Mail size={14} className="text-gray-400" />
-                      {user.email}
-                    </span>
-                  </td>
+                        <td className="px-6 py-4 text-slate-600">
+                          <span className="inline-flex items-center gap-2">
+                            <Mail size={14} className="text-slate-400" />
+                            {user.email}
+                          </span>
+                        </td>
 
-                  {/* ✅ Subject column for teachers */}
-                  <td className="px-6 py-4 text-gray-600">
-                    {user.role === "TEACHER" ? (
-                      user.subjects && user.subjects.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {user.subjects.map((s) => (
-                            <span
-                              key={s.id}
-                              className="px-2 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100"
-                            >
-                              {s.name}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">No Subject</span>
-                      )
-                    ) : user.role === "STUDENT" ? (
-                      user.gradeLevel || "N/A"
-                    ) : (
-                      "System Admin"
+                        <td className="px-6 py-4 text-slate-600">
+                          {user.role === "TEACHER" ? (
+                            user.subjects && user.subjects.length > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                {user.subjects.map((s) => (
+                                  <span
+                                    key={s.id}
+                                    className="px-2 py-1 rounded-full text-xs font-black bg-indigo-50 text-indigo-700 border border-indigo-100"
+                                  >
+                                    {s.name}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400">No Subject</span>
+                            )
+                          ) : user.role === "STUDENT" ? (
+                            user.gradeLevel || "N/A"
+                          ) : (
+                            "System Admin"
+                          )}
+                        </td>
+
+                        <td className="px-6 py-4">
+                          <span
+                            className={[
+                              "px-2 py-1 rounded-full text-xs font-black",
+                              user.status === "Active"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-rose-100 text-rose-700",
+                            ].join(" ")}
+                          >
+                            {user.status}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-4 text-right relative">
+                          <button
+                            onClick={() => setOpenMenuId(openMenuId === user.id ? null : user.id)}
+                            className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors"
+                            aria-label="Open actions"
+                          >
+                            <MoreVertical size={18} />
+                          </button>
+
+                          {openMenuId === user.id && (
+                            <div>
+                              <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
+                              <div className="absolute right-4 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-20 py-1">
+                                <button
+                                  onClick={() => handleToggleStatus(user)}
+                                  className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 flex items-center gap-2 font-semibold"
+                                >
+                                  Set as {user.status === "Active" ? "Inactive" : "Active"}
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    setSelectedItem(user);
+                                    setIsEditModalOpen(true);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 flex items-center gap-2 font-semibold"
+                                >
+                                  Edit Account
+                                </button>
+
+                                <button
+                                  onClick={() => handleDelete(user.id)}
+                                  className="w-full text-left px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-semibold"
+                                >
+                                  <Trash2 size={14} />
+                                  Delete Account
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+
+                    {!loading && currentList.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                          No accounts found.
+                        </td>
+                      </tr>
                     )}
-                  </td>
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        user.status === "Active"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {user.status}
-                    </span>
-                  </td>
+            {/* ✅ Mobile cards */}
+            <div className="md:hidden">
+              <div className="max-h-[72vh] overflow-auto p-3 space-y-3">
+                {currentList.length === 0 ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-600 text-center">
+                    No accounts found.
+                  </div>
+                ) : (
+                  currentList.map((user) => (
+                    <div key={user.id} className="rounded-3xl border border-slate-200 bg-white p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-black text-slate-900 truncate">
+                            {user.firstname} {user.lastname}
+                          </div>
+                          <div className="mt-1 text-sm text-slate-600 flex items-center gap-2 min-w-0">
+                            <Mail size={14} className="text-slate-400 shrink-0" />
+                            <span className="truncate">{user.email}</span>
+                          </div>
+                        </div>
 
-                  <td className="px-6 py-4 text-right relative">
-                    <button
-                      onClick={() =>
-                        setOpenMenuId(openMenuId === user.id ? null : user.id)
-                      }
-                      className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 transition-colors"
-                    >
-                      <MoreVertical size={18} />
-                    </button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={[
+                              "px-2 py-1 rounded-full text-[11px] font-black",
+                              user.status === "Active"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-rose-100 text-rose-700",
+                            ].join(" ")}
+                          >
+                            {user.status}
+                          </span>
 
-                    {openMenuId === user.id && (
-                      <div>
-                        <div
-                          className="fixed inset-0 z-10"
-                          onClick={() => setOpenMenuId(null)}
-                        />
-                        <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-xl z-20 py-1 animate-in fade-in zoom-in-95 duration-100">
+                          <button
+                            onClick={() => setOpenMenuId(openMenuId === user.id ? null : user.id)}
+                            className="p-2 rounded-2xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                            aria-label="Open actions"
+                          >
+                            <MoreVertical size={18} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* role-specific line */}
+                      <div className="mt-3 text-sm text-slate-700">
+                        {user.role === "TEACHER" ? (
+                          user.subjects && user.subjects.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {user.subjects.slice(0, 4).map((s) => (
+                                <span
+                                  key={s.id}
+                                  className="px-2 py-1 rounded-full text-[11px] font-black bg-indigo-50 text-indigo-700 border border-indigo-100"
+                                >
+                                  {s.name}
+                                </span>
+                              ))}
+                              {user.subjects.length > 4 ? (
+                                <span className="px-2 py-1 rounded-full text-[11px] font-black bg-slate-100 text-slate-700">
+                                  +{user.subjects.length - 4}
+                                </span>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <span className="text-slate-500">No Subject</span>
+                          )
+                        ) : user.role === "STUDENT" ? (
+                          <span>
+                            <span className="text-slate-500">Grade Level: </span>
+                            <span className="font-bold">{user.gradeLevel || "N/A"}</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-500">System Admin</span>
+                        )}
+                      </div>
+
+                      {/* Actions menu (mobile: full width dropdown) */}
+                      {openMenuId === user.id && (
+                        <div className="mt-3 rounded-2xl border border-slate-200 overflow-hidden">
                           <button
                             onClick={() => handleToggleStatus(user)}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center gap-2"
+                            className="w-full text-left px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-indigo-50"
                           >
                             Set as {user.status === "Active" ? "Inactive" : "Active"}
                           </button>
@@ -385,34 +499,25 @@ const AccountListPage: React.FC = () => {
                               setIsEditModalOpen(true);
                               setOpenMenuId(null);
                             }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 flex items-center gap-2"
+                            className="w-full text-left px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-indigo-50 border-t border-slate-200"
                           >
                             Edit Account
                           </button>
 
                           <button
                             onClick={() => handleDelete(user.id)}
-                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
+                            className="w-full text-left px-4 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 border-t border-slate-200"
                           >
-                            <Trash2 size={14} />
                             Delete Account
                           </button>
                         </div>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-
-              {!loading && currentList.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                    No accounts found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -428,17 +533,19 @@ const AccountListPage: React.FC = () => {
   );
 };
 
-// --- TabButton Subcomponent ---
+// --- TabButton Subcomponent (mobile-first) ---
 const TabButton = ({ active, onClick, label, icon }: any) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2 pb-4 pt-2 px-1 border-b-2 transition-all font-medium ${
+    className={[
+      "shrink-0 inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black transition border",
       active
-        ? "border-indigo-600 text-indigo-600"
-        : "border-transparent text-gray-500 hover:text-gray-700"
-    }`}
+        ? "bg-slate-900 text-white border-slate-900"
+        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50",
+    ].join(" ")}
   >
-    {icon} {label}
+    {icon}
+    <span className="uppercase tracking-wider text-[12px]">{label}</span>
   </button>
 );
 

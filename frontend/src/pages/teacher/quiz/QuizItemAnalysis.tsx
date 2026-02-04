@@ -1,7 +1,19 @@
-import { useState, useEffect } from 'react';
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, BarChart3, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import {
+  ArrowLeft,
+  BarChart3,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Info,
+  Layers,
+  Users,
+  Percent,
+} from 'lucide-react';
 
 interface ChoiceDistribution {
   [choiceText: string]: {
@@ -33,211 +45,407 @@ interface ItemAnalysisData {
   questions: QuestionAnalysis[];
 }
 
+function SkeletonLine({ w = 'w-full' }: { w?: string }) {
+  return <div className={`h-3 ${w} rounded-full bg-slate-200/80 animate-pulse`} />;
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  hint: string;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">{label}</div>
+            <div className="mt-3 text-4xl font-black tracking-tight text-slate-900">{value}</div>
+            <div className="mt-2 text-xs text-slate-500">{hint}</div>
+          </div>
+          <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-700">
+            {icon}
+          </div>
+        </div>
+      </div>
+      {/* <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-slate-100" /> */}
+    </div>
+  );
+}
+
+function statusMetaFromPct(pct: number) {
+  if (pct >= 75) {
+    return {
+      icon: <CheckCircle2 className="text-emerald-600" size={18} />,
+      chip: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+      label: 'STRONG',
+      tip: 'Well understood',
+    };
+  }
+  if (pct >= 50) {
+    return {
+      icon: <AlertTriangle className="text-amber-600" size={18} />,
+      chip: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+      label: 'NEEDS REVIEW',
+      tip: 'Mixed results',
+    };
+  }
+  return {
+    icon: <XCircle className="text-rose-600" size={18} />,
+    chip: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
+    label: 'DIFFICULT',
+    tip: 'Most students struggled',
+  };
+}
+
+function difficultyChip(difficulty: string) {
+  switch (difficulty) {
+    case 'Easy':
+      return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200';
+    case 'Medium':
+      return 'bg-amber-50 text-amber-700 ring-1 ring-amber-200';
+    case 'Hard':
+      return 'bg-orange-50 text-orange-700 ring-1 ring-orange-200';
+    case 'Very Hard':
+      return 'bg-rose-50 text-rose-700 ring-1 ring-rose-200';
+    default:
+      return 'bg-slate-50 text-slate-600 ring-1 ring-slate-200';
+  }
+}
+
+function pct(n: number) {
+  if (!Number.isFinite(n)) return '0.0';
+  return n.toFixed(1);
+}
+
 export default function QuizItemAnalysis() {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [data, setData] = useState<ItemAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetchItemAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchItemAnalysis = async () => {
     try {
+      setLoading(true);
+      setErrorMsg(null);
+
       const savedUser = localStorage.getItem('user');
       const token = savedUser ? JSON.parse(savedUser).token : null;
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/teacher/quizzes/${id}/item-analysis/`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+
+      const response = await axios.get(`http://127.0.0.1:8000/api/teacher/quizzes/${id}/item-analysis/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       setData(response.data);
     } catch (error) {
       console.error('Error fetching item analysis:', error);
-      alert('Failed to load item analysis');
+      setErrorMsg('Failed to load item analysis');
+      setData(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Easy': return 'bg-green-100 text-green-800 border-green-300';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      case 'Hard': return 'bg-orange-100 text-orange-800 border-orange-300';
-      case 'Very Hard': return 'bg-red-100 text-red-800 border-red-300';
-      default: return 'bg-gray-100 text-gray-800 border-gray-300';
-    }
-  };
-
-  const getPerformanceIcon = (percentage: number) => {
-    if (percentage >= 75) return <CheckCircle className="text-green-600" size={20} />;
-    if (percentage >= 50) return <AlertCircle className="text-yellow-600" size={20} />;
-    return <XCircle className="text-red-600" size={20} />;
-  };
+  const avgSuccess = useMemo(() => {
+    if (!data?.questions?.length) return 0;
+    const sum = data.questions.reduce((acc, q) => acc + (q.correct_percentage || 0), 0);
+    return sum / data.questions.length;
+  }, [data]);
 
   if (loading) {
     return (
-      <div className="p-8 max-w-7xl mx-auto">
-        <div className="text-center">Loading item analysis...</div>
-      </div>
+      <main className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-6xl px-4 md:px-6 py-8">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-28 rounded-2xl bg-white border border-slate-200 shadow-sm" />
+            <div className="flex-1">
+              <div className="h-8 w-72 rounded-2xl bg-slate-200/80 animate-pulse" />
+              <div className="mt-2 h-3 w-40 rounded-full bg-slate-200/80 animate-pulse" />
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <div className="rounded-3xl border border-slate-200 bg-white p-6">
+              <SkeletonLine w="w-40" />
+              <div className="mt-5">
+                <SkeletonLine w="w-20" />
+              </div>
+              <div className="mt-3">
+                <SkeletonLine w="w-44" />
+              </div>
+            </div>
+            <div className="rounded-3xl border border-slate-200 bg-white p-6">
+              <SkeletonLine w="w-40" />
+              <div className="mt-5">
+                <SkeletonLine w="w-28" />
+              </div>
+              <div className="mt-3">
+                <SkeletonLine w="w-44" />
+              </div>
+            </div>
+            <div className="rounded-3xl border border-slate-200 bg-white p-6">
+              <SkeletonLine w="w-40" />
+              <div className="mt-5">
+                <SkeletonLine w="w-24" />
+              </div>
+              <div className="mt-3">
+                <SkeletonLine w="w-44" />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6">
+            <SkeletonLine w="w-64" />
+            <div className="mt-4 space-y-3">
+              <div className="h-20 rounded-2xl bg-slate-100 animate-pulse" />
+              <div className="h-20 rounded-2xl bg-slate-100 animate-pulse" />
+              <div className="h-20 rounded-2xl bg-slate-100 animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </main>
     );
   }
 
-  if (!data) {
+  if (!data || errorMsg) {
     return (
-      <div className="p-8 max-w-7xl mx-auto">
-        <div className="text-center text-red-600">Failed to load item analysis</div>
-      </div>
+      <main className="min-h-[70vh] bg-slate-50">
+        <div className="mx-auto max-w-6xl px-4 md:px-6 py-10">
+          <button
+            onClick={() => navigate(`/teacher/activities/${id}`)}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50"
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
+
+          <div className="mt-6 rounded-3xl border border-rose-200 bg-white p-6">
+            <div className="text-sm font-black uppercase tracking-widest text-rose-500">Error</div>
+            <div className="mt-2 text-lg font-bold text-slate-900">{errorMsg ?? 'Failed to load item analysis'}</div>
+            <div className="mt-1 text-sm text-slate-500">Try refreshing the page.</div>
+            <button
+              onClick={fetchItemAnalysis}
+              className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white hover:bg-indigo-600"
+            >
+              <BarChart3 size={16} />
+              Retry
+            </button>
+          </div>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <button
-        onClick={() => navigate(`/teacher/activities/${id}`)}
-        className="mb-4 flex items-center gap-2 text-blue-600 hover:underline"
-      >
-        <ArrowLeft size={20} />
-        Back to Activities
-      </button>
+    <main className="min-h-screen bg-slate-50">
+      {/* Sticky top bar */}
+      <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/85 backdrop-blur">
+        <div className="mx-auto  px-4 md:px-6 py-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(`/teacher/activities/${id}`)}
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50"
+            >
+              <ArrowLeft size={16} />
+              Back
+            </button>
 
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <BarChart3 className="text-blue-600" size={32} />
-          <div>
-            <h1 className="text-3xl font-bold">{data.quiz_title}</h1>
-            <p className="text-gray-600">Item Analysis Report</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4 mt-4">
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <p className="text-sm text-gray-600">Total Questions</p>
-            <p className="text-2xl font-bold text-blue-600">{data.total_questions}</p>
-          </div>
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <p className="text-sm text-gray-600">Student Attempts</p>
-            <p className="text-2xl font-bold text-green-600">{data.total_student_attempts}</p>
-          </div>
-          <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-            <p className="text-sm text-gray-600">Avg Success Rate</p>
-            <p className="text-2xl font-bold text-purple-600">
-              {data.questions.length > 0
-                ? (data.questions.reduce((sum, q) => sum + q.correct_percentage, 0) / data.questions.length).toFixed(1)
-                : 0}%
-            </p>
+            <div className="min-w-0">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">Item Analysis</div>
+              <h1 className="truncate text-xl md:text-2xl font-black tracking-tight text-slate-900">
+                {data.quiz_title}
+              </h1>
+              <div className="mt-0.5 text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
+                Report • Quiz #{data.quiz_id}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* No Attempts Message */}
-      {data.total_student_attempts === 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <p className="text-yellow-800">
-            <strong>No student attempts yet.</strong> Item analysis will be available after students complete the quiz.
-          </p>
+      <div className="mx-auto max-w-8xl px-4 md:px-6 py-6 md:py-10">
+        {/* Stats */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <StatCard icon={<Layers size={18} />} label="Total Questions" value={<span>{data.total_questions}</span>} hint="Number of items" />
+          <StatCard icon={<Users size={18} />} label="Student Attempts" value={<span>{data.total_student_attempts}</span>} hint="Total submissions" />
+          <StatCard
+            icon={<Percent size={18} />}
+            label="Avg Success"
+            value={<span>{pct(avgSuccess)}%</span>}
+            hint="Mean correct percentage"
+          />
         </div>
-      )}
 
-      {/* Question Analysis */}
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold">Question-by-Question Analysis</h2>
-
-        {data.questions.map((question, index) => (
-          <div key={question.question_id} className="bg-white rounded-lg shadow p-6">
-            {/* Question Header */}
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  {getPerformanceIcon(question.correct_percentage)}
-                  <h3 className="text-lg font-semibold">
-                    Question {index + 1} ({question.points} point{question.points !== 1 ? 's' : ''})
-                  </h3>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(question.difficulty)}`}>
-                    {question.difficulty}
-                  </span>
-                </div>
-                <p className="text-gray-700 mb-2">{question.question_text}</p>
-                <p className="text-xs text-gray-500">Type: {question.question_type.replace('_', ' ')}</p>
+        {/* No attempts */}
+        {data.total_student_attempts === 0 && (
+          <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-2xl bg-white/70 border border-amber-200 flex items-center justify-center text-amber-700">
+                <Info size={18} />
               </div>
-            </div>
-
-            {/* Statistics */}
-            <div className="grid grid-cols-4 gap-4 mb-4">
-              <div className="bg-gray-50 p-3 rounded border">
-                <p className="text-xs text-gray-600">Total Attempts</p>
-                <p className="text-xl font-bold">{question.total_attempts}</p>
-              </div>
-              <div className="bg-green-50 p-3 rounded border border-green-200">
-                <p className="text-xs text-gray-600">Correct</p>
-                <p className="text-xl font-bold text-green-600">{question.correct_count}</p>
-              </div>
-              <div className="bg-red-50 p-3 rounded border border-red-200">
-                <p className="text-xs text-gray-600">Incorrect</p>
-                <p className="text-xl font-bold text-red-600">{question.incorrect_count}</p>
-              </div>
-              <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                <p className="text-xs text-gray-600">Success Rate</p>
-                <p className="text-xl font-bold text-blue-600">{question.correct_percentage.toFixed(1)}%</p>
-              </div>
-            </div>
-
-            {/* Choice Distribution */}
-            {question.total_attempts > 0 && Object.keys(question.choice_distribution).length > 0 && (
               <div>
-                <h4 className="font-semibold mb-3">Answer Choice Distribution</h4>
-                <div className="space-y-2">
-                  {Object.entries(question.choice_distribution).map(([choiceText, stats]) => (
-                    <div key={choiceText} className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`font-medium ${stats.is_correct ? 'text-green-700' : 'text-gray-700'}`}>
-                            {stats.is_correct && '✓ '}{choiceText}
+                <div className="font-black text-amber-900">No student attempts yet</div>
+                <div className="mt-1 text-sm text-amber-800">
+                  Item analysis will populate after students complete the quiz.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Questions */}
+        <div className="mt-8">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+                Question-by-question
+              </div>
+              <h2 className="mt-2 text-2xl md:text-3xl font-black tracking-tight text-slate-900">
+                Detailed Breakdown
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                See success rate, difficulty, and choice selection for each item.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {data.questions.map((question, index) => {
+              const perf = statusMetaFromPct(question.correct_percentage || 0);
+              const diffChip = difficultyChip(question.difficulty);
+              const distEntries = Object.entries(question.choice_distribution || {});
+              const hasDist = question.total_attempts > 0 && distEntries.length > 0;
+
+              return (
+                <div key={question.question_id} className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                  {/* header */}
+                  <div className="p-5 md:p-6 border-b border-slate-100">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          {perf.icon}
+                          <div className="font-black text-slate-900">
+                            Question {index + 1}
+                            <span className="ml-2 text-sm text-slate-500 font-bold">
+                              ({question.points} pt{question.points !== 1 ? 's' : ''})
+                            </span>
+                          </div>
+                          <span className={`ml-1 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-black ${diffChip}`}>
+                            {question.difficulty}
                           </span>
-                          <span className="text-sm text-gray-600">
-                            {stats.count} ({stats.percentage.toFixed(1)}%)
+                          <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-black ${perf.chip}`}>
+                            {perf.label}
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-6 overflow-hidden">
-                          <div
-                            className={`h-full flex items-center justify-end pr-2 text-xs text-white font-medium ${
-                              stats.is_correct ? 'bg-green-500' : 'bg-gray-400'
-                            }`}
-                            style={{ width: `${stats.percentage}%` }}
-                          >
-                            {stats.percentage > 10 && `${stats.percentage.toFixed(0)}%`}
-                          </div>
+
+                        <div className="mt-2 text-sm text-slate-700">{question.question_text}</div>
+                        <div className="mt-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
+                          Type: {question.question_type.replace('_', ' ')}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Success</div>
+                          <div className="mt-1 text-xl font-black text-slate-900">{pct(question.correct_percentage)}%</div>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                  </div>
 
-            {/* Recommendations */}
-            {question.total_attempts > 0 && (
-              <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
-                <p className="text-sm font-medium text-blue-800">📌 Recommendations:</p>
-                <ul className="text-sm text-blue-700 mt-1 space-y-1">
-                  {question.correct_percentage < 50 && (
-                    <li>• This question was challenging for most students. Consider reviewing this topic in class.</li>
-                  )}
-                  {question.correct_percentage >= 75 && (
-                    <li>• Students performed well on this question. The concept is well understood.</li>
-                  )}
-                  {question.question_type === 'MULTIPLE_CHOICE' && 
-                   Object.values(question.choice_distribution).some(s => !s.is_correct && s.percentage > 30) && (
-                    <li>• A distractor choice has high selection rate. Review why students might be confused.</li>
-                  )}
-                </ul>
-              </div>
-            )}
+                  {/* stats */}
+                  <div className="p-5 md:p-6">
+                    <div className="grid gap-3 md:grid-cols-4">
+                      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Attempts</div>
+                        <div className="mt-1 text-2xl font-black text-slate-900">{question.total_attempts}</div>
+                      </div>
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700/70">Correct</div>
+                        <div className="mt-1 text-2xl font-black text-emerald-800">{question.correct_count}</div>
+                      </div>
+                      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.2em] text-rose-700/70">Incorrect</div>
+                        <div className="mt-1 text-2xl font-black text-rose-800">{question.incorrect_count}</div>
+                      </div>
+                      <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+                        <div className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-700/70">Tip</div>
+                        <div className="mt-1 text-sm font-bold text-indigo-800">{perf.tip}</div>
+                      </div>
+                    </div>
+
+                    {/* distribution */}
+                    {hasDist ? (
+                      <div className="mt-6">
+                        <div className="text-sm font-black text-slate-900">Answer Choice Distribution</div>
+                        <div className="mt-3 space-y-3">
+                          {distEntries.map(([choiceText, stats]) => (
+                            <div key={choiceText} className="rounded-2xl border border-slate-200 bg-white p-4">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className={`font-bold ${stats.is_correct ? 'text-emerald-700' : 'text-slate-800'} truncate`}>
+                                    {stats.is_correct ? '✓ ' : ''}
+                                    {choiceText}
+                                  </div>
+                                  <div className="mt-1 text-xs text-slate-500">
+                                    {stats.count} response{stats.count !== 1 ? 's' : ''} • {pct(stats.percentage)}%
+                                  </div>
+                                </div>
+                                <div className={`text-xs font-black ${stats.is_correct ? 'text-emerald-700' : 'text-slate-600'}`}>
+                                  {pct(stats.percentage)}%
+                                </div>
+                              </div>
+
+                              <div className="mt-3 h-3 w-full rounded-full bg-slate-200 overflow-hidden">
+                                <div
+                                  className={stats.is_correct ? 'h-full bg-emerald-500' : 'h-full bg-slate-400'}
+                                  style={{ width: `${Math.max(0, Math.min(100, stats.percentage))}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {/* recommendations */}
+                    {question.total_attempts > 0 ? (
+                      <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                        <div className="text-sm font-black text-slate-900">Recommendations</div>
+                        <ul className="mt-2 space-y-1 text-sm text-slate-700">
+                          {question.correct_percentage < 50 && (
+                            <li>• This item is difficult for most students — consider reteaching or adding guided practice.</li>
+                          )}
+                          {question.correct_percentage >= 75 && (
+                            <li>• Students performed well — concept appears well understood.</li>
+                          )}
+                          {question.question_type === 'MULTIPLE_CHOICE' &&
+                            Object.values(question.choice_distribution || {}).some((s) => !s.is_correct && s.percentage > 30) && (
+                              <li>• A distractor has a high pick rate — review misconceptions tied to that option.</li>
+                            )}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ))}
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

@@ -313,13 +313,27 @@ export default function Advisory(): JSX.Element {
                   const finals = gradeRows.map((r) => r.final);
                   const overallAvg = safeAvg(finals);
 
+                  
+                  
+                  let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
                   return (
                     <React.Fragment key={student.id}>
                       <tr
                         className={`group transition-all cursor-pointer ${
                           isExpanded ? "bg-indigo-50/40" : "hover:bg-slate-50"
                         }`}
-                        onClick={() => toggleStudent(student.id)}
+                        onClick={() => setExpandedStudent(student.id)}
+                        onMouseEnter={() => {hoverTimeout = setTimeout(
+                          () => setExpandedStudent(student.id),
+                          100
+                        );}}
+                        onMouseLeave={() => {
+                          if (hoverTimeout) {
+                            clearTimeout(hoverTimeout);
+                          }
+                          setExpandedStudent(null);
+                        }}
+                        
                       >
                         <td className="p-5 text-center text-slate-400 font-mono text-xs">{idx + 1}</td>
 
