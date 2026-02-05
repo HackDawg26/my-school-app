@@ -34,7 +34,7 @@ from .grade_analytics import GradeAnalyticsService
 
 # this is for submission
 from django.http import HttpResponse
-from django.db.models import Count
+from django.db.models import Count, Avg
 import csv
 
 User = get_user_model()
@@ -1555,26 +1555,21 @@ def quarterly_grades_bulk_apply_weights(request):
 # ==================== QUIZ ITEM ANALYSIS VIEWS ====================
 # ==================== QUIZ ITEM ANALYSIS VIEWS ====================
 
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def quiz_item_analysis(request, quiz_id):
-    """Get per-question statistics for a quiz (includes SUBMITTED + GRADED)"""
     if request.user.role != 'TEACHER':
         return Response({'error': 'Only teachers can access item analysis'}, status=status.HTTP_403_FORBIDDEN)
 
-    try:
-        quiz = Quiz.objects.get(id=quiz_id, teacher=request.user)
-    except Quiz.DoesNotExist:
-        return Response({'error': 'Quiz not found'}, status=status.HTTP_404_NOT_FOUND)
+    quiz = get_object_or_404(Quiz, id=quiz_id, teacher=request.user)
 
     questions = quiz.questions.all().order_by('order')
     analysis = []
-
-    # ✅ include submissions + graded attempts
     included_statuses = ['SUBMITTED', 'GRADED']
 
     for question in questions:
-        # ✅ answers from submitted/graded attempts (not just graded)
         answers = QuizAnswer.objects.filter(
             question=question,
             attempt__status__in=included_statuses,
@@ -1582,47 +1577,55 @@ def quiz_item_analysis(request, quiz_id):
 
         total_attempts = answers.count()
 
+        base = {
+            'question_id': question.id,
+            'question_text': question.question_text,
+            'question_type': question.question_type,
+            'points': float(question.points or 0),
+            'order': question.order,
+            'total_attempts': total_attempts,
+        }
+
         if total_attempts == 0:
             analysis.append({
-                'question_id': question.id,
-                'question_text': question.question_text,
-                'question_type': question.question_type,
-                'points': question.points,
-                'order': question.order,
-                'total_attempts': 0,
+                **base,
+                'analysis_mode': 'N/A',
                 'correct_count': 0,
                 'incorrect_count': 0,
                 'ungraded_count': 0,
                 'correct_percentage': 0,
                 'difficulty': 'N/A',
-                'choice_distribution': {}
+                'choice_distribution': {},
+                'graded_count': 0,
+                'pending_count': 0,
+                'avg_score': 0,
+                'score_distribution': [],
             })
             continue
 
-        # ✅ handle NULL is_correct (manual/ungraded answers)
-        correct_count = answers.filter(is_correct=True).count()
-        ungraded_count = answers.filter(is_correct__isnull=True).count()
-        incorrect_count = total_attempts - correct_count - ungraded_count
-
-        # ✅ percent based only on graded answers (so ungraded doesn't look incorrect)
-        graded_total = correct_count + incorrect_count
-        correct_percentage = (correct_count / graded_total * 100) if graded_total > 0 else 0
-
-        # Difficulty based on graded correctness
-        if graded_total == 0:
-            difficulty = 'N/A'
-        elif correct_percentage >= 75:
-            difficulty = 'Easy'
-        elif correct_percentage >= 50:
-            difficulty = 'Medium'
-        elif correct_percentage >= 25:
-            difficulty = 'Hard'
-        else:
-            difficulty = 'Very Hard'
-
-        # Choice distribution (for MCQ / True-False)
-        choice_distribution = {}
+        # ---------------------------
+        # Objective questions (MC/TF)
+        # ---------------------------
         if question.question_type in ['MULTIPLE_CHOICE', 'TRUE_FALSE']:
+            correct_count = answers.filter(is_correct=True).count()
+            ungraded_count = answers.filter(is_correct__isnull=True).count()
+            incorrect_count = total_attempts - correct_count - ungraded_count
+
+            graded_total = correct_count + incorrect_count
+            correct_percentage = (correct_count / graded_total * 100) if graded_total > 0 else 0
+
+            if graded_total == 0:
+                difficulty = 'N/A'
+            elif correct_percentage >= 75:
+                difficulty = 'Easy'
+            elif correct_percentage >= 50:
+                difficulty = 'Medium'
+            elif correct_percentage >= 25:
+                difficulty = 'Hard'
+            else:
+                difficulty = 'Very Hard'
+
+            choice_distribution = {}
             for choice in question.choices.all():
                 choice_count = answers.filter(selected_choice=choice).count()
                 choice_distribution[choice.choice_text] = {
@@ -1631,19 +1634,84 @@ def quiz_item_analysis(request, quiz_id):
                     'is_correct': choice.is_correct
                 }
 
+            analysis.append({
+                **base,
+                'analysis_mode': 'CHOICES',
+                'correct_count': correct_count,
+                'incorrect_count': incorrect_count,
+                'ungraded_count': ungraded_count,
+                'graded_count': graded_total,
+                'pending_count': ungraded_count,
+                'correct_percentage': round(correct_percentage, 2),
+                'difficulty': difficulty,
+                'choice_distribution': choice_distribution,
+                'avg_score': None,
+                'score_distribution': [],
+            })
+            continue
+
+        # ---------------------------
+        # Subjective/manual questions
+        # ---------------------------
+        graded_qs = answers.filter(manually_graded=True)
+        graded_count = graded_qs.count()
+        pending_count = total_attempts - graded_count
+
+        avg_score = graded_qs.aggregate(a=Avg('points_earned'))['a']
+        avg_score = float(avg_score or 0)
+
+        # Build histogram for points_earned (graded answers only)
+        # NOTE: if you allow 0.5 steps, points_earned values will naturally group.
+        grouped = (
+            graded_qs
+            .values('points_earned')
+            .annotate(count=Count('id'))
+            .order_by('points_earned')
+        )
+
+        score_distribution = []
+        for row in grouped:
+            score = float(row['points_earned'] or 0)
+            count = int(row['count'])
+            pct = (count / graded_count * 100) if graded_count > 0 else 0
+            score_distribution.append({
+                'score': score,
+                'count': count,
+                'percentage': round(pct, 2),
+            })
+
+        # Optional difficulty for manual items:
+        # Use average score vs max points (simple but meaningful)
+        max_points = float(question.points or 0)
+        if graded_count == 0 or max_points <= 0:
+            difficulty = 'N/A'
+        else:
+            avg_pct = (avg_score / max_points) * 100
+            if avg_pct >= 75:
+                difficulty = 'Easy'
+            elif avg_pct >= 50:
+                difficulty = 'Medium'
+            elif avg_pct >= 25:
+                difficulty = 'Hard'
+            else:
+                difficulty = 'Very Hard'
+
         analysis.append({
-            'question_id': question.id,
-            'question_text': question.question_text,
-            'question_type': question.question_type,
-            'points': question.points,
-            'order': question.order,
-            'total_attempts': total_attempts,
-            'correct_count': correct_count,
-            'incorrect_count': incorrect_count,
-            'ungraded_count': ungraded_count,
-            'correct_percentage': round(correct_percentage, 2),
+            **base,
+            'analysis_mode': 'SCORES',
+            'graded_count': graded_count,
+            'pending_count': pending_count,
+            'ungraded_count': pending_count,
+            'avg_score': round(avg_score, 2),
+            'max_points': max_points,
+            'score_distribution': score_distribution,
+
+            # Keep these for compatibility (frontend can ignore in SCORES mode)
+            'correct_count': 0,
+            'incorrect_count': 0,
+            'correct_percentage': 0,
             'difficulty': difficulty,
-            'choice_distribution': choice_distribution
+            'choice_distribution': {},
         })
 
     total_questions = len(questions)
@@ -1656,6 +1724,8 @@ def quiz_item_analysis(request, quiz_id):
         'total_student_attempts': total_student_attempts,
         'questions': analysis
     })
+
+
 
 # ==================== SUBMISSION DOWNLOAD VIEW ====================
 @api_view(["GET"])

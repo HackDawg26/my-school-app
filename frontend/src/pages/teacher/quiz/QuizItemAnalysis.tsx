@@ -23,6 +23,12 @@ interface ChoiceDistribution {
   };
 }
 
+interface ScoreBin{
+  score: number;
+  count: number;
+  percentage: number;
+}
+
 interface QuestionAnalysis {
   question_id: number;
   question_text: string;
@@ -30,11 +36,20 @@ interface QuestionAnalysis {
   points: number;
   order: number;
   total_attempts: number;
+
   correct_count: number;
   incorrect_count: number;
   correct_percentage: number;
   difficulty: string;
   choice_distribution: ChoiceDistribution;
+
+  ungraded_count: number;
+  analysis_mode?: 'CHOICES' | 'SCORES' | 'N/A';
+  graded_count?: number;
+  pending_count?: number;
+  max_points?: number;
+  avg_score?: number | null;
+  score_distribution?: ScoreBin[];
 }
 
 interface ItemAnalysisData {
@@ -104,6 +119,19 @@ function statusMetaFromPct(pct: number) {
   };
 }
 
+function pendingMeta(pending: number) {
+  if (pending > 0) {
+    return {
+      icon: <AlertTriangle className="text-amber-600" size={18} />,
+      chip: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+      label: 'PENDING GRADING',
+      tip: 'Some answers still need manual grading',
+    };
+  }
+  return null;
+}
+
+
 function difficultyChip(difficulty: string) {
   switch (difficulty) {
     case 'Easy':
@@ -161,9 +189,20 @@ export default function QuizItemAnalysis() {
 
   const avgSuccess = useMemo(() => {
     if (!data?.questions?.length) return 0;
-    const sum = data.questions.reduce((acc, q) => acc + (q.correct_percentage || 0), 0);
-    return sum / data.questions.length;
+
+    const vals = data.questions.map((q) => {
+      if (q.analysis_mode === 'SCORES') {
+        const max = q.max_points ?? q.points ?? 0;
+        const avg = q.avg_score ?? 0;
+        return max > 0 ? (avg / max) * 100 : 0;
+      }
+      return q.correct_percentage || 0;
+    });
+
+    const sum = vals.reduce((a, b) => a + b, 0);
+    return sum / vals.length;
   }, [data]);
+
 
   if (loading) {
     return (
@@ -324,10 +363,26 @@ export default function QuizItemAnalysis() {
 
           <div className="mt-6 space-y-4">
             {data.questions.map((question, index) => {
-              const perf = statusMetaFromPct(question.correct_percentage || 0);
               const diffChip = difficultyChip(question.difficulty);
+              const pending =
+                question.pending_count ??
+                question.ungraded_count ??
+                0;
+              const maybePendingMeta = pendingMeta(pending);
+              const isScores = question.analysis_mode === 'SCORES';
+              const successPct = isScores
+                ? (() => {
+                    const max = question.max_points ?? question.points ?? 0;
+                    const avg = question.avg_score ?? 0;
+                    return max > 0 ? (avg / max) * 100 : 0;
+                  })()
+                : (question.correct_percentage || 0);
+              const perf = maybePendingMeta ?? statusMetaFromPct(successPct);
               const distEntries = Object.entries(question.choice_distribution || {});
-              const hasDist = question.total_attempts > 0 && distEntries.length > 0;
+              const hasChoiceDist = !isScores && question.total_attempts > 0 && distEntries.length > 0;
+              const scoreEntries = question.score_distribution || [];
+              const hasScoreDist = isScores && scoreEntries.length > 0;
+
 
               return (
                 <div key={question.question_id} className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -359,8 +414,11 @@ export default function QuizItemAnalysis() {
 
                       <div className="flex items-center gap-2">
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Success</div>
-                          <div className="mt-1 text-xl font-black text-slate-900">{pct(question.correct_percentage)}%</div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+                            {isScores ? 'Avg Score %' : 'Success'}
+                          </div>
+                          <div className="mt-1 text-xl font-black text-slate-900">{pct(successPct)}%</div>
+
                         </div>
                       </div>
                     </div>
@@ -373,22 +431,42 @@ export default function QuizItemAnalysis() {
                         <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Attempts</div>
                         <div className="mt-1 text-2xl font-black text-slate-900">{question.total_attempts}</div>
                       </div>
-                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                        <div className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700/70">Correct</div>
-                        <div className="mt-1 text-2xl font-black text-emerald-800">{question.correct_count}</div>
-                      </div>
-                      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
-                        <div className="text-[11px] font-black uppercase tracking-[0.2em] text-rose-700/70">Incorrect</div>
-                        <div className="mt-1 text-2xl font-black text-rose-800">{question.incorrect_count}</div>
-                      </div>
+
+                      {isScores ? (
+                        <>
+                          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700/70">Graded</div>
+                            <div className="mt-1 text-2xl font-black text-emerald-800">{question.graded_count ?? 0}</div>
+                          </div>
+
+                          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-700/70">Pending</div>
+                            <div className="mt-1 text-2xl font-black text-amber-800">{pending}</div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700/70">Correct</div>
+                            <div className="mt-1 text-2xl font-black text-emerald-800">{question.correct_count}</div>
+                          </div>
+
+                          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-rose-700/70">Incorrect</div>
+                            <div className="mt-1 text-2xl font-black text-rose-800">{question.incorrect_count}</div>
+                          </div>
+                        </>
+                      )}
+
                       <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
                         <div className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-700/70">Tip</div>
                         <div className="mt-1 text-sm font-bold text-indigo-800">{perf.tip}</div>
                       </div>
                     </div>
 
+
                     {/* distribution */}
-                    {hasDist ? (
+                    {hasChoiceDist ? (
                       <div className="mt-6">
                         <div className="text-sm font-black text-slate-900">Answer Choice Distribution</div>
                         <div className="mt-3 space-y-3">
@@ -421,17 +499,66 @@ export default function QuizItemAnalysis() {
                       </div>
                     ) : null}
 
+                    {isScores ? (
+                      <div className="mt-6">
+                        <div className="flex items-end justify-between gap-3">
+                          <div className="text-sm font-black text-slate-900">Score Distribution</div>
+                          <div className="text-xs font-bold text-slate-500">
+                            Avg: {(question.avg_score ?? 0).toFixed(2)} / {(question.max_points ?? question.points ?? 0).toFixed(1)}
+                          </div>
+                        </div>
+
+                        {pending > 0 ? (
+                          <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                            {pending} answer(s) still need manual grading. Distribution reflects graded answers only.
+                          </div>
+                        ) : null}
+
+                        {hasScoreDist ? (
+                          <div className="mt-3 space-y-3">
+                            {scoreEntries.map((b) => (
+                              <div key={String(b.score)} className="rounded-2xl border border-slate-200 bg-white p-4">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="font-bold text-slate-800">
+                                    {b.score} / {(question.max_points ?? question.points ?? 0).toFixed(1)}
+                                  </div>
+                                  <div className="text-xs font-black text-slate-600">{pct(b.percentage)}%</div>
+                                </div>
+
+                                <div className="mt-1 text-xs text-slate-500">
+                                  {b.count} student{b.count !== 1 ? 's' : ''}
+                                </div>
+
+                                <div className="mt-3 h-3 w-full rounded-full bg-slate-200 overflow-hidden">
+                                  <div
+                                    className="h-full bg-indigo-500"
+                                    style={{ width: `${Math.max(0, Math.min(100, b.percentage))}%` }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                            No graded responses yet.
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+
+
                     {/* recommendations */}
                     {question.total_attempts > 0 ? (
                       <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
                         <div className="text-sm font-black text-slate-900">Recommendations</div>
                         <ul className="mt-2 space-y-1 text-sm text-slate-700">
-                          {question.correct_percentage < 50 && (
+                          {successPct < 50 && (
                             <li>• This item is difficult for most students — consider reteaching or adding guided practice.</li>
                           )}
-                          {question.correct_percentage >= 75 && (
+                          {successPct >= 75 && (
                             <li>• Students performed well — concept appears well understood.</li>
                           )}
+
                           {question.question_type === 'MULTIPLE_CHOICE' &&
                             Object.values(question.choice_distribution || {}).some((s) => !s.is_correct && s.percentage > 30) && (
                               <li>• A distractor has a high pick rate — review misconceptions tied to that option.</li>

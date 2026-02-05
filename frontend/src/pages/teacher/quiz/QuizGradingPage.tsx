@@ -75,7 +75,6 @@ function StatCard({
           </div>
         </div>
       </div>
-      <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-slate-100" />
     </div>
   );
 }
@@ -310,7 +309,7 @@ export default function QuizGradingPage() {
     <main className="min-h-screen bg-slate-50">
       {/* Sticky top bar */}
       <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/85 backdrop-blur">
-        <div className="mx-auto max-w-6xl px-4 md:px-6 py-4">
+        <div className="mx-auto px-4 md:px-6 py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
@@ -333,7 +332,7 @@ export default function QuizGradingPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 md:px-6 py-6 md:py-10">
+      <div className="mx-auto  px-4 md:px-6 py-6 md:py-10">
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-3">
           <StatCard icon={<Users size={18} />} label="Submissions" value={<span>{stats.total}</span>} hint="Total attempts" />
