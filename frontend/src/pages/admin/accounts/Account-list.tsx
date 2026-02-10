@@ -8,6 +8,8 @@ import {
   Mail,
   Settings,
   Trash2,
+  ChevronRight,
+  ArrowUpRight,
 } from "lucide-react";
 
 import AccountRole from "./accountRole";
@@ -29,6 +31,41 @@ type UserAccount = {
   status: "Active" | "Inactive";
 };
 
+/** ---------------- Grade helpers ---------------- **/
+
+// Accepts: "GRADE_7", "7", 7, "Grade 7" (best-effort)
+const parseGradeNumber = (gl?: string): number | null => {
+  if (!gl) return null;
+  const s = String(gl).trim().toUpperCase();
+  // pick the first number found
+  const m = s.match(/\d+/);
+  if (!m) return null;
+  const n = Number(m[0]);
+  return Number.isFinite(n) ? n : null;
+};
+
+// Keeps backend style consistent with what the student already has
+const formatNextGradeLevel = (current?: string): string | null => {
+  const n = parseGradeNumber(current);
+  if (n == null) return null;
+
+  const next = n + 1;
+
+  // Optional cap (edit as needed)
+  if (next > 12) return null;
+
+  const cur = String(current ?? "").trim().toUpperCase();
+  if (cur.startsWith("GRADE_")) return `GRADE_${next}`;
+
+  // If it’s just "7" or "Grade 7", send the number string
+  return String(next);
+};
+
+const displayGrade = (gl?: string) => {
+  const n = parseGradeNumber(gl);
+  return n ? `Grade ${n}` : gl || "N/A";
+};
+
 const AccountListPage: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -40,6 +77,9 @@ const AccountListPage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<UserAccount | null>(null);
 
+  // ✅ Student grade-level filter
+  const [activeGrade, setActiveGrade] = useState<number | "ALL">("ALL");
+
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<"student" | "teacher" | "admin">(
     () => location.state?.activeTab || "student"
@@ -48,6 +88,11 @@ const AccountListPage: React.FC = () => {
   useEffect(() => {
     if (location.state?.activeTab) setActiveTab(location.state.activeTab);
   }, [location.state]);
+
+  // Reset grade filter when leaving Students tab
+  useEffect(() => {
+    if (activeTab !== "student") setActiveGrade("ALL");
+  }, [activeTab]);
 
   // --- Load users from Django API ---
   useEffect(() => {
@@ -96,6 +141,17 @@ const AccountListPage: React.FC = () => {
 
   const handleCreateAccount = () => setIsOpen((s) => !s);
 
+  // ✅ Grade buttons available (Students only)
+  const availableGrades = useMemo(() => {
+    const nums = users
+      .filter((u) => u.role === "STUDENT")
+      .map((u) => parseGradeNumber(u.gradeLevel))
+      .filter((n): n is number => n != null);
+
+    const uniq = Array.from(new Set(nums)).sort((a, b) => a - b);
+    return uniq;
+  }, [users]);
+
   // --- Filter & Search ---
   const currentList = useMemo(() => {
     const filteredByRole = users.filter((u) => {
@@ -104,18 +160,24 @@ const AccountListPage: React.FC = () => {
       return u.role === "ADMIN";
     });
 
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return filteredByRole;
+    // ✅ Apply grade filter only for students
+    const filteredByGrade =
+      activeTab === "student" && activeGrade !== "ALL"
+        ? filteredByRole.filter((u) => parseGradeNumber(u.gradeLevel) === activeGrade)
+        : filteredByRole;
 
-    return filteredByRole.filter((u) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return filteredByGrade;
+
+    return filteredByGrade.filter((u) => {
       const subjectText =
         u.role === "TEACHER"
           ? (u.subjects ?? []).map((s) => s?.name ?? "").join(" ")
           : "";
-      const hay = `${u.firstname} ${u.lastname} ${u.email} ${subjectText}`.toLowerCase();
+      const hay = `${u.firstname} ${u.lastname} ${u.email} ${subjectText} ${u.gradeLevel ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [users, activeTab, searchQuery]);
+  }, [users, activeTab, searchQuery, activeGrade]);
 
   // --- Actions ---
   const handleToggleStatus = async (user: UserAccount) => {
@@ -168,6 +230,89 @@ const AccountListPage: React.FC = () => {
     }
   };
 
+  // ✅ Promote ONE student (Grade 7 -> 8, etc.)
+  const handlePromoteStudent = async (user: UserAccount) => {
+    if (user.role !== "STUDENT") return;
+
+    const nextGradeLevel = formatNextGradeLevel(user.gradeLevel);
+    if (!nextGradeLevel) {
+      alert("Cannot promote this student (missing grade level or already max grade).");
+      return;
+    }
+
+    if (!window.confirm(`Promote ${user.firstname} ${user.lastname} to ${displayGrade(nextGradeLevel)}?`)) return;
+
+    try {
+      const token = localStorage.getItem("access");
+
+      const res = await fetch(`http://127.0.0.1:8000/api/user/${user.id}/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          student_profile: { grade_level: nextGradeLevel },
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to promote student");
+
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, gradeLevel: nextGradeLevel } : u))
+      );
+
+      setOpenMenuId(null);
+    } catch (err) {
+      console.error(err);
+      alert("Promotion failed. Check backend payload format.");
+    }
+  };
+
+  // ✅ Bulk promote (filtered grade or all students)
+  const handlePromoteBulk = async () => {
+    if (activeTab !== "student") return;
+
+    const list =
+      activeGrade === "ALL"
+        ? users.filter((u) => u.role === "STUDENT")
+        : users.filter((u) => u.role === "STUDENT" && parseGradeNumber(u.gradeLevel) === activeGrade);
+
+    if (list.length === 0) return;
+
+    const label = activeGrade === "ALL" ? "ALL students" : `Grade ${activeGrade} students`;
+    if (!window.confirm(`Promote ${label} to the next grade level?`)) return;
+
+    const token = localStorage.getItem("access");
+
+    // sequential updates (safer for backend)
+    for (const stu of list) {
+      const nextGradeLevel = formatNextGradeLevel(stu.gradeLevel);
+      if (!nextGradeLevel) continue;
+
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/api/user/${stu.id}/`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ student_profile: { grade_level: nextGradeLevel } }),
+        });
+
+        if (!res.ok) continue;
+
+        setUsers((prev) =>
+          prev.map((u) => (u.id === stu.id ? { ...u, gradeLevel: nextGradeLevel } : u))
+        );
+      } catch {
+        // ignore single failures, continue others
+      }
+    }
+
+    alert("Bulk promotion done (students without valid grade levels were skipped).");
+  };
+
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedItem) return;
@@ -210,7 +355,7 @@ const AccountListPage: React.FC = () => {
   };
 
   return (
-    <div className="px-3 sm:px-4 md:px-6 py-4 max-w-7xl mx-auto space-y-5">
+    <div className="px-3 sm:px-4 md:px-6 py-4 max-w-8xl mx-auto space-y-5">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
@@ -219,6 +364,17 @@ const AccountListPage: React.FC = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          {activeTab === "student" && (
+            <button
+              onClick={handlePromoteBulk}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl font-black text-sm transition-all shadow-sm"
+              title="Promote students to next grade level"
+            >
+              <ArrowUpRight size={18} />
+              Promote {activeGrade === "ALL" ? "All" : `Grade ${activeGrade}`}
+            </button>
+          )}
+
           <button
             onClick={handleCreateAccount}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl font-black text-sm transition-all shadow-sm"
@@ -231,7 +387,7 @@ const AccountListPage: React.FC = () => {
       </div>
 
       {/* Tabs & Search (phone friendly) */}
-      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-3 sm:p-4">
+      <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-3 sm:p-4 space-y-3">
         <div className="flex flex-col gap-3">
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             <TabButton
@@ -253,6 +409,25 @@ const AccountListPage: React.FC = () => {
               label="Admins"
             />
           </div>
+
+          {/* ✅ Grade-level navigation (Students only) */}
+          {activeTab === "student" && (
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              <GradeChip
+                active={activeGrade === "ALL"}
+                onClick={() => setActiveGrade("ALL")}
+                label="All"
+              />
+              {availableGrades.map((g) => (
+                <GradeChip
+                  key={g}
+                  active={activeGrade === g}
+                  onClick={() => setActiveGrade(g)}
+                  label={`Grade ${g}`}
+                />
+              ))}
+            </div>
+          )}
 
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -332,7 +507,7 @@ const AccountListPage: React.FC = () => {
                               <span className="text-slate-400">No Subject</span>
                             )
                           ) : user.role === "STUDENT" ? (
-                            user.gradeLevel || "N/A"
+                            displayGrade(user.gradeLevel)
                           ) : (
                             "System Admin"
                           )}
@@ -362,14 +537,27 @@ const AccountListPage: React.FC = () => {
 
                           {openMenuId === user.id && (
                             <div>
-                              <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-                              <div className="absolute right-4 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-20 py-1">
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setOpenMenuId(null)}
+                              />
+                              <div className="absolute right-4 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl z-20 py-1">
                                 <button
                                   onClick={() => handleToggleStatus(user)}
                                   className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 flex items-center gap-2 font-semibold"
                                 >
                                   Set as {user.status === "Active" ? "Inactive" : "Active"}
                                 </button>
+
+                                {/* ✅ Promote (Students only) */}
+                                {user.role === "STUDENT" && (
+                                  <button
+                                    onClick={() => handlePromoteStudent(user)}
+                                    className="w-full text-left px-4 py-2.5 text-sm text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 font-semibold"
+                                  >
+                                    Promote to next grade <ChevronRight size={16} />
+                                  </button>
+                                )}
 
                                 <button
                                   onClick={() => {
@@ -476,7 +664,7 @@ const AccountListPage: React.FC = () => {
                         ) : user.role === "STUDENT" ? (
                           <span>
                             <span className="text-slate-500">Grade Level: </span>
-                            <span className="font-bold">{user.gradeLevel || "N/A"}</span>
+                            <span className="font-bold">{displayGrade(user.gradeLevel)}</span>
                           </span>
                         ) : (
                           <span className="text-slate-500">System Admin</span>
@@ -492,6 +680,16 @@ const AccountListPage: React.FC = () => {
                           >
                             Set as {user.status === "Active" ? "Inactive" : "Active"}
                           </button>
+
+                          {/* ✅ Promote (Students only) */}
+                          {user.role === "STUDENT" && (
+                            <button
+                              onClick={() => handlePromoteStudent(user)}
+                              className="w-full text-left px-4 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 border-t border-slate-200"
+                            >
+                              Promote to next grade
+                            </button>
+                          )}
 
                           <button
                             onClick={() => {
@@ -546,6 +744,21 @@ const TabButton = ({ active, onClick, label, icon }: any) => (
   >
     {icon}
     <span className="uppercase tracking-wider text-[12px]">{label}</span>
+  </button>
+);
+
+// ✅ Grade chip (Students tab)
+const GradeChip = ({ active, onClick, label }: any) => (
+  <button
+    onClick={onClick}
+    className={[
+      "shrink-0 inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black transition border",
+      active
+        ? "bg-indigo-600 text-white border-indigo-600"
+        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50",
+    ].join(" ")}
+  >
+    {label}
   </button>
 );
 

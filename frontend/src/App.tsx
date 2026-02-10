@@ -28,7 +28,7 @@ import GradeLogs from './pages/admin/gradelogs/GradeLogs.tsx';
 import AccountListPage from './pages/admin/accounts/Account-list.tsx';
 import CreateSectionPage from './pages/admin/students/create-subject.tsx';
 import QuarterlyGradesPage from './pages/teacher/gradebook/QuarterlyGradesPage.tsx';
-import ExportReportCardPDF from './pages/teacher/advisoryClass/SF9.tsx';
+import ExportReportCardPDF from './pages/teacher/advisoryClass/ExportReportCard.tsx';
 
 // import SubjectPage from './pages/teacher/subjects/SubjectPage.tsx';
 import SubjectListPage from './pages/teacher/subjects/SubjectListPage.tsx';
@@ -61,6 +61,9 @@ import TeacherSubjectSubmissionsPage from './pages/teacher/submissions/TeacherSu
 
 import StudentFilesTab from './pages/student/subjects/StudentFilesTab.tsx';
 import TeacherQuarterlyGrades from './pages/teacher/gradebook/SubjectQuarterlyGrades.tsx';
+
+import InputReportCardData from './pages/teacher/advisoryClass/InputReportCardData.tsx';
+
 
 
 
@@ -128,6 +131,10 @@ function App() {
               <Route path="/teacher/grades/quarterly" element={<QuarterlyGradesPage />} />
               <Route path='/teacher/grades/quarterly/:id' element={<TeacherQuarterlyGrades />} />
               <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />
+              <Route path="/teacher/advisory-class/report-card/:studentId" element={<InputReportCardData />} />
+              <Route path="/teacher/advisory-class/report-card/:studentId/sf9" element={<ExportReportCardPDF />} />
+
+
               <Route path="/teacher/advisory-class/sf9/:studentId" element={<ExportReportCardPDF />} />
               <Route path="/teacher/activities" element={<TeacherQuizList />} />
               <Route path="/teacher/activities/create" element={<CreateQuiz />} />

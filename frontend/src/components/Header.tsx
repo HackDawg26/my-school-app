@@ -87,11 +87,16 @@ export default function Topbar({ isDesktop = false, onOpenSidebar }: TopbarProps
             onClick={toggleDropdown}
             className="flex items-center p-1 rounded-full hover:bg-gray-100 transition-all focus:ring-2 focus:ring-indigo-500"
           >
-            <img
+            <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 group-hover:bg-white group-hover:text-indigo-600 transition-colors border border-transparent group-hover:border-indigo-100">
+              {user?.email ? user.email.charAt(0).toUpperCase() : "?"}
+            </div>
+
+
+            {/* <img
             //   src={userAvatar}
               alt="User Avatar"
               className="w-10 h-10 object-cover rounded-full border-2 border-white shadow-sm"
-            />
+            /> */}
           </button>
 
           {isDropdownOpen && (

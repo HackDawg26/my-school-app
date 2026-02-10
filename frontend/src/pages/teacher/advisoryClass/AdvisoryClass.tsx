@@ -1,18 +1,6 @@
-// Advisory.tsx (UPDATED — uses YOUR version + adds Quarterly Grades from backend)
-//
-// ✅ Uses your existing flow:
-//   1) GET /api/teachers/{userId}/            -> TeacherDetail (advisory: Section object)
-//   2) GET /api/sections/{sectionId}/students/-> students in that section
-//
-// ✅ Adds quarterly grades:
-//   3) GET /api/students/{studentId}/quarterly-summary/ -> rows per SubjectOffering with q1–q4 + final
-//
-// Backend requirement:
-// - Implement students/<id>/quarterly-summary/ (recommended) OR change the fetch below to your grades endpoint.
-
 import React, { useEffect, useMemo, useState, type JSX } from "react";
-import { Download } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Download, Section } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 // -------- Types --------
 
@@ -98,6 +86,8 @@ export default function Advisory(): JSX.Element {
     {}
   );
   const [gradesLoadingByStudent, setGradesLoadingByStudent] = useState<Record<number, boolean>>({});
+
+  
 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -249,9 +239,8 @@ export default function Advisory(): JSX.Element {
   }
 
   return (
-
-    <section className="bg-slate-50/50 min-h-screen p-6 lg:p-10 font-sans">
-      <div className="max-w-7xl mx-auto">
+    <section className="bg-slate-50/50 min-h-screen p-4  font-sans">
+      <div className="max-w-8xl mx-auto">
         {/* HEADER */}
         <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
@@ -271,9 +260,10 @@ export default function Advisory(): JSX.Element {
             ) : null}
           </div>
 
-          <button className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
+          {/* <button className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
             <Download size={18} /> Export Masterlist
-          </button>
+          </button> */}
+          
         </header>
 
         {/* EMPTY */}
@@ -359,7 +349,7 @@ export default function Advisory(): JSX.Element {
                           </span>
                         </td>
 
-                        <td className="p-5 text-right">
+                        {/* <td className="p-5 text-right">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -369,7 +359,30 @@ export default function Advisory(): JSX.Element {
                           >
                             Generate SF9
                           </button>
+                        </td> */}
+                        
+                        <td className="p-5 text-right">
+                          <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/teacher/advisory-class/report-card/${student.id}`, 
+                              {state: 
+                                {student: {
+                                  name: `${student.first_name} ${student.last_name}`, 
+                                  lrn: student.school_id, 
+                                  Section: student.section, 
+                                  grade: student.grade_level,
+                                },
+                                }});
+                          }}
+                          className="px-4 py-2 bg-white border border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm"
+                        >
+                          Generate SF9
+                        </button>
                         </td>
+                        
+                      
+                        
                       </tr>
 
                       {isExpanded && (

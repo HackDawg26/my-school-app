@@ -1,18 +1,14 @@
-// ExportReportCardPDF.tsx (UPDATED — uses QUARTERLY GRADES from backend)
-//
-// ✅ Replaces hardcoded learningAreasBody with backend data from:
-//    GET /api/students/:studentId/quarterly-summary/
-//
+
 // Optional (but recommended) for cover page fields:
 //    GET /api/students/:studentId/   -> name, sex, age (or birthdate), grade_level, section, school_id/LRN
-//
-// NOTE: I kept CORE_VALUES as static (AO). If you have a backend for values, we can plug it in too.
+
+
 
 import React, { useEffect, useMemo, useState, type JSX } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ArrowLeft, FileText, ShieldCheck } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import deped_logo from "../../../assets/deped_logo.png";
 
 // ---------------- Types ----------------
@@ -79,6 +75,10 @@ const MONTHS = ["", "AUG", "SEPT", "OCT", "NOV", "DEC", "JAN", "FEB", "MAR", "AP
 // ---------------- Helpers ----------------
 
 function safeNum(n: any): number | null {
+  // If it's null, undefined, or an empty string, return null immediately
+  if (n === null || n === undefined || String(n).trim() === "") {
+    return null;
+  }
   const x = Number(n);
   return Number.isFinite(x) ? x : null;
 }
@@ -95,11 +95,16 @@ function remarkFromFinal(final: number | null) {
 }
 
 
+
+
 // ---------------- Component ----------------
 
 export default function ExportReportCardPDF(): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const { studentId } = useParams<{ studentId: string }>();
+  const passed = location.state
+  
 
   const [showPreview, setShowPreview] = useState(true);
   const [activePage, setActivePage] = useState(1);
@@ -109,6 +114,23 @@ export default function ExportReportCardPDF(): JSX.Element {
 
   const [student, setStudent] = useState<StudentDetail | null>(null);
   const [quarterly, setQuarterly] = useState<QuarterlySummaryRow[]>([]);
+
+  const [coreValues, setCoreValues] = useState<Record<string, string[]>>({});
+  const [attendance, setAttendance] = useState({
+    schoolDays: Array(12).fill(0),
+    present: Array(12).fill(0),
+    absent: Array(12).fill(0),
+  });
+
+  const [manualStudent, setManualStudent] = useState({
+    name: "",
+    age: "" as number | "",
+    sex: "",
+    section: "",
+    lrn: "",
+  });
+
+
 
   const token = localStorage.getItem("access");
   const base = "http://127.0.0.1:8000/api";
@@ -135,22 +157,48 @@ export default function ExportReportCardPDF(): JSX.Element {
     });
   };
 
-  const coreValuesBody: any[][] = CORE_VALUES_DATA.flatMap((item) => {
-    const numStatements = item.statements.length;
-    const quarterCells = ["AO", "AO", "AO", "AO"]; // default marking; replace if you have backend data
+  // manual inut of core values body since you don’t have a backend for it, but you can replace this with an API call if you do have one. Just make sure to match the structure expected by the PDF generation (value, statements[], quarterCells[]).
+  const coreValuesBody: any[][] = useMemo(() => {
+    return CORE_VALUES_DATA.flatMap((item) => {
+      const numStatements = item.statements.length;
 
-    if (numStatements === 1) return [[item.value, item.statements[0], ...quarterCells]];
+      return item.statements.map((stmt, i) => {
+        // Extract rating for this specific statement across all 4 quarters
+        const q1Rating = coreValues.Q1?.[item.value]?.[i] || "";
+        const q2Rating = coreValues.Q2?.[item.value]?.[i] || "";
+        const q3Rating = coreValues.Q3?.[item.value]?.[i] || "";
+        const q4Rating = coreValues.Q4?.[item.value]?.[i] || "";
 
-    const rows: any[][] = [];
-    rows.push([
-      { content: item.value, rowSpan: numStatements, styles: { valign: "middle" } },
-      item.statements[0],
-      ...quarterCells,
-    ]);
+        const quarterCells = [q1Rating, q2Rating, q3Rating, q4Rating];
 
-    for (let i = 1; i < numStatements; i++) rows.push([item.statements[i], ...quarterCells]);
-    return rows;
-  });
+        if (i === 0) {
+          return [
+            { content: item.value, rowSpan: numStatements, styles: { valign: 'middle', fontStyle: 'bold' } },
+            stmt,
+            ...quarterCells
+          ];
+        }
+        return [stmt, ...quarterCells];
+      });
+    });
+  }, [coreValues]);
+
+
+
+
+  // ✅ Updated useEffect to sync Page 2 data
+  useEffect(() => {
+    if (!passed) {
+      console.warn("No state passed from Page 2");
+      return;
+    }
+
+    if (passed.attendance) setAttendance(passed.attendance);
+    if (passed.observedValues) setCoreValues(passed.observedValues);
+    if (passed.studentInfo) setManualStudent(passed.studentInfo);
+  }, [passed]);
+
+
 
   // Load student + quarterly grades
   useEffect(() => {
@@ -213,6 +261,11 @@ export default function ExportReportCardPDF(): JSX.Element {
 
     run();
   }, [studentId, token]);
+  // console.log("Quarterly data:", quarterly);
+  // console.log("Student detail:", student);
+  // console.log("Core values body:", coreValuesBody);
+  // console.log("Learning rows:", quarterly);
+
 
   // Build rows for PDF + preview
   const learningRows = useMemo(() => {
@@ -241,9 +294,10 @@ export default function ExportReportCardPDF(): JSX.Element {
       .map((r) => r.final)
       .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
     if (finals.length === 0) return null;
-    return finals.reduce((a, b) => a + b, 0) / finals.length;
+    return finals.reduce((a, b) => a + b) / finals.length;
   }, [learningRows]);
 
+  
   const handleExport = async (): Promise<void> => {
     // If no data, stop
     if (learningRows.length === 0) {
@@ -310,9 +364,9 @@ export default function ExportReportCardPDF(): JSX.Element {
       margin: { left: 420 },
       head: [
         [
-          { content: "Core Values", rowSpan: 2, styles: { halign: "center", fontSize: 12, cellWidth: 96 } },
-          { content: "Behavior Statement", rowSpan: 2, styles: { halign: "center", fontSize: 12 } },
-          { content: "Quarter", colSpan: 4, styles: { halign: "center", fontSize: 11 } },
+          { content: "Core Values", rowSpan: 2, styles: { halign: "center"} },
+          { content: "Behavior Statement", rowSpan: 2, styles: { halign: "center"} },
+          { content: "Quarter", colSpan: 4, styles: { halign: "center"} },
         ],
         ["1", "2", "3", "4"],
       ],
@@ -321,12 +375,12 @@ export default function ExportReportCardPDF(): JSX.Element {
       headStyles: { fillColor: [255, 255, 255], textColor: 0, fontStyle: "bold" },
       styles: { textColor: 0, fontSize: 10, valign: "middle", lineWidth: 0.5, lineColor: [0, 0, 0] },
       columnStyles: {
-        0: { halign: "left" },
-        1: { halign: "justify", cellPadding: 9 },
-        2: { halign: "center", cellWidth: 20 },
-        3: { halign: "center", cellWidth: 20 },
-        4: { halign: "center", cellWidth: 20 },
-        5: { halign: "center", cellWidth: 20 },
+        0: { cellWidth: 80 },  // Core Values
+        1: { cellWidth: 180 }, // Behavior Statement
+        2: { cellWidth: 25, halign: 'center' }, // Q1
+        3: { cellWidth: 25, halign: 'center' }, // Q2
+        4: { cellWidth: 25, halign: 'center' }, // Q3
+        5: { cellWidth: 25, halign: 'center' }, // Q4
       },
       tableWidth: 380,
     });
@@ -379,9 +433,9 @@ export default function ExportReportCardPDF(): JSX.Element {
       tableWidth: 340,
       head: [MONTHS],
       body: [
-        ["No. of School Days", "", "", "", "", "", "", "", "", "", "", "", ""],
-        ["No. of Days Present", "", "", "", "", "", "", "", "", "", "", "", ""],
-        ["No. of Times Absent", "", "", "", "", "", "", "", "", "", "", "", ""],
+        ["No. of School Days", ...attendance.schoolDays.map(v => v || v), attendance.schoolDays.reduce((a,b)=>a+b,0)],
+        ["No. of Days Present", ...attendance.present.map(v => v || v), attendance.present.reduce((a,b)=>a+b,0)],
+        ["No. of Times Absent", ...attendance.absent.map(v => v || v), attendance.absent.reduce((a,b)=>a+b,0)],
       ],
       theme: "grid",
       styles: { fontSize: 7, cellPadding: 3, halign: "center" },
@@ -428,15 +482,17 @@ export default function ExportReportCardPDF(): JSX.Element {
     pdf.setFontSize(10);
     pdf.text("School Year: 2025-2026", centerX + 200, 205, { align: "center" });
 
-    const fullName = student ? `${student.first_name} ${student.last_name}` : "";
+    const fullName = manualStudent.name || (student ? `${student.first_name} ${student.last_name}` : "");
     const grade = student?.grade_level ? String(student.grade_level) : "";
-    const sectionName = student?.section_name ? String(student.section_name) : "";
-    const lrn = student?.school_id ?? "";
+    const sectionName = manualStudent.section || student?.section_name || "";
+    const lrn = manualStudent.lrn || student?.school_id || "";
+    const sex = manualStudent.sex || student?.sex || "";
+    const age = manualStudent.age || student?.age || "";
 
     pdf.setFont("helvetica", "normal");
     pdf.text(`Name: ${fullName || "____________________________________________________"}`, rightColX, 230);
-    pdf.text(`Age: ${student?.age ?? "___________"}`, rightColX, 250);
-    pdf.text(`Sex: ${student?.sex ?? "___________"}`, centerX + 220, 250);
+    pdf.text(`Age: ${age || "___________"}`, rightColX, 250);
+    pdf.text(`Sex: ${sex || "___________"}`, centerX + 220, 250);
     pdf.text(`Grade: ${grade || "________"}`, rightColX, 270);
     pdf.text(`Section: ${sectionName || "_______"}`, centerX + 180, 270);
     pdf.text(`LRN: ${lrn || "___________"}`, centerX + 280, 270);
@@ -486,6 +542,8 @@ export default function ExportReportCardPDF(): JSX.Element {
     );
   }
 
+  
+
   // -------- UI (your original layout, preview table now uses learningRows) --------
 
   return (
@@ -512,6 +570,8 @@ export default function ExportReportCardPDF(): JSX.Element {
             Export Report Card (SF9)
           </button>
         </div>
+
+        
       </div>
 
       <div className="flex items-start gap-3 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
@@ -616,14 +676,14 @@ export default function ExportReportCardPDF(): JSX.Element {
 
                       <tbody>
                         {learningRows.map((r, i) => (
-                          <tr key={i} className={r.remarks === "Failed" ? "bg-red-50" : ""}>
+                          <tr key={i}>
                             <td className="border border-black p-2 font-medium">{r.subject}</td>
-                            <td className="border border-black p-1 text-center">{r.q1 ?? ""}</td>
-                            <td className="border border-black p-1 text-center">{r.q2 ?? ""}</td>
-                            <td className="border border-black p-1 text-center">{r.q3 ?? ""}</td>
-                            <td className="border border-black p-1 text-center">{r.q4 ?? ""}</td>
+                            <td className="border border-black p-1 text-center">{safeNum(r.q1) != null ? Math.round(r.q1) : ""}</td>
+                            <td className="border border-black p-1 text-center">{safeNum(r.q2) != null ? Math.round(r.q2) : ""}</td>
+                            <td className="border border-black p-1 text-center">{safeNum(r.q3) != null ? Math.round(r.q3) : ""}</td>
+                            <td className="border border-black p-1 text-center">{safeNum(r.q4) != null ? Math.round(r.q4) : ""}</td>
                             <td className="border border-black p-1 text-center font-bold">
-                              {r.final != null ? Math.round(r.final) : ""}
+                              {r.final != null ? r.final.toFixed(2) : ""}
                             </td>
                             <td
                               className={`border border-black p-1 text-center text-[10px] font-bold uppercase ${
@@ -640,7 +700,7 @@ export default function ExportReportCardPDF(): JSX.Element {
                             General Average
                           </td>
                           <td className="border border-black p-1 text-center underline">
-                            {generalAverage != null ? Math.round(generalAverage) : ""}
+                            {generalAverage != null ? generalAverage.toFixed(3) : ""}
                           </td>
                           <td
                             className={`border border-black p-1 text-center uppercase ${
@@ -683,25 +743,30 @@ export default function ExportReportCardPDF(): JSX.Element {
                       </thead>
 
                       <tbody>
-                        {CORE_VALUES_DATA.map((val, idx) => (
-                          <React.Fragment key={idx}>
-                            {val.statements.map((stmt, sIdx) => (
-                              <tr key={sIdx}>
-                                {sIdx === 0 && (
-                                  <td className="border border-black p-2 font-bold w-32" rowSpan={val.statements.length}>
-                                    {val.value}
-                                  </td>
-                                )}
-                                <td className="border border-black p-2 leading-tight">{stmt}</td>
-                                {["1", "2", "3", "4"].map((q) => (
-                                  <td key={q} className="border border-black p-1 text-center font-medium">
-                                    AO
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </React.Fragment>
-                        ))}
+                        {CORE_VALUES_DATA.map((val, idx) => {
+                          const categoryRatings = coreValues[val.value] || [];
+                          return (
+                            <React.Fragment key={idx}>
+                              {val.statements.map((stmt, sIdx) => (
+                                <tr key={sIdx}>
+                                  {sIdx === 0 && (
+                                    <td className="border border-black p-2 font-bold w-32" rowSpan={val.statements.length}>
+                                      {val.value}
+                                    </td>
+                                  )}
+                                  <td className="border border-black p-2 leading-tight">{stmt}</td>
+                                  
+                                  {/* FIX: Ensure we render exactly 4 <td> cells for every behavior statement row */}
+                                  {["Q1", "Q2", "Q3", "Q4"].map((qKey) => (
+                                    <td key={qKey} className="border border-black p-1 text-center font-medium w-8">
+                                      {coreValues[qKey]?.[val.value]?.[sIdx] || ""}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </React.Fragment>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -709,60 +774,69 @@ export default function ExportReportCardPDF(): JSX.Element {
               ) : (
                 <div className="grid grid-cols-2 gap-12 h-full">
                   {/* --- LEFT SIDE: ATTENDANCE & SIGNATURES --- */}
-                                <div className="border-r border-slate-100 pr-12">
-                                <div className="text-center mb-8">
-                                    <h2 className="text-lg font-bold uppercase tracking-tight">Attendance Record</h2>
-                                </div>
+                  <div className="border-r border-slate-100 pr-12">
+                    <div className="text-center mb-8">
+                        <h2 className="text-lg font-bold uppercase tracking-tight">Attendance Record</h2>
+                    </div>
 
-                                <table className="w-full border-[1.5px] border-black text-[9px] border-collapse text-center">
-                                    <thead>
-                                    <tr className="font-bold">
-                                        <th className="border border-black p-1 text-left bg-slate-50">Month</th>
-                                        {MONTHS.slice(1).map((m) => (
-                                        <th key={m} className="border border-black p-1">{m}</th>
-                                        ))}
-                                        <th className="border border-black p-1">Total</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr>
-                                        <td className="border border-black p-2 text-left font-bold bg-slate-50">No. of School Days</td>
-                                        {Array(12).fill(0).map((_, i) => (
-                                        <td key={i} className="border border-black p-1">20</td>
-                                        ))}
-                                        <td className="border border-black p-1 font-bold">240</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="border border-black p-2 text-left font-bold bg-slate-50">No. of Days Present</td>
-                                        {Array(12).fill(0).map((_, i) => (
-                                        <td key={i} className="border border-black p-1">20</td>
-                                        ))}
-                                        <td className="border border-black p-1 font-bold">240</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="border border-black p-2 text-left font-bold bg-slate-50">No. of Days Absent</td>
-                                        {Array(12).fill(0).map((_, i) => (
-                                        <td key={i} className="border border-black p-1">0</td>
-                                        ))}
-                                        <td className="border border-black p-1 font-bold">0</td>
-                                    </tr>
-                                    </tbody>
-                                </table>
+                      <table className="w-full border-[1.5px] border-black text-[9px] border-collapse text-center">
+                          <thead>
+                            <tr className="font-bold">
+                              <th className="border border-black p-1 text-left bg-slate-50">Month</th>
+                                {MONTHS.slice(1).map((m) => (
+                                  <th key={m} className="border border-black p-1">{m}</th>
+                                ))}
+                                <th className="border border-black p-1">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td className="border border-black p-2 text-left font-bold bg-slate-50">No. of School Days</td>
+                              {attendance.schoolDays.map((v, i) => (
+                                <td key={i} className="border border-black p-1">{v || v}</td>
+                              ))}
+                              <td className="border border-black p-1 font-bold">
+                                {attendance.schoolDays.reduce((a, b) => a + b, 0)}
+                              </td>
 
-                                {/* PARENT SIGNATURE SECTION */}
-                                <div className="mt-16">
-                                    <h3 className="text-center font-bold text-[11px] mb-8 uppercase tracking-widest border-b border-black pb-2">
-                                    Parent / Guardian's Signature
-                                    </h3>
-                                    <div className="space-y-8">
-                                    {["1st Quarter", "2nd Quarter", "3rd Quarter", "4th Quarter"].map((q) => (
-                                        <div key={q} className="flex items-center gap-4">
-                                        <span className="text-[10px] font-bold w-20">{q}:</span>
-                                        <div className="flex-1 border-b border-black"></div>
-                                        </div>
-                                    ))}
-                                    </div>
-                                </div>
+                            </tr>
+                            <tr>
+                                <td className="border border-black p-2 text-left font-bold bg-slate-50">No. of Days Present</td>
+                                {attendance.present.map((v, i) => (
+                                  <td key={i} className="border border-black p-1">{v || v}</td>
+                                ))}
+                                <td className="border border-black p-1 font-bold">
+                                  {attendance.present.reduce((a, b) => a + b, 0)}
+                                </td>
+
+                            </tr>
+                            <tr>
+                                <td className="border border-black p-2 text-left font-bold bg-slate-50">No. of Days Absent</td>
+                                {attendance.absent.map((v, i) => (
+                                  <td key={i} className="border border-black p-1">{v || v}</td>
+                                ))}
+                                <td className="border border-black p-1 font-bold">
+                                  {attendance.absent.reduce((a, b) => a + b, 0)}
+                                </td>
+
+                            </tr>
+                          </tbody>
+                      </table>
+
+                    {/* PARENT SIGNATURE SECTION */}
+                    <div className="mt-16">
+                        <h3 className="text-center font-bold text-[11px] mb-8 uppercase tracking-widest border-b border-black pb-2">
+                        Parent / Guardian's Signature
+                        </h3>
+                        <div className="space-y-8">
+                        {["1st Quarter", "2nd Quarter", "3rd Quarter", "4th Quarter"].map((q) => (
+                            <div key={q} className="flex items-center gap-4">
+                            <span className="text-[10px] font-bold w-20">{q}:</span>
+                            <div className="flex-1 border-b border-black"></div>
+                            </div>
+                        ))}
+                        </div>
+                    </div>
                   </div>
 
                   <div className="flex flex-col items-center px-8">
@@ -784,11 +858,12 @@ export default function ExportReportCardPDF(): JSX.Element {
                       <div className="flex gap-10">
                         <div className="flex border-b border-black pb-1 flex-1">
                           <span className="font-bold w-12">Age:</span>
-                          <span>{student?.age ?? "—"}</span>
+                          <span>{manualStudent.age ?? student?.age ?? "—"}</span>
+
                         </div>
                         <div className="flex border-b border-black pb-1 flex-1">
                           <span className="font-bold w-12">Sex:</span>
-                          <span>{student?.sex ?? "—"}</span>
+                          <span>{manualStudent.sex ?? student?.sex ?? "—"}</span>
                         </div>
                       </div>
                       <div className="flex gap-4">
@@ -798,12 +873,12 @@ export default function ExportReportCardPDF(): JSX.Element {
                         </div>
                         <div className="flex border-b border-black pb-1 flex-1">
                           <span className="font-bold w-16">Section:</span>
-                          <span>{student?.section_name ?? "—"}</span>
+                          <span>{manualStudent.section ?? student?.section_name ?? "—"}</span>
                         </div>
                       </div>
                       <div className="flex border-b border-black pb-1">
                         <span className="font-bold w-16">LRN:</span>
-                        <span className="tracking-[3px]">{student?.school_id ?? "—"}</span>
+                        <span>{manualStudent.lrn ?? student?.school_id ?? "—"}</span>
                       </div>
                     </div>
 

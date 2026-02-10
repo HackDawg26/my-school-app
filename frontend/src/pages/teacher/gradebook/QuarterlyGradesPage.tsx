@@ -68,7 +68,7 @@ export default function QuarterlyGradesPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-3 sm:px-4 md:px-6 py-6 md:py-10">
+      <div className="mx-auto max-w-8xl px-3 sm:px-4 md:px-6 py-6 md:py-10">
         {/* Header */}
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">

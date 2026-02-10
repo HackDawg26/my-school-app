@@ -570,9 +570,11 @@ def teacher_submissions_subject_detail(request, subject_offering_id: int):
         },
         "quizzes": quiz_rows,
     })
-# =========================
-# CREATE USER (ADMIN ONLY)
-# =========================
+
+
+# ============================================================================================================================================================= #
+# CREATE USER (ADMIN ONLY)                                                                                                                                      #
+# ============================================================================================================================================================= #
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_user(request):
@@ -752,6 +754,7 @@ class StudentViewSet(ModelViewSet):
             item["final"] = round(sum(vals) / len(vals), 2) if vals else None
 
         return Response(list(by_offering.values()))
+    
 class TeacherViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.filter(role="TEACHER")
     serializer_class = TeacherSerializer
@@ -1429,7 +1432,7 @@ def quarterly_grades(request):
             if quarter:
                 grades_query = grades_query.filter(quarter=quarter)
             
-            grades = grades_query.select_related('student__user', 'SubjectOffering').order_by('student__user__last_name')
+            grades = grades_query.select_related('student__user', 'SubjectOffering').order_by('student__user__last_name', 'student__user__first_name')
             serializer = QuarterlyGradeSerializer(grades, many=True)
             return Response(serializer.data)
         
