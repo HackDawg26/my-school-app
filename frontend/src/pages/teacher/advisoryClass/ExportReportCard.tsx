@@ -128,6 +128,7 @@ export default function ExportReportCardPDF(): JSX.Element {
     sex: "",
     section: "",
     lrn: "",
+    schoolYear: "",
   });
 
 
@@ -480,7 +481,7 @@ export default function ExportReportCardPDF(): JSX.Element {
     pdf.setFontSize(12);
     pdf.text("LEARNER'S PROGRESS REPORT CARD", centerX + 200, 190, { align: "center" });
     pdf.setFontSize(10);
-    pdf.text("School Year: 2025-2026", centerX + 200, 205, { align: "center" });
+    pdf.text(`School Year: ${manualStudent.schoolYear || "2024-2025"}`, centerX + 200, 205, { align: "center" });
 
     const fullName = manualStudent.name || (student ? `${student.first_name} ${student.last_name}` : "");
     const grade = student?.grade_level ? String(student.grade_level) : "";
@@ -844,7 +845,7 @@ export default function ExportReportCardPDF(): JSX.Element {
                       <h1 className="text-2xl font-black tracking-tighter uppercase">Learner&apos;s Progress Report Card</h1>
                       <p className="text-sm font-bold">(SF 9 - ES)</p>
                       <p className="text-md font-bold mt-4 underline decoration-2 underline-offset-4">
-                        School Year: 2025-2026
+                        School Year: {manualStudent.schoolYear || ""}
                       </p>
                     </div>
 
