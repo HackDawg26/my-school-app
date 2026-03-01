@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, type JSX } from "react";
 import { Download, Section } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { generateBanigPDF } from "./BanigExportPage.tsx";
 
 // -------- Types --------
 
@@ -80,6 +81,7 @@ export default function Advisory(): JSX.Element {
   const [teacher, setTeacher] = useState<TeacherDetail | null>(null);
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [expandedStudent, setExpandedStudent] = useState<number | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   // grades cache per studentId
   const [gradesByStudent, setGradesByStudent] = useState<Record<number, QuarterlySummaryRow[]>>(
@@ -260,10 +262,19 @@ export default function Advisory(): JSX.Element {
             ) : null}
           </div>
 
-          {/* <button className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
-            <Download size={18} /> Export Masterlist
-          </button> */}
-          
+          <button
+            disabled={exporting}
+            onClick={async () => {
+              setExporting(true);
+              await generateBanigPDF();
+              setExporting(false);
+            }}
+            className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+          >
+            <Download size={18} />
+            {exporting ? "Generating..." : "Export Banig"}
+          </button>
+                    
         </header>
 
         {/* EMPTY */}

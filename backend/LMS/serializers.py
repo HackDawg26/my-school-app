@@ -452,9 +452,25 @@ class QuizChoiceSerializer(serializers.ModelSerializer):
             'is_correct': {'write_only': True}  # Don't expose to students
         }
 
+class TeacherQuizChoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuizChoice
+        fields = ['id', 'choice_text', 'is_correct', 'order']
+
+class StudentQuizChoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuizChoice
+        fields = ['id', 'choice_text', 'order']  # no is_correct
+
+class StudentQuizQuestionSerializer(serializers.ModelSerializer):
+    choices = StudentQuizChoiceSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = QuizQuestion
+        fields = ['id', 'question_text', 'question_type', 'points', 'order', 'choices']
 
 class QuizQuestionSerializer(serializers.ModelSerializer):
-    choices = QuizChoiceSerializer(many=True, required=False)
+    choices = TeacherQuizChoiceSerializer(many=True, required=False)
     
     class Meta:
         model = QuizQuestion
@@ -510,6 +526,7 @@ class QuizSerializer(serializers.ModelSerializer):
     is_upcoming = serializers.SerializerMethodField()
     is_closed = serializers.SerializerMethodField()
     question_count = serializers.SerializerMethodField()
+    is_editable = serializers.SerializerMethodField()
     
     class Meta:
         model = Quiz
@@ -519,7 +536,7 @@ class QuizSerializer(serializers.ModelSerializer):
             'time_limit', 'quarter', 'total_points', 'passing_score', 'status',
             'show_correct_answers', 'shuffle_questions', 'allow_multiple_attempts',
             'questions', 'question_count', 'is_open', 'is_upcoming', 'is_closed',
-            'created_at', 'updated_at', 'grade_type'
+            'created_at', 'updated_at', 'grade_type', 'is_editable'
         ]
         read_only_fields = ['quiz_id', 'posted_at', 'teacher', 'created_at', 'updated_at']
     
@@ -539,6 +556,9 @@ class QuizSerializer(serializers.ModelSerializer):
     
     def get_is_closed(self, obj):
         return obj.is_closed()
+    
+    def get_is_editable(self, obj):
+        return obj.is_editable()
 
 
 class QuizCreateUpdateSerializer(serializers.ModelSerializer):
@@ -600,6 +620,12 @@ class QuizAnswerSerializer(serializers.ModelSerializer):
     graded_by_name = serializers.SerializerMethodField()
     question_text = serializers.CharField(source='question.question_text', read_only=True)
     question_points = serializers.FloatField(source='question.points', read_only=True)
+    correct_choice = serializers.SerializerMethodField()
+    choices = TeacherQuizChoiceSerializer(
+        source='question.choices',
+        many=True,
+        read_only=True
+    )
     
     class Meta:
         model = QuizAnswer
@@ -607,8 +633,14 @@ class QuizAnswerSerializer(serializers.ModelSerializer):
             'id', 'question', 'question_text', 'question_points',
             'selected_choice', 'text_answer', 'answer_file', 'answer_file_url',
             'is_correct', 'points_earned', 'manually_graded', 
-            'teacher_feedback', 'graded_at', 'graded_by', 'graded_by_name'
+            'teacher_feedback', 'graded_at', 'graded_by', 'graded_by_name', 'correct_choice', 'choices'
         ]
+    
+    def get_correct_choice(self, obj):
+        correct = obj.question.choices.filter(is_correct=True).first()
+        if correct:
+            return correct.id
+        return None
     
     def get_answer_file_url(self, obj):
         return obj.answer_file_url

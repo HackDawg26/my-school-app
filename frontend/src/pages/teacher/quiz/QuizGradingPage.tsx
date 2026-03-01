@@ -18,12 +18,21 @@ import {
   CalendarClock,
 } from 'lucide-react';
 
+interface Choice {
+  id: number;
+  choice_text: string;
+  is_correct: boolean;
+  order: number;
+}
+
 interface StudentAnswer {
   id: number;
   question: number;
   question_text: string;
   question_points: number;
   selected_choice: number | null;
+  correct_choice: number | null;
+  choices?: Choice[];   // 🔥 ADD THIS
   text_answer: string;
   answer_file: string | null;
   answer_file_url: string;
@@ -173,7 +182,7 @@ export default function QuizGradingPage() {
       setLoading(false);
     }
   };
-
+console.log(quiz, submissions);
   const handleGradeAnswer = async (answerId: number, points: number, feedback: string) => {
     setSaving(true);
     try {
@@ -550,29 +559,46 @@ function AnswerGradingCard({ answer, index, onGrade, saving }: AnswerGradingCard
           </div>
         ) : null}
 
-        {answer.selected_choice ? (
-          <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
-            <div className="flex items-center justify-between gap-3">
-              <div className="font-bold">Selected Choice ID</div>
-              <div className="font-black text-slate-900">{answer.selected_choice}</div>
-            </div>
-            {answer.is_correct !== null ? (
-              <div className="mt-2">
-                <span
-                  className={[
-                    'inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-black',
-                    answer.is_correct
-                      ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                      : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
-                  ].join(' ')}
-                >
-                  {answer.is_correct ? <CheckCircle2 size={14} className="text-emerald-600" /> : <XCircle size={14} className="text-rose-600" />}
-                  {answer.is_correct ? 'Correct' : 'Incorrect'}
-                </span>
-              </div>
-            ) : null}
+        {answer.choices && answer.choices.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {answer.choices
+              .sort((a, b) => a.order - b.order)
+              .map((choice) => {
+                const isSelected = choice.id === answer.selected_choice;
+                const isCorrect = choice.id === answer.correct_choice;
+
+                let style = "border-slate-200 bg-white";
+                if (isCorrect) style = "border-emerald-300 bg-emerald-50";
+                if (isSelected && !isCorrect) style = "border-rose-300 bg-rose-50";
+
+                return (
+                  <div
+                    key={choice.id}
+                    className={`rounded-2xl border p-3 text-sm ${style}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">
+                        {choice.choice_text}
+                      </span>
+
+                      <div className="flex items-center gap-2 text-xs font-bold">
+                        {isSelected && (
+                          <span className="text-indigo-600">
+                            Student Answer
+                          </span>
+                        )}
+                        {isCorrect && (
+                          <span className="text-emerald-600">
+                            Correct Answer
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
           </div>
-        ) : null}
+        )}
 
         {answer.answer_file_url ? (
           <div className="mt-3">
