@@ -209,3 +209,119 @@ Format your response EXACTLY as JSON:
             'weak_topics': weak,
             'recommendations': f'AI service unavailable. Current average: {avg:.1f}%. Focus on weak areas to improve performance.'
         }
+    
+    def analyze_question_item(self, question_data):
+        """
+        Analyze item-level performance and generate AI diagnostic insight.
+
+        Args:
+            question_data: Dict containing:
+                - question_text (str)
+                - question_type (str)
+                - success_rate (float)
+                - difficulty (str)
+                - total_attempts (int)
+                - distribution_data (str)
+
+        Returns:
+            Dict with:
+                - misconception_analysis
+                - teaching_strategy
+                - remediation_suggestion
+                - difficulty_validation
+                - confidence
+        """
+
+        try:
+            prompt = f"""
+    You are an expert educational assessment analyst specializing in item analysis.
+
+    Analyze the following quiz question performance data and provide instructional insight.
+
+    Question:
+    {question_data.get('question_text')}
+
+    Question Type: {question_data.get('question_type')}
+    Total Attempts: {question_data.get('total_attempts')}
+    Success Rate: {float(question_data.get('success_rate', 0)):.2f}%
+    System Difficulty Classification: {question_data.get('difficulty')}
+
+    Response Distribution:
+    {question_data.get('distribution_data')}
+
+    Provide:
+
+    1. Likely student misconceptions based on response patterns.
+    2. Why students may have struggled or performed well.
+    3. Recommended teaching strategy.
+    4. Suggested remediation activity.
+    5. Whether you agree with the system-calculated difficulty and why.
+
+    Respond ONLY in valid JSON format:
+
+    {{
+    "misconception_analysis": "<text>",
+    "teaching_strategy": "<text>",
+    "remediation_suggestion": "<text>",
+    "difficulty_validation": "<text>",
+    "confidence": <number between 0 and 1>
+    }}
+    """
+
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an expert in educational measurement and diagnostic assessment. "
+                        "Always respond with valid JSON only. No explanations outside JSON."
+                    )
+                },
+                {"role": "user", "content": prompt}
+            ]
+
+            response = self.chat(messages, temperature=0.3, max_tokens=800)
+
+            import json
+            import re
+
+            # Extract JSON safely (in case model wraps response)
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+
+            if json_match:
+                result = json.loads(json_match.group())
+            else:
+                result = json.loads(response)
+
+            # Sanitize and validate output
+            return {
+                "misconception_analysis": result.get(
+                    "misconception_analysis",
+                    "No detailed misconception analysis available."
+                ),
+                "teaching_strategy": result.get(
+                    "teaching_strategy",
+                    "Reinforce core concepts using guided practice."
+                ),
+                "remediation_suggestion": result.get(
+                    "remediation_suggestion",
+                    "Provide additional targeted exercises."
+                ),
+                "difficulty_validation": result.get(
+                    "difficulty_validation",
+                    "Unable to validate difficulty classification."
+                ),
+                "confidence": max(
+                    0.0,
+                    min(1.0, float(result.get("confidence", 0.7)))
+                ),
+            }
+
+        except Exception as e:
+            # Fallback if AI fails
+            return {
+                "misconception_analysis": "AI analysis unavailable due to an error.",
+                "teaching_strategy": "Review the concept in class and clarify common misunderstandings.",
+                "remediation_suggestion": "Provide additional practice questions targeting weak areas.",
+                "difficulty_validation": "Could not validate difficulty due to AI error.",
+                "confidence": 0.5
+            }

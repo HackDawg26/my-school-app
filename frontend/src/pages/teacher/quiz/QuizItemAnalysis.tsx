@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { authFetch } from '../../lib/api';
 import {
   ArrowLeft,
   BarChart3,
@@ -16,7 +17,8 @@ import {
 } from 'lucide-react';
 
 interface ChoiceDistribution {
-  [choiceText: string]: {
+  [choice_id: number]: {
+    text: string;
     count: number;
     percentage: number;
     is_correct: boolean;
@@ -50,6 +52,13 @@ interface QuestionAnalysis {
   max_points?: number;
   avg_score?: number | null;
   score_distribution?: ScoreBin[];
+  ai_insight?: {
+    misconception_analysis: string;
+    teaching_strategy: string;
+    remediation_suggestion: string;
+    difficulty_validation: string;
+    confidence: number;
+  };
 }
 
 interface ItemAnalysisData {
@@ -159,6 +168,7 @@ export default function QuizItemAnalysis() {
   const [data, setData] = useState<ItemAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   useEffect(() => {
     fetchItemAnalysis();
@@ -187,20 +197,45 @@ export default function QuizItemAnalysis() {
     }
   };
 
+  const handleGenerateAI = async () => {
+    try {
+      setLoadingAI(true);
+
+      const res = await authFetch(
+        `/api/teacher/quizzes/${id}/item-analysis/?with_ai=true`
+      );
+
+      const data = await res.json();
+
+      setData(data); // same state you use normally
+    } catch (error) {
+      console.error("AI error:", error);
+    } finally {
+      setLoadingAI(false);
+    }
+  };
+
   const avgSuccess = useMemo(() => {
     if (!data?.questions?.length) return 0;
 
-    const vals = data.questions.map((q) => {
+    let totalNumerator = 0;
+    let totalDenominator = 0;
+    
+    data.questions.forEach((q) => {
+      const attempts = q.total_attempts ?? 0;
       if (q.analysis_mode === 'SCORES') {
         const max = q.max_points ?? q.points ?? 0;
         const avg = q.avg_score ?? 0;
-        return max > 0 ? (avg / max) * 100 : 0;
+        const graded = q.graded_count ?? 0;
+        totalNumerator += avg * graded;
+        totalDenominator += max * graded;
+      } else {
+        totalNumerator += q.correct_count ?? 0;
+        totalDenominator += attempts;
       }
-      return q.correct_percentage || 0;
     });
-
-    const sum = vals.reduce((a, b) => a + b, 0);
-    return sum / vals.length;
+    if (totalDenominator === 0) return 0;
+    return (totalNumerator / totalDenominator) * 100;
   }, [data]);
 
 
@@ -360,9 +395,18 @@ export default function QuizItemAnalysis() {
               </p>
             </div>
           </div>
+          <button
+            onClick={handleGenerateAI}
+            disabled={loadingAI}
+            className="bg-purple-600 text-white px-4 py-2 rounded"
+          >
+            {loadingAI ? "Generating AI Insight..." : "Generate AI Insight"}
+          </button>
 
           <div className="mt-6 space-y-4">
-            {data.questions.map((question, index) => {
+            {[...data.questions]
+            .sort((a, b) => a.order - b.order)
+            .map((question, index) => {
               const diffChip = difficultyChip(question.difficulty);
               const pending =
                 question.pending_count ??
@@ -498,6 +542,22 @@ export default function QuizItemAnalysis() {
                         </div>
                       </div>
                     ) : null}
+
+                    {question.ai_insight && (
+                      <div className="mt-4 p-4 bg-purple-50 border rounded">
+                        <h4 className="font-bold text-purple-700">AI Instructional Insight</h4>
+
+                        <p><strong>Misconception:</strong> {question.ai_insight.misconception_analysis}</p>
+
+                        <p><strong>Teaching Strategy:</strong> {question.ai_insight.teaching_strategy}</p>
+
+                        <p><strong>Remediation:</strong> {question.ai_insight.remediation_suggestion}</p>
+
+                        <p><strong>Difficulty Validation:</strong> {question.ai_insight.difficulty_validation}</p>
+
+                        <p><strong>Confidence:</strong> {(question.ai_insight.confidence * 100).toFixed(0)}%</p>
+                      </div>
+                    )}
 
                     {isScores ? (
                       <div className="mt-6">

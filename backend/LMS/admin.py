@@ -14,3 +14,4 @@ admin.site.register(QuizChoice)
 admin.site.register(QuizAttempt)
 admin.site.register(QuizAnswer)
 admin.site.register(Grade)
+ 
