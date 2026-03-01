@@ -23,7 +23,7 @@ from .models import (GradeChangeLog, Section, Student, Subject, SubjectOffering,
     QuizAnswer, Student, GradeForecast, QuizTopicPerformance,
     QuarterlyGrade, SubjectOfferingFile)
 from rest_framework import permissions
-from .serializers import (LoginSerializer, StudentSubjectOfferingSerializer, SubjectListSerializer, SubjectOfferingSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer,QuizSerializer, QuizCreateUpdateSerializer,
+from .serializers import (LoginSerializer, StudentQuizQuestionSerializer, StudentSubjectOfferingSerializer, SubjectListSerializer, SubjectOfferingSerializer, SubjectSerializer, TeacherSerializer, UserSerializer, SectionSerializer, StudentSerializer,QuizSerializer, QuizCreateUpdateSerializer,
     QuizQuestionSerializer, StudentQuizSerializer, QuizAttemptSerializer,
     QuizSubmissionSerializer, QuizChoiceSerializer, QuizAnswerSerializer,
     GradeForecastSerializer, QuizTopicPerformanceSerializer,
@@ -816,6 +816,37 @@ class TeacherQuizViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(teacher=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        quiz = self.get_object()
+
+        if not quiz.is_editable():
+            return Response(
+                {'error': 'Quiz can no longer be edited once it is open.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return super().update(request, *args, **kwargs)
+
+
+    def partial_update(self, request, *args, **kwargs):
+        quiz = self.get_object()
+        new_status = request.data.get('status')
+
+        # Prevent reverting to DRAFT after open
+        if quiz.status in ['OPEN', 'CLOSED'] and new_status == 'DRAFT':
+            return Response(
+                {'error': 'Cannot revert quiz to draft once it is open.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not quiz.is_editable():
+            return Response(
+                {'error': 'Quiz can no longer be edited once it is open.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return super().partial_update(request, *args, **kwargs)
     
     def create(self, request, *args, **kwargs):
         """Override create to return full quiz data with ID"""
@@ -829,10 +860,14 @@ class TeacherQuizViewSet(viewsets.ModelViewSet):
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'])
-    
     def add_question(self, request, pk=None):
         quiz = self.get_object()
         serializer = QuizQuestionSerializer(data=request.data)
+
+        if not quiz.is_editable():
+            return Response(
+                {'error':'Quiz can no longer be edited once it is open.'}, status=400
+            )
 
         if serializer.is_valid():
             serializer.save(quiz=quiz)
@@ -862,6 +897,11 @@ class TeacherQuizViewSet(viewsets.ModelViewSet):
             from django.utils import timezone
             from datetime import datetime
             quiz = self.get_object()
+
+            if not quiz.is_editable():
+                return Response(
+                    {'error':'Quiz times can no longer be edited once it is open.'}, status=400
+                )
             
             if 'open_time' in request.data:
                 time_str = request.data['open_time']
@@ -989,15 +1029,29 @@ def manage_quiz_question(request, question_id):
     except QuizQuestion.DoesNotExist:
         return Response({'error': 'Question not found'}, status=status.HTTP_404_NOT_FOUND)
     
+    quiz = question.quiz
+    if not quiz.is_editable():
+        return Response({'error': 'Quiz can no longer be edited once it is open.'}, status=status.HTTP_400_BAD_REQUEST)
+    
     if request.method == 'PUT':
         serializer = QuizQuestionSerializer(question, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+
+            total = quiz.questions.aggregate(s=Sum('points'))['s'] or 0
+            quiz.total_points = total
+            quiz.save(update_fields=['total_points'])
+
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     elif request.method == 'DELETE':
         question.delete()
+
+        total = quiz.questions.aggregate(s=Sum('points'))['s'] or 0
+        quiz.total_points = total
+        quiz.save(update_fields=['total_points'])
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -1060,7 +1114,7 @@ def start_quiz(request, quiz_id):
     if existing_attempt:
         # Return existing attempt with quiz and questions data
         questions = quiz.questions.all().order_by('order')
-        questions_data = QuizQuestionSerializer(questions, many=True).data
+        questions_data = StudentQuizQuestionSerializer(questions, many=True).data
         
         return Response({
             'attempt_id': existing_attempt.id,
@@ -1567,6 +1621,9 @@ def quiz_item_analysis(request, quiz_id):
         return Response({'error': 'Only teachers can access item analysis'}, status=status.HTTP_403_FORBIDDEN)
 
     quiz = get_object_or_404(Quiz, id=quiz_id, teacher=request.user)
+    # 🔥 AI toggle (default OFF)
+    with_ai = request.query_params.get("with_ai", "false").lower() == "true"
+    ai_service = AIService() if with_ai else None
 
     questions = quiz.questions.all().order_by('order')
     analysis = []
@@ -1637,7 +1694,7 @@ def quiz_item_analysis(request, quiz_id):
                     'is_correct': choice.is_correct
                 }
 
-            analysis.append({
+            question_data = {
                 **base,
                 'analysis_mode': 'CHOICES',
                 'correct_count': correct_count,
@@ -1650,7 +1707,32 @@ def quiz_item_analysis(request, quiz_id):
                 'choice_distribution': choice_distribution,
                 'avg_score': None,
                 'score_distribution': [],
-            })
+            }
+
+            # 🔥 AI Integration
+            if with_ai and total_attempts > 0:
+                distribution_lines = []
+                for choice_text, data in choice_distribution.items():
+                    label = "Correct" if data['is_correct'] else "Incorrect"
+                    distribution_lines.append(
+                        f"{choice_text}: {data['count']} students "
+                        f"({data['percentage']:.1f}%) – {label}"
+                    )
+
+                distribution_text = "\n".join(distribution_lines)
+
+                ai_result = ai_service.analyze_question_item({
+                    "question_text": question.question_text,
+                    "question_type": question.question_type,
+                    "success_rate": correct_percentage,
+                    "difficulty": difficulty,
+                    "total_attempts": total_attempts,
+                    "distribution_data": distribution_text,
+                })
+
+                question_data["ai_insight"] = ai_result
+
+            analysis.append(question_data)
             continue
 
         # ---------------------------
@@ -1699,7 +1781,7 @@ def quiz_item_analysis(request, quiz_id):
             else:
                 difficulty = 'Very Hard'
 
-        analysis.append({
+        question_data = {
             **base,
             'analysis_mode': 'SCORES',
             'graded_count': graded_count,
@@ -1709,13 +1791,39 @@ def quiz_item_analysis(request, quiz_id):
             'max_points': max_points,
             'score_distribution': score_distribution,
 
-            # Keep these for compatibility (frontend can ignore in SCORES mode)
+            # compatibility fields
             'correct_count': 0,
             'incorrect_count': 0,
             'correct_percentage': 0,
             'difficulty': difficulty,
             'choice_distribution': {},
-        })
+        }
+
+        # 🔥 AI Integration
+        if with_ai and graded_count > 0 and max_points > 0:
+            distribution_lines = []
+            for row in score_distribution:
+                distribution_lines.append(
+                    f"Score {row['score']}: {row['count']} students "
+                    f"({row['percentage']}%)"
+                )
+
+            distribution_text = "\n".join(distribution_lines)
+
+            avg_pct = (avg_score / max_points) * 100
+
+            ai_result = ai_service.analyze_question_item({
+                "question_text": question.question_text,
+                "question_type": question.question_type,
+                "success_rate": avg_pct,
+                "difficulty": difficulty,
+                "total_attempts": total_attempts,
+                "distribution_data": distribution_text,
+            })
+
+            question_data["ai_insight"] = ai_result
+
+        analysis.append(question_data)
 
     total_questions = len(questions)
     total_student_attempts = quiz.attempts.filter(status__in=included_statuses).count()

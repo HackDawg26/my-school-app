@@ -1,3 +1,4 @@
+from django.utils import timezone
 import uuid
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
@@ -308,6 +309,21 @@ class Quiz(models.Model):
     def is_closed(self):
         from django.utils import timezone
         return timezone.now() > self.close_time
+    
+    def is_editable(self):
+        now = timezone.now()
+
+        if self.status != 'DRAFT':
+            return False
+        
+        if self.open_time and self.open_time <= now:
+            return False
+        
+        if self.attempts.exists():
+            return False
+        return True
+    
+
 
 
 class QuizQuestion(models.Model):

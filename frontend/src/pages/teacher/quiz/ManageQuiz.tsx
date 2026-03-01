@@ -149,6 +149,16 @@ export default function ManageQuiz() {
   const navigate = useNavigate();
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
+
+  const isEditable = useMemo(() => {
+    if (!quiz) return false;
+
+    const now = new Date();
+    const open = new Date(quiz.open_time);
+
+    return quiz.status === "DRAFT" && now < open;
+  }, [quiz]);
+
   const [questions, setQuestions] = useState<Question[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -405,6 +415,7 @@ export default function ManageQuiz() {
     }
   };
 
+
   const totals = useMemo(() => {
     const qCount = questions.length;
     const points = questions.reduce((sum, q) => sum + (Number(q.points) || 0), 0);
@@ -554,9 +565,18 @@ export default function ManageQuiz() {
           />
         </div>
 
+        
         {/* Main card */}
         <div className="mt-6 rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="p-6 md:p-8 border-b border-slate-100">
+            {!isEditable && (
+              <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <div className="font-black text-amber-900">🔒 Quiz Locked</div>
+                <div className="mt-1 text-sm text-amber-800">
+                  This quiz can no longer be edited because it is already open.
+                </div>
+              </div>
+            )}
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Workspace</div>
@@ -573,6 +593,7 @@ export default function ManageQuiz() {
               {activeTab === 'questions' ? (
                 <button
                   onClick={() => setShowAddQuestion(true)}
+                  disabled={!isEditable}
                   className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white hover:bg-indigo-600 transition"
                 >
                   <Plus size={16} />
@@ -640,8 +661,8 @@ export default function ManageQuiz() {
                                           className={[
                                             'rounded-2xl border px-3 py-2 text-sm',
                                             choice.is_correct
-                                              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                                              : 'border-slate-200 bg-white text-slate-700',
+                                              ? 'border-emerald-800 bg-emerald-50 text-emerald-800'
+                                              : 'border-slate-300 bg-white text-slate-700',
                                           ].join(' ')}
                                         >
                                           <div className="flex items-center gap-2">
@@ -650,7 +671,14 @@ export default function ManageQuiz() {
                                             ) : (
                                               <span className="h-4 w-4 rounded-full border border-slate-300" />
                                             )}
+
                                             <span className="font-semibold">{choice.choice_text}</span>
+
+                                            {choice.is_correct && (
+                                              <span className="ml-auto text-xs font-bold uppercase tracking-wide text-emerald-700">
+                                                Correct
+                                              </span>
+                                            )}
                                           </div>
                                         </div>
                                       ))}
@@ -664,7 +692,8 @@ export default function ManageQuiz() {
 
                               <div className="flex items-center justify-end gap-2">
                                 <button
-                                  onClick={() => startEditQuestion(question)}
+                                  onClick={() => isEditable && startEditQuestion(question)}
+                                  disabled={!isEditable}
                                   className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50"
                                 >
                                   <Pencil size={16} />
@@ -672,7 +701,8 @@ export default function ManageQuiz() {
                                 </button>
 
                                 <button
-                                  onClick={() => deleteQuestion(question.id)}
+                                  onClick={() => isEditable && deleteQuestion(question.id)}
+                                  disabled={!isEditable}
                                   className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-black text-rose-700 hover:bg-rose-100"
                                 >
                                   <Trash2 size={16} />
@@ -702,8 +732,9 @@ export default function ManageQuiz() {
 
                     {!editingStatus ? (
                       <button
-                        onClick={() => setEditingStatus(true)}
-                        className="ml-auto inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50"
+                        onClick={() => isEditable && setEditingStatus(true)}
+                        disabled={!isEditable}
+                        className="ml-auto inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                       >
                         <Pencil size={16} />
                         Change
@@ -768,8 +799,9 @@ export default function ManageQuiz() {
                       </div>
 
                       <button
-                        onClick={() => setEditingTimes(true)}
-                        className="mt-3 inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50"
+                        onClick={() => isEditable && setEditingTimes(true)}
+                        disabled={!isEditable}
+                        className="mt-3 inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                       >
                         <Pencil size={16} />
                         Change Times
