@@ -48,7 +48,7 @@ ALLOWED_EXTS = {
     ".txt", ".csv",
 }
 
-def recalc_quarterly_component(*, student, offering, quarter, grade_type):
+def recalc_quarterly_component(*, student, offering, quarter, grade_type, title):
     """
     Recompute QuarterlyGrade component totals based on BEST attempt per quiz for the quarter.
     Prevents adding totals when multiple attempts exist.
@@ -57,6 +57,7 @@ def recalc_quarterly_component(*, student, offering, quarter, grade_type):
         SubjectOffering=offering,
         quarter=quarter,
         grade_type=grade_type,
+        quiz_title=title,
     )
 
     attempts_qs = QuizAttempt.objects.filter(
@@ -93,6 +94,8 @@ def recalc_quarterly_component(*, student, offering, quarter, grade_type):
         grade.quarterly_assessment_total = float(total_points)
 
     grade.save()
+
+
 
 class AdminDashboardStatsView(APIView):
     permission_classes = [IsAuthenticated]

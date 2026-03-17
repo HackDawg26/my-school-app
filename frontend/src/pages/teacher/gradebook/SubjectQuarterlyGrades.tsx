@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import axios from "axios";
 import { Save, Plus, Edit2, Trash2, BookOpen, X, ArrowLeft } from "lucide-react";
+import { authFetch } from "../../lib/api";
+import { get } from "react-hook-form";
 
 /** ---------------- Types ---------------- */
 
@@ -11,6 +13,8 @@ interface Student {
   first_name: string;
   last_name: string;
 }
+
+
 
 interface QuarterlyGrade {
   id?: number;
@@ -31,6 +35,7 @@ interface QuarterlyGrade {
   quarterly_assessment_score: number | null;
   quarterly_assessment_total: number;
 
+  ww_breakdown?: any[]; // array of quiz breakdowns for written work
   ww_weight: number; // decimals (0.4)
   pt_weight: number; // decimals (0.3)
   qa_weight: number; // decimals (0.3)
@@ -55,6 +60,7 @@ const sumWeights = (w: UiWeights) => n0(w.ww) + n0(w.pt) + n0(w.qa);
 const toDecimal = (pct: number) => pct / 100;
 const toPct = (dec: number) => Math.round(Number(dec) * 100);
 
+
 export default function TeacherQuarterlyGrades() {
   const navigate = useNavigate();
   const {id} = useParams();
@@ -72,6 +78,7 @@ export default function TeacherQuarterlyGrades() {
     (location.state as any)?.subjectName || "Subject"
   );
 
+  
   useEffect(() => {
     const fromState = (location.state as any)?.subjectName;
     if (fromState) {
@@ -172,6 +179,7 @@ export default function TeacherQuarterlyGrades() {
     }
   };
 
+
   const fetchGrades = async () => {
     try {
       setLoading(true);
@@ -189,7 +197,32 @@ export default function TeacherQuarterlyGrades() {
     }
   };
 
-  console.log("Grades:", grades);
+  const [quizzes, setQuizzes] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchQuizData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subjectoffering_id]);
+
+  const fetchQuizData = async () => {
+    try {
+      const token = getToken();
+
+      const res = await axios.get(
+        `http://127.0.0.1:8000/api/teacher/quizzes/?SubjectOffering=${subjectoffering_id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setQuizzes(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error("Error fetching quizzes:", error);
+      setQuizzes([]);
+    }
+  };
+
+  console.log(quizzes)
 
   /** ---------------- Weights (per quarter) ---------------- */
 
@@ -547,21 +580,36 @@ export default function TeacherQuarterlyGrades() {
         </div>
 
         {/* ✅ Quarter buttons: scrollable on mobile */}
-        <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
-          {["Q1", "Q2", "Q3", "Q4"].map((q) => (
-            <button
-              key={q}
-              onClick={() => setSelectedQuarter(q)}
-              className={`shrink-0 px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider transition ${
-                selectedQuarter === q
-                  ? "bg-indigo-600 text-white"
-                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              {q}
-            </button>
-          ))}
+        <div className="mt-3 flex items-center justify-between">
+          {/* LEFT SIDE — Quarter Buttons */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {["Q1", "Q2", "Q3", "Q4"].map((q) => (
+              <button
+                key={q}
+                onClick={() => setSelectedQuarter(q)}
+                className={`shrink-0 px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider transition ${
+                  selectedQuarter === q
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
+          {/* RIGHT SIDE — Manual Input Button */}
+          <button
+            className="px-3 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-wider"
+
+          >
+            Manual Input
+          </button>
+
         </div>
+        
+
+        
       </div>
 
       {/* ✅ Weights */}
@@ -789,6 +837,7 @@ export default function TeacherQuarterlyGrades() {
 
                     <td className="px-4 py-3 text-center text-sm text-slate-700">
                       {g.written_work_score}/{g.written_work_total}
+                      
                     </td>
                     <td className="px-4 py-3 text-center text-sm text-slate-700">
                       {g.performance_task_score}/{g.performance_task_total}
