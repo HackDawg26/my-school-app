@@ -182,7 +182,7 @@ export default function QuizGradingPage() {
       setLoading(false);
     }
   };
-console.log(quiz, submissions);
+
   const handleGradeAnswer = async (answerId: number, points: number, feedback: string) => {
     setSaving(true);
     try {
