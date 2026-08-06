@@ -96,7 +96,7 @@ function App() {
               <Route path="/student/activities" element={<StudentQuizList />} />
               <Route path="/student/activities/:id/take" element={<TakeQuiz />} />
               <Route path="/student/activities/result" element={<QuizResult />} />
-              <Route path="/student/grade-forecast" element={<StudentGradeForecast />} />
+              {/* <Route path="/student/grade-forecast" element={<StudentGradeForecast />} /> */}
 
               {/* You can add more student pages here like /student/grades */}
             </Route>

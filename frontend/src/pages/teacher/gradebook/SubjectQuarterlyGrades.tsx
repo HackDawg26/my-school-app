@@ -960,7 +960,7 @@ export default function TeacherQuarterlyGrades() {
                 />
               </div>
 
-              <div className="rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4">
+              <div className="rounded-3xl bg-linear-to-r from-indigo-600 to-purple-600 text-white p-4">
                 <div className="text-xs font-black uppercase tracking-widest text-white/80">Final Grade</div>
                 <div className="mt-1 text-3xl font-black">{calculateFinalGrade(formData).toFixed(2)}%</div>
               </div>

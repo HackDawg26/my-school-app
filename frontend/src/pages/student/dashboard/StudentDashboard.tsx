@@ -1,5 +1,8 @@
 'use client';
 
+import { useStudentProfile } from '../../../hooks/useStudentProfile';
+import StatCard from '../../../components/studentcomponents/StatCard'
+
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -98,30 +101,7 @@ function StatusPill({ status }: { status?: QuizStatus }) {
   );
 }
 
-const StatCard = ({
-  label,
-  value,
-  hint,
-  Icon,
-}: {
-  label: string;
-  value: string | number;
-  hint?: string;
-  Icon: any;
-}) => (
-  <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-    <div className="flex items-start justify-between">
-      <div>
-        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">{label}</p>
-        <div className="text-3xl font-black text-slate-900">{value}</div>
-        {hint ? <div className="text-xs text-slate-500 mt-2">{hint}</div> : null}
-      </div>
-      <div className="p-2.5 rounded-xl bg-slate-50 text-slate-500">
-        <Icon size={18} />
-      </div>
-    </div>
-  </div>
-);
+
 
 function ProgressBar({ value }: { value: number }) {
   const v = Math.max(0, Math.min(100, value));
@@ -135,6 +115,13 @@ function ProgressBar({ value }: { value: number }) {
 // ---------------- Component ----------------
 
 export default function StudentDashboard() {
+
+  const { 
+    data: student,
+    isLoading,
+    error
+  } = useStudentProfile();
+
   const [offerings, setOfferings] = useState<SubjectOfferingCard[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
@@ -255,12 +242,41 @@ export default function StudentDashboard() {
     };
   }, [offerings, quizzes]);
 
-  if (loading) {
+  if (loading || isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
-        <p className="text-slate-600 font-bold">Loading dashboard…</p>
+      <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+
+          <div className="h-10 w-10 mx-auto rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
+
+          <p className="mt-4 text-slate-600 font-bold">
+            Loading dashboard...
+          </p>
+
+        </div>
       </div>
     );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+        <div className="bg-white rounded-2xl border border-red-100 p-8 text-center shadow-sm">
+
+          <h2 className="text-xl font-black text-red-600">
+            Unable to load profile
+          </h2>
+
+          <p className='mt-2 text-slate-500'>
+            We couldn't retrive your student information
+          </p>
+
+          <p className='mt-4 text-sm text-slate-400'>
+            Please try refreshing the page
+          </p>
+        </div>
+      </div>
+    )
   }
 
   if (errorMsg) {
@@ -278,19 +294,33 @@ export default function StudentDashboard() {
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-black tracking-tight">Student Dashboard</h1>
-            <p className="text-slate-500 font-medium mt-1">
-              You have <span className="text-indigo-600 font-black">{upcoming.length}</span> upcoming activities.
+            <p className="text-sm font-medium text-slate-500">Good morning,</p>
+            <h1 className="mt-1 text-4xl font-extrabold tracking-[-0.05em] text-slate-950 sm:text-[44px]">
+                {student?.first_name} ! <span className="text-[34px]">👋</span>
+            </h1>
+            <p className="mt-3 text-sm font-medium text-slate-500">
+              {student?.grade_level}  <span className="px-1">•</span> A.Y. 2025 - 2026 
             </p>
+            
           </div>
-
-
         </header>
 
         {/* Stats */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <StatCard label="Overall Average" value={stats.overallAvg} hint="Across current subjects" Icon={GraduationCap} />
-          <StatCard label="Subjects" value={stats.subjectCount} hint="Enrolled this term" Icon={Layers} />
+          <StatCard 
+            label="Overall Average" 
+            value={stats.overallAvg} 
+            hint="Across current subjects" 
+            Icon={GraduationCap} 
+          />
+
+          <StatCard 
+            label="Subjects" 
+            value={stats.subjectCount} 
+            hint="Enrolled this term" 
+            Icon={Layers} 
+          />
+          
           <StatCard
             label="Upcoming Activities"
             value={stats.openScheduled}

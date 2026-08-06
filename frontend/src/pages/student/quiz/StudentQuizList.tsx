@@ -187,7 +187,7 @@ export default function StudentQuizList() {
     return true;
   };
 
-  console.log(quizzes);
+  // console.log(quizzes);
   const renderScoreChip = (quiz: Quiz) => {
     const a = latestAttemptByQuizId.get(quiz.id);
     if (!a) return null;

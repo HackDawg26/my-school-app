@@ -1,5 +1,5 @@
-import React from "react";
-import { NavLink } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
@@ -9,65 +9,82 @@ import {
   Users,
   Banknote,
   ClipboardList,
+  Menu,
+  X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { SchoolLogo } from "./SchoolLogo";
+import {navigation} from "../data/navigation";
 
 const APP_NAME = "ClaroEd";
 
-interface NavItem {
-  name: string;
-  to: string;
-  Icon: LucideIcon;
-}
 
 interface SideBarProps {
   isDesktop?: boolean;
   open?: boolean;
   onClose?: () => void;
+  onOpen?: () => void;
 }
 
-// 1. Separate Nav Definitions (Paths are already role-specific)
-const adminLinks: NavItem[] = [
-  { name: "Dashboard", to: "/admin/dashboard", Icon: LayoutDashboard },
-  {name: "Accounts", to: "/admin/accounts", Icon: Users },
-  { name: "Faculty", to: "/admin/faculty", Icon: Users },
-  { name: "Students", to: "/admin/students", Icon: Users },
-  { name: "Grade Logs", to: "/admin/gradelogs", Icon: Users },
-];
+// ==============================
+// Navigation Items
+// ==============================
 
-const teacherLinks: NavItem[] = [
-  { name: "Dashboard", to: "/teacher/dashboard", Icon: LayoutDashboard },
-  { name: "Subjects", to: "/teacher/subject", Icon: BookCopy },
-  { name: "Activities", to: "/teacher/activities", Icon: ClipboardList },
-  { name: "Gradebook", to: "/teacher/grades/quarterly", Icon: Book },
-  { name: "Submissions", to: "/teacher/submissions", Icon: BarChart3 },
-  { name: "Advisory Class", to: "/teacher/advisory-class", Icon: Banknote },
-];
 
-const studentLinks: NavItem[] = [
-  { name: "Dashboard", to: "/student/dashboard", Icon: LayoutDashboard },
-  { name: "Subjects", to: "/student/subject", Icon: BookCopy },
-  { name: "Activities", to: "/student/activities", Icon: ClipboardList },
-  { name: "Gradebook", to: "/student/grades/quarterly", Icon: Book },
-  { name: "Grade Forecast", to: "/student/grade-forecast", Icon: BarChart3 },
-];
 
-const SideBar: React.FC<SideBarProps> = ({ isDesktop = false, open = false, onClose = () => {} }) => {
-  const { user } = useAuth();
-  
-  const linkBase = "group flex items-center px-3 py-2 text-sm font-medium m-2 gap-3 rounded-lg transition-colors";
+// ==============================
+// Component
+// ==============================
 
-  // 2. Determine which array to use based on the user's role
-  const getLinksByRole = () => {
-    switch (user?.role) {
-      case 'ADMIN': return adminLinks;
-      case 'TEACHER': return teacherLinks;
-      case 'STUDENT': return studentLinks;
-      default: return [];
-    }
+const SideBar: React.FC<SideBarProps> = ({
+  isDesktop = false,
+  open = false,
+  onClose = () => {},
+  onOpen = () => {},
+}) => {
+  const { user, logout } = useAuth();
+
+  const navigate = useNavigate();
+
+  const location = useLocation();
+
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
+        setProfileOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Close dropdown after route change
+  useEffect(() => {
+    setProfileOpen(false);
+  }, [location.pathname]);
+
+  const handleLogout = () => {
+    logout();
+
+    navigate("/login");
   };
 
-  const activeLinks = getLinksByRole();
+  const activeLinks = user?.role ? navigation[user.role] ?? [] : [];
+
+  const linkBase =
+    "group flex items-center px-3 py-2 text-sm font-medium m-2 gap-3 rounded-lg transition-colors";
 
   const NavContent = () => (
     <ul className="flex flex-col">
@@ -75,55 +92,144 @@ const SideBar: React.FC<SideBarProps> = ({ isDesktop = false, open = false, onCl
         <li key={name}>
           <NavLink
             to={to}
-            // Logic for active styling: Dashboard is usually 'end' to avoid matching all sub-routes
             end={name === "Dashboard"}
             onClick={!isDesktop ? onClose : undefined}
             className={({ isActive }) =>
               `${linkBase} ${
-                isActive 
-                  ? "bg-[hsl(217,81%,37%)] text-white font-semibold shadow-md" 
+                isActive
+                  ? "bg-[hsl(217,81%,37%)] text-white font-semibold shadow-md"
                   : "text-gray-600 hover:bg-gray-100"
               }`
             }
           >
             <Icon className="h-5 w-5 shrink-0" />
-            <span className="truncate">{name}</span>
+
+            <span>{name}</span>
           </NavLink>
         </li>
       ))}
     </ul>
   );
 
+  // ==============================
+  // Profile Button
+  // ==============================
+
+  const ProfileButton = () => (
+    <div className="relative">
+      <button
+        onClick={() => setProfileOpen((prev) => !prev)}
+        className="flex h-10 w-10 items-center justify-center rounded-full border bg-slate-100 font-bold text-slate-600"
+      >
+        {user?.email ? user.email.charAt(0).toUpperCase() : "?"}
+      </button>
+
+      {profileOpen && (
+        <div className="absolute right-0 z-50 mt-2 w-48 rounded-xl border bg-white p-2 shadow-xl">
+          <button
+            onClick={handleLogout}
+            className="w-full rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+          >
+            Logout
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <>
-      {/* Desktop Sidebar */}
-      {isDesktop && (
-        <aside className="hidden lg:flex flex-col w-64 min-h-dvh bg-white border-r border-gray-200">
-          <div className="flex h-16 items-center gap-4 px-4 border-b border-gray-100">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-lg">
-              <span className="text-xl font-bold italic">C</span>
+      {/* ==============================
+          Mobile Header
+      ============================== */}
+
+      {!isDesktop && (
+        <header className="fixed top-0 left-0 right-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4">
+          {/* Drawer Button */}
+          <button
+            onClick={onOpen}
+            className="rounded-lg p-2 hover:bg-gray-100"
+          >
+            <Menu size={22} />
+          </button>
+
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 font-bold text-white">
+              C
             </div>
-            <div className="text-2xl font-bold tracking-tight text-gray-900">
-              {APP_NAME}
-            </div>
+
+            <span className="text-xl font-bold">{APP_NAME}</span>
           </div>
+
+          {/* Profile */}
+          <div className="w-10">
+            <ProfileButton />
+          </div>
+        </header>
+      )}
+
+      {/* ==============================
+          Desktop Sidebar
+      ============================== */}
+
+      {isDesktop && (
+        <aside className="hidden min-h-screen w-64 flex-col border-r border-gray-200 bg-white lg:flex">
+          {/* Logo */}
+          <div className="flex items-center p-4 gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 font-bold text-white">
+              C
+            </div>
+
+            <span className="text-xl font-bold">{APP_NAME}</span>
+          </div>
+
+          {/* Navigation */}
           <nav className="grow overflow-y-auto p-2">
             <NavContent />
           </nav>
+
+          {/* Profile Bottom */}
+          <div className="border-t border-gray-100 p-4">
+            <ProfileButton />
+          </div>
         </aside>
       )}
 
-      {/* Mobile Drawer */}
+      {/* ==============================
+          Mobile Drawer
+      ============================== */}
+
       {open && !isDesktop && (
         <>
-          <div onClick={onClose} className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" />
-          <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl transform transition-transform duration-300">
-            <div className="flex h-16 items-center justify-between px-6 border-b">
-              <span className="font-bold text-xl text-indigo-600">{APP_NAME}</span>
-              <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 text-gray-500">
-                ✕
+          {/* Overlay */}
+          <div
+            onClick={onClose}
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          />
+
+          {/* Drawer */}
+          <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl">
+            {/* Drawer Header */}
+            <div className="flex h-16 items-center justify-between border-b border-gray-100 px-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 font-bold text-white">
+                  C
+                </div>
+
+                <span className="text-xl font-bold">{APP_NAME}</span>
+                
+              </div>
+
+              <button
+                onClick={onClose}
+                className="rounded-lg p-2 hover:bg-gray-100"
+              >
+                <X size={20} />
               </button>
             </div>
+
+            {/* Navigation */}
             <nav className="p-2">
               <NavContent />
             </nav>

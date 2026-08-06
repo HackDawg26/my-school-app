@@ -229,6 +229,7 @@ class SubjectOfferingViewSet(viewsets.ModelViewSet):
 
         # Others see none
         return SubjectOffering.objects.none()
+    
     @action(detail=True, methods=["get"], url_path="students")
     def students(self, request, pk=None):
         offering = self.get_object()  # respects get_queryset() (teacher restriction)
@@ -2052,3 +2053,12 @@ def teacher_submissions_export_csv(request):
         writer.writerow([o.id, o.name, submitted_attempts, unique_students, total_students, rate])
 
     return response
+
+# student information for student dashboard
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def current_student(request):
+    student = Student.objects.get(user=request.user)
+    serializer = StudentSerializer(student)
+    return Response(serializer.data)
+

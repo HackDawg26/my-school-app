@@ -2,34 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import { SchoolLogo } from "../../components/SchoolLogo"; 
 
-// Logo Component
-const SchoolLogo = () => (
-  <div className="flex items-center gap-3">
-    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[hsla(221,44%,40%)]">
-      <svg
-        className="h-7 w-7 text-white"
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M12 2L2 7l10 5 10-5-10-5z" />
-        <path d="M2 17l10 5 10-5" />
-        <path d="M2 12l10 5 10-5" />
-      </svg>
-    </div>
-    <div className="flex flex-col text-left">
-      <h2 className="font-headline text-3xl font-semibold leading-none">ClaroEd</h2>
-      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-        Management System
-      </span>
-    </div>
-  </div>
-);
 
 type Role = "STUDENT" | "TEACHER" | "ADMIN";
 
@@ -55,7 +29,7 @@ export const LoginPage = () => {
     }
 
     try {
-      console.log("Attempting login with:", { email });
+      // console.log("Attempting login with:", { email });
       
       // Call backend
       const res = await axios.post("http://127.0.0.1:8000/api/token/", {
@@ -63,7 +37,7 @@ export const LoginPage = () => {
         password,
       });
 
-      console.log("Login response:", res.data);
+      // console.log("Login response:", res.data);
 
       const { access, refresh, user } = res.data;
 
