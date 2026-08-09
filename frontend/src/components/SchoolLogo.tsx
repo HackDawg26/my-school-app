@@ -18,9 +18,6 @@ export const SchoolLogo = () => (
     </div>
     <div className="flex flex-col text-left">
       <h2 className="font-headline text-3xl font-semibold leading-none">ClaroEd</h2>
-      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-        Management System
-      </span>
     </div>
   </div>
 );

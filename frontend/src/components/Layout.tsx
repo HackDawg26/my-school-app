@@ -59,7 +59,7 @@ export default function Layout() {
         isDesktop={isDesktop}
       />
 
-      <main className={`min-w-0 flex-1 overflow-y-auto bg-slate-50 ${isDesktop ? "px-8 py-6" : "px-4 pt-20 pb-6"}`}>
+      <main className={`min-w-0 flex-1 overflow-y-auto bg-slate-50 ${isDesktop ? "px-8 py-6" : "px-4 pt-15 pb-6"}`}>
 
         <Outlet />
 

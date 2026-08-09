@@ -52,6 +52,8 @@ export const LoginPage = () => {
       const userData = {
         id: String(user.id),
         email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
         role,
         token: access,
       };
