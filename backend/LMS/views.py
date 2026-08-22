@@ -1008,7 +1008,7 @@ class TeacherQuizViewSet(viewsets.ModelViewSet):
             recalc_quarterly_component(
                 student=attempt.student,
                 offering=quiz.SubjectOffering,
-                quarter=quiz.quarter,
+                semester=quiz.semester,
                 grade_type=quiz.grade_type,
             )
 
@@ -1238,7 +1238,7 @@ def submit_quiz(request, attempt_id):
     recalc_quarterly_component(
         student=attempt.student,
         offering=quiz.SubjectOffering,
-        quarter=quiz.quarter,
+        semester=quiz.semester,
         grade_type=quiz.grade_type,
     )
 

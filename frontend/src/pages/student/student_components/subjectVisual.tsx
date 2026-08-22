@@ -1,5 +1,5 @@
 import { BookOpen, Braces, Calculator, Database } from 'lucide-react';
-import type { SubjectAccent, SubjectIconName } from '../student_types/portal';
+import type { SubjectAccent, SubjectIconName } from '../../../types/studentTypes';
 
 interface SubjectVisualProps {
   accent: SubjectAccent;

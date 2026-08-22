@@ -185,7 +185,57 @@ class Admin(models.Model):
 
     def __str__(self):
         return f"Admin: {self.user.school_id}"
+
+
+
+# ACADEMIC YEAR AND SEMESTER
+
+class SchoolYear(models.Model):
+    name = models.CharField(max_length=20, unique=True)
+    is_active = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        if self.is_active:
+            SchoolYear.objects.filter(is_active=True).exclude(id=self.id).update(is_active=False)
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+class Semester(models.Model):
+
+    SEMESTER_CHOICES = [
+        ('SEM1','Semester 1'),
+        ('SEM2','Semester 2'),
+        ('SEM3','Semester 3'),
+    ]
+
+    school_year = models.ForeignKey(SchoolYear, on_delete=models.CASCADE, related_name="semesters")
+    name = models.CharField(max_length=10, choices=SEMESTER_CHOICES)
+    is_active = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ("school_year",'name')
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.school_year.name} - {self.get_name_display()}"
     
+
+@receiver(post_save, sender=SchoolYear)
+def create_semester(sender, instance, created, **kwargs):
+    if created:
+
+        semesters = [
+            'SEM1',
+            'SEM2',
+            'SEM3'
+        ]
+
+        for semester in semesters:
+            Semester.objects.create(school_year=instance, name=semester)
+
 # ==================== QUARTERLY GRADES SYSTEM ====================
 
 class QuarterlyGrade(models.Model):
@@ -258,11 +308,11 @@ class Quiz(models.Model):
     GRADE_TYPE_CHOICES = [
         ('WRITTEN_WORK', 'Written Work'),
         ('PERFORMANCE_TASK', 'Performance Task'),
-        ('QUARTERLY_EXAM', 'Quarterly Exam'),
+        ('FINAL_EXAM', 'Final Exam'),
     ]
     
     quiz_id = models.CharField(max_length=50, unique=True, blank=True)
-    quarter = models.CharField(max_length=2, choices=QuarterlyGrade.QUARTER_CHOICES, default='Q1')
+    semester = models.ForeignKey(Semester, on_delete=models.CASCADE, related_name='quizzes')
     SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="quizzes")
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_quizzes", null=True, blank=True)
     title = models.CharField(max_length=255)

@@ -59,7 +59,6 @@ import SubjectFilesTab from './pages/teacher/subjects/SubjectFilesTab.tsx';
 import TeacherSubmissionsPage from './pages/teacher/submissions/TeacherSubmissionsPage.tsx';
 import TeacherSubjectSubmissionsPage from './pages/teacher/submissions/TeacherSubjectSubmissionPage.tsx';
 
-import StudentFilesTab from './pages/student/subjects/StudentFilesTab.tsx';
 import TeacherQuarterlyGrades from './pages/teacher/gradebook/SubjectQuarterlyGrades.tsx';
 
 import InputReportCardData from './pages/teacher/advisoryClass/InputReportCardData.tsx';
@@ -91,7 +90,7 @@ function App() {
               <Route path="/student/dashboard" element={<StudentDashboard />} />
               <Route path="/student/subject" element={<SubjectsPage />} />
               <Route path="/student/subject-offering/:id" element={<StudentSubjectpage />} />
-              <Route path="/student/subject-offering/:id/files" element={<StudentFilesTab />} />
+             
               <Route path="/student/grades/quarterly" element={<StudentQuarterlyGrades />} />
               <Route path="/student/activities" element={<StudentQuizList />} />
               <Route path="/student/activities/:id/take" element={<TakeQuiz />} />

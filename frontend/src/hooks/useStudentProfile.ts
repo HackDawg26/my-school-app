@@ -4,11 +4,8 @@ import { getStudentProfile } from "../api/studentApi";
 export function useStudentProfile() {
     return useQuery({
 
-        queryKey:[
-            "student-profile"
-        ],
-
+        queryKey:["student", "profile"],
         queryFn: getStudentProfile,
-        retry:1,
+        staleTime: 10 * 60 * 1000,
     });
 }

@@ -7,7 +7,7 @@
 import { ChevronRight, ClipboardCheck } from "lucide-react";
 import { SubjectVisual } from "../student_components/subjectVisual";
 import { SemesterPicker } from "../student_components/semesterPicker";
-import { PortalSnapshot } from "../student_types/portal";
+import { PortalSnapshot } from "../../../types/studentTypes";
 
 interface DashboardPageProps {
   data: PortalSnapshot;
@@ -37,7 +37,7 @@ export function StudentDashboardPage({
                     {data.student.first_name}! <span className="text-[34px]">👋</span>
                 </h1>
                 <p className="mt-3 text-sm font-medium text-slate-500">
-                    <span className="px-1">•</span> {data.student.year_level}
+                    {/* <span className="px-1">•</span> {data.student.year_level} */}
                 </p>
                 </div>
                 <SemesterPicker

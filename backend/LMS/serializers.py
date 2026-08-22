@@ -311,6 +311,8 @@ class StudentSubjectOfferingSerializer(serializers.ModelSerializer):
     teacher_name = serializers.SerializerMethodField()
     section_name = serializers.CharField(source="section.name", read_only=True)
     grade_level = serializers.CharField(source="section.grade_level", read_only=True)
+    room_number = serializers.CharField(read_only=True)
+    schedule = serializers.CharField(read_only=True)
 
     # computed fields
     progress = serializers.IntegerField(read_only=True)  # 0..100
@@ -326,6 +328,8 @@ class StudentSubjectOfferingSerializer(serializers.ModelSerializer):
             "teacher_name",
             "section_name",
             "grade_level",
+            "room_number",
+            "schedule",
             "progress",
             "average",
             "quarters",
@@ -533,7 +537,7 @@ class QuizSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'quiz_id', 'SubjectOffering', 'subject_name', 'teacher', 'teacher_name',
             'title', 'description', 'posted_at', 'open_time', 'close_time',
-            'time_limit', 'quarter', 'total_points', 'passing_score', 'status',
+            'time_limit', 'semester', 'total_points', 'passing_score', 'status',
             'show_correct_answers', 'shuffle_questions', 'allow_multiple_attempts',
             'questions', 'question_count', 'is_open', 'is_upcoming', 'is_closed',
             'created_at', 'updated_at', 'grade_type', 'is_editable'
@@ -566,7 +570,7 @@ class QuizCreateUpdateSerializer(serializers.ModelSerializer):
         model = Quiz
         fields = [
             'SubjectOffering', 'title', 'description', 'open_time', 'close_time',
-            'time_limit', 'quarter', 'total_points', 'passing_score', 'status',
+            'time_limit', 'semester', 'total_points', 'passing_score', 'status',
             'show_correct_answers', 'shuffle_questions', 'allow_multiple_attempts',
             'grade_type'
         ]

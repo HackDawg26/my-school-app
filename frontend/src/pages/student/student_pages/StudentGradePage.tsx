@@ -1,8 +1,8 @@
-// /*
-//     this page shows the student grades on every semester 
-//     this acts as their online report card which includes the subjects and their final grades.
+// // /*
+// //     this page shows the student grades on every semester 
+// //     this acts as their online report card which includes the subjects and their final grades.
  
-//  */
+// //  */
 
 // import { BarChart3 } from "lucide-react";
 
@@ -65,21 +65,21 @@
 //                         </tr>
 //                         </thead>
 //                         <tbody>
-//                         {selectedReport.rows.map((row) => (
+//                         {/* {selectedReport.rows.map((row) => (
 //                             <tr key={row.subjectId} className="border-b border-slate-100 last:border-b-0">
 //                             <td className="px-6 py-4 text-sm font-semibold text-slate-800">{row.subjectName}</td>
 //                             <td className="px-6 py-4 text-center text-sm font-extrabold text-slate-950">{row.finalGrade}</td>
 //                             <td className="px-6 py-4 text-center text-sm font-extrabold text-slate-950">{row.letterGrade}</td>
                             
 //                             </tr>
-//                         ))}
+//                         ))} */}
 //                         </tbody>
 //                     </table>
 //                     </div>
 //                     <div className="flex items-center justify-between gap-4 border-t border-slate-100 px-6 py-5">
-//                     <div className="text-lg font-extrabold text-slate-950">{selectedSemester?.label} GPA</div>
+//                     {/* <div className="text-lg font-extrabold text-slate-950">{selectedSemester?.label} GPA</div> */}
 //                     <div className="flex items-center gap-4">
-//                         <div className="text-3xl font-extrabold tracking-[-0.04em] text-slate-950">{selectedReport.gpa?.toFixed(2)}</div>
+//                         {/* <div className="text-3xl font-extrabold tracking-[-0.04em] text-slate-950">{selectedReport.gpa?.toFixed(2)}</div> */}
 //                         <span className="rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-extrabold text-emerald-600">Passed</span>
 //                     </div>
 //                     </div>
@@ -91,7 +91,7 @@
 //                         <BarChart3 className="size-7" />
 //                     </div>
 //                     <h3 className="mt-4 font-extrabold text-slate-900">Grades are not available yet</h3>
-//                     <p className="mt-2 text-sm text-slate-500">This semester is currently {statusStyles[selectedSemester.status].label.toLowerCase()}.</p>
+//                     {/* <p className="mt-2 text-sm text-slate-500">This semester is currently {statusStyles[selectedSemester.status].label.toLowerCase()}.</p> */}
 //                     </div>
 //                 </div>
 //                 )}

@@ -1,5 +1,5 @@
 import { CalendarDays, ChevronDown } from 'lucide-react';
-import type { Semester } from '../student_types/portal';
+import type { Semester } from '../../../types/studentTypes';
 
 interface SemesterPickerProps {
   semesters: Semester[];
