@@ -13,19 +13,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 
-// --- Type Definitions ---
-
-interface SubjectOffering {
-  id: number;
-  name: string;
-  section: string;
-  grade: string | number;
-  room_number: string;
-  students: number;
-  nextClass: string;
-  average: number;
-  pendingTasks: number;
-}
+import { useTeacherSubjects } from '../../../hooks/useTeacherSubjects';
 
 // --- Helpers ---
 
@@ -70,49 +58,14 @@ function chipClass(kind: 'good' | 'warn' | 'muted') {
 }
 
 export default function Dashboard() {
-  const [subjects, setSubjects] = useState<SubjectOffering[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const token = localStorage.getItem('access');
+  const {
+    data: subjects = [],
+    isLoading,
+    error,
+  } = useTeacherSubjects();
 
-  useEffect(() => {
-    const fetchSubjects = async () => {
-      if (!token) {
-        setLoading(false);
-        setErrorMsg('Not authenticated. Please log in again.');
-        return;
-      }
 
-      try {
-        setLoading(true);
-        setErrorMsg(null);
-
-        const res = await fetch('http://127.0.0.1:8000/api/subject-offerings/', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          console.error('Failed to load subject offerings:', err);
-          setErrorMsg('Failed to load your subject offerings.');
-          setSubjects([]);
-          return;
-        }
-
-        const data = (await res.json()) as SubjectOffering[];
-        setSubjects(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error(e);
-        setErrorMsg('Network error while loading subjects.');
-        setSubjects([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSubjects();
-  }, [token]);
 
   const { totalClasses, totalStudents, totalPendingTasks, overallAvg } = useMemo(() => {
     const totalClasses = subjects.length;
@@ -139,7 +92,7 @@ export default function Dashboard() {
   );
 
   // --- Loading / Error ---
-  if (loading) {
+  if (isLoading) {
     return (
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 md:px-6 py-8 md:py-10">
@@ -203,13 +156,13 @@ export default function Dashboard() {
     );
   }
 
-  if (errorMsg) {
+  if (error) {
     return (
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 md:px-6 py-10">
           <div className="rounded-3xl border border-rose-200 bg-white p-6">
             <div className="text-[11px] font-black uppercase tracking-[0.2em] text-rose-500">Error</div>
-            <div className="mt-2 text-lg font-bold text-slate-900">{errorMsg}</div>
+            <div className="mt-2 text-lg font-bold text-slate-900">Unable to load your subject offerings.</div>
             <div className="mt-1 text-sm text-slate-500">
               If this keeps happening, check your token in localStorage and your backend permissions.
             </div>

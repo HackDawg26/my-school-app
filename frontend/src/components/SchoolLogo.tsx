@@ -17,7 +17,7 @@ export const SchoolLogo = () => (
       </svg>
     </div>
     <div className="flex flex-col text-left">
-      <h2 className="font-headline text-3xl font-semibold leading-none">ClaroEd</h2>
+      <h2 className="font-headline text-large font-semibold leading-none">ClaroEd</h2>
     </div>
   </div>
 );

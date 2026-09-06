@@ -15,59 +15,9 @@ import {
   Users,
   Percent,
 } from 'lucide-react';
+import { useGenerateQuizAIAnalysis, useQuizItemAnalysis } from '../../../hooks/useTeacherSubjects';
 
-interface ChoiceDistribution {
-  [choice_id: number]: {
-    text: string;
-    count: number;
-    percentage: number;
-    is_correct: boolean;
-  };
-}
 
-interface ScoreBin{
-  score: number;
-  count: number;
-  percentage: number;
-}
-
-interface QuestionAnalysis {
-  question_id: number;
-  question_text: string;
-  question_type: string;
-  points: number;
-  order: number;
-  total_attempts: number;
-
-  correct_count: number;
-  incorrect_count: number;
-  correct_percentage: number;
-  difficulty: string;
-  choice_distribution: ChoiceDistribution;
-
-  ungraded_count: number;
-  analysis_mode?: 'CHOICES' | 'SCORES' | 'N/A';
-  graded_count?: number;
-  pending_count?: number;
-  max_points?: number;
-  avg_score?: number | null;
-  score_distribution?: ScoreBin[];
-  ai_insight?: {
-    misconception_analysis: string;
-    teaching_strategy: string;
-    remediation_suggestion: string;
-    difficulty_validation: string;
-    confidence: number;
-  };
-}
-
-interface ItemAnalysisData {
-  quiz_id: number;
-  quiz_title: string;
-  total_questions: number;
-  total_student_attempts: number;
-  questions: QuestionAnalysis[];
-}
 
 function SkeletonLine({ w = 'w-full' }: { w?: string }) {
   return <div className={`h-3 ${w} rounded-full bg-slate-200/80 animate-pulse`} />;
@@ -164,82 +114,88 @@ function pct(n: number) {
 export default function QuizItemAnalysis() {
   const { id } = useParams();
   const navigate = useNavigate();
-
-  const [data, setData] = useState<ItemAnalysisData | null>(null);
+  const quizId = Number(id || 0);
+  
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
-
-  useEffect(() => {
-    fetchItemAnalysis();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  const fetchItemAnalysis = async () => {
-    try {
-      setLoading(true);
-      setErrorMsg(null);
-
-      const savedUser = localStorage.getItem('user');
-      const token = savedUser ? JSON.parse(savedUser).token : null;
-
-      const response = await axios.get(`http://127.0.0.1:8000/api/teacher/quizzes/${id}/item-analysis/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setData(response.data);
-    } catch (error) {
-      console.error('Error fetching item analysis:', error);
-      setErrorMsg('Failed to load item analysis');
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGenerateAI = async () => {
-    try {
-      setLoadingAI(true);
-
-      const res = await authFetch(
-        `/api/teacher/quizzes/${id}/item-analysis/?with_ai=true`
-      );
-
-      const data = await res.json();
-
-      setData(data); // same state you use normally
-    } catch (error) {
-      console.error("AI error:", error);
-    } finally {
-      setLoadingAI(false);
-    }
-  };
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useQuizItemAnalysis(quizId);
 
   const avgSuccess = useMemo(() => {
     if (!data?.questions?.length) return 0;
 
     let totalNumerator = 0;
     let totalDenominator = 0;
-    
-    data.questions.forEach((q) => {
-      const attempts = q.total_attempts ?? 0;
-      if (q.analysis_mode === 'SCORES') {
-        const max = q.max_points ?? q.points ?? 0;
-        const avg = q.avg_score ?? 0;
-        const graded = q.graded_count ?? 0;
-        totalNumerator += avg * graded;
-        totalDenominator += max * graded;
+
+    data.questions.forEach((question) => {
+      const attempts = question.total_attempts ?? 0;
+
+      if (question.analysis_mode === "SCORES") {
+        const maxPoints =
+          question.max_points ??
+          question.points ??
+          0;
+
+        const averageScore =
+          question.avg_score ?? 0;
+
+        const gradedCount =
+          question.graded_count ?? 0;
+
+        totalNumerator +=
+          averageScore * gradedCount;
+
+        totalDenominator +=
+          maxPoints * gradedCount;
       } else {
-        totalNumerator += q.correct_count ?? 0;
+        totalNumerator +=
+          question.correct_count ?? 0;
+
         totalDenominator += attempts;
       }
     });
-    if (totalDenominator === 0) return 0;
-    return (totalNumerator / totalDenominator) * 100;
+
+    if (totalDenominator === 0) {
+      return 0;
+    }
+
+    return (
+      totalNumerator /
+      totalDenominator
+    ) * 100;
   }, [data]);
 
 
-  if (loading) {
+
+  const generateAI =
+    useGenerateQuizAIAnalysis();
+
+  const handleGenerateAI = () => {
+    generateAI.mutate(quizId, {
+      onError: (error) => {
+        console.error(
+          "AI analysis failed:",
+          error
+        );
+
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Failed to generate AI insight."
+        );
+      },
+    });
+  };
+
+
+  if (isLoading) {
     return (
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 md:px-6 py-8">
@@ -294,7 +250,7 @@ export default function QuizItemAnalysis() {
     );
   }
 
-  if (!data || errorMsg) {
+  if (!data || isError) {
     return (
       <main className="min-h-[70vh] bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 md:px-6 py-10">
@@ -311,7 +267,7 @@ export default function QuizItemAnalysis() {
             <div className="mt-2 text-lg font-bold text-slate-900">{errorMsg ?? 'Failed to load item analysis'}</div>
             <div className="mt-1 text-sm text-slate-500">Try refreshing the page.</div>
             <button
-              onClick={fetchItemAnalysis}
+              onClick={() => refetch()}
               className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white hover:bg-indigo-600"
             >
               <BarChart3 size={16} />
@@ -397,10 +353,10 @@ export default function QuizItemAnalysis() {
           </div>
           <button
             onClick={handleGenerateAI}
-            disabled={loadingAI}
+            disabled={generateAI.isPending}
             className="bg-purple-600 text-white px-4 py-2 rounded"
           >
-            {loadingAI ? "Generating AI Insight..." : "Generate AI Insight"}
+            {generateAI.isPending ? "Generating AI Insight..." : "Generate AI Insight"}
           </button>
 
           <div className="mt-6 space-y-4">

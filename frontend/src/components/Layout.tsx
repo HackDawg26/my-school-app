@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import SideBar from "./Sidebar";
+import SideBar from "./sidebar/Sidebar";
 
 export default function Layout() {
 

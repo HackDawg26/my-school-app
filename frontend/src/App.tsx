@@ -27,7 +27,7 @@ import { StudentAccountsPage} from './pages/admin/students/StudentsPage.tsx';
 import GradeLogs from './pages/admin/gradelogs/GradeLogs.tsx';
 import AccountListPage from './pages/admin/accounts/Account-list.tsx';
 import CreateSectionPage from './pages/admin/students/create-subject.tsx';
-import QuarterlyGradesPage from './pages/teacher/gradebook/QuarterlyGradesPage.tsx';
+import QuarterlyGradesPage from './pages/teacher/gradebook/SemesterGradesPage.tsx';
 import ExportReportCardPDF from './pages/teacher/advisoryClass/ExportReportCard.tsx';
 
 // import SubjectPage from './pages/teacher/subjects/SubjectPage.tsx';
@@ -59,9 +59,10 @@ import SubjectFilesTab from './pages/teacher/subjects/SubjectFilesTab.tsx';
 import TeacherSubmissionsPage from './pages/teacher/submissions/TeacherSubmissionsPage.tsx';
 import TeacherSubjectSubmissionsPage from './pages/teacher/submissions/TeacherSubjectSubmissionPage.tsx';
 
-import TeacherQuarterlyGrades from './pages/teacher/gradebook/SubjectQuarterlyGrades.tsx';
+import SubjectGradeDetailPage from './pages/teacher/gradebook/SubjectQuarterlyGrades.tsx';
 
 import InputReportCardData from './pages/teacher/advisoryClass/InputReportCardData.tsx';
+import SemesterGradesPage from './pages/teacher/gradebook/SemesterGradesPage.tsx';
 
 
 
@@ -127,8 +128,8 @@ function App() {
               <Route path="/teacher/submissions" element={<TeacherSubmissionsPage />} />
               <Route path="/teacher/submissions/:subjectOfferingId" element={<TeacherSubjectSubmissionsPage />} />
 
-              <Route path="/teacher/grades/quarterly" element={<QuarterlyGradesPage />} />
-              <Route path='/teacher/grades/quarterly/:id' element={<TeacherQuarterlyGrades />} />
+              <Route path="/teacher/grades/semester" element={<SemesterGradesPage />} />
+              <Route path='/teacher/grades/semester/:id' element={<SubjectGradeDetailPage />} />
               <Route path="/teacher/advisory-class" element={<AdvisoryClass />} />
               <Route path="/teacher/advisory-class/report-card/:studentId" element={<InputReportCardData />} />
               <Route path="/teacher/advisory-class/report-card/:studentId/sf9" element={<ExportReportCardPDF />} />
