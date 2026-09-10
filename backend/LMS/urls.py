@@ -50,6 +50,10 @@ urlpatterns = [
     path('student/topic-performance/', student_topic_performance, name='student_topic_performance'),
     path('student/topic-performance/<int:SubjectOffering_id>/', student_topic_performance, name='student_topic_performance_subject'),
     
+    # Semester routes; legacy quarterly URLs remain available.
+    path('semester-grades/', quarterly_grades, name='semester_grades'),
+    path('semester-grades/bulk-apply-weights/', quarterly_grades_bulk_apply_weights, name='semester_grades_bulk_apply_weights'),
+    path('semester-grades/<int:grade_id>/', quarterly_grade_detail, name='semester_grade_detail'),
     # Quarterly Grades
     path('quarterly-grades/', quarterly_grades, name='quarterly_grades'),
     path("quarterly-grades/bulk-apply-weights/", quarterly_grades_bulk_apply_weights, name="quarterly_grades_bulk_apply_weights"),
