@@ -1,1083 +1,1345 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
-import axios from "axios";
-import { Save, Plus, Edit2, Trash2, BookOpen, X, ArrowLeft } from "lucide-react";
-import { authFetch } from "../../lib/api";
-import { get } from "react-hook-form";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-/** ---------------- Types ---------------- */
+import {
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 
-interface Student {
-  id: number;
-  school_id: string;
-  first_name: string;
-  last_name: string;
+import {
+  ArrowLeft,
+  Search,
+  Save,
+  Trash2,
+  SlidersHorizontal,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
+
+import type {
+  Semester,
+  SemesterGrade,
+  SaveSemesterGradePayload,
+} from "../../../types/teacherTypes";
+
+import {
+  useSemesterGrades,
+  useSaveSemesterGrade,
+  useDeleteSemesterGrade,
+  useApplySemesterWeights,
+  useTeacherSubject,
+} from "../../../hooks/useTeacherSubjects";
+
+const SEMESTER_OPTIONS: {
+  label: string;
+  value: Semester;
+}[] = [
+  {
+    label: "1st Semester",
+    value: "SEMESTER_1",
+  },
+  {
+    label: "2nd Semester",
+    value: "SEMESTER_2",
+  },
+  {
+    label: "3rd Semester",
+    value: "SEMESTER_3",
+  },
+];
+
+type WeightForm = {
+  ww_weight: number;
+  pt_weight: number;
+  sa_weight: number;
+};
+
+function decimalToPercent(
+  value?: number
+) {
+  return Math.round(
+    Number(value ?? 0) *
+      100
+  );
 }
 
-
-
-interface QuarterlyGrade {
-  id?: number;
-
-  student: number;
-  student_id?: string;
-  student_name?: string;
-
-  SubjectOffering: number;
-  quarter: string;
-
-  written_work_score: number | null;
-  written_work_total: number;
-
-  performance_task_score: number | null;
-  performance_task_total: number;
-
-  quarterly_assessment_score: number | null;
-  quarterly_assessment_total: number;
-
-  ww_breakdown?: any[]; // array of quiz breakdowns for written work
-  ww_weight: number; // decimals (0.4)
-  pt_weight: number; // decimals (0.3)
-  qa_weight: number; // decimals (0.3)
-
-  final_grade?: number;
-  remarks: string;
+function percentToDecimal(
+  value: number
+) {
+  return value / 100;
 }
 
+export default function SubjectSemesterGrades() {
+  const navigate =
+    useNavigate();
 
-/** ---------------- Weights helpers ---------------- */
+  const { id } =
+    useParams<{
+      id: string;
+    }>();
 
-// UI can be blank while editing
-type UiWeightValue = number | "";
-type UiWeights = { ww: UiWeightValue; pt: UiWeightValue; qa: UiWeightValue };
+  const subjectId =
+    Number(id || 0);
 
-const DEFAULT_UI_WEIGHTS: UiWeights = { ww: 40, pt: 40, qa: 20 };
+  const [
+    currentSemester,
+    setCurrentSemester,
+  ] =
+    useState<Semester>(
+      "SEMESTER_1"
+    );
 
-const clamp = (n: number, min = 0, max = 100) => Math.min(max, Math.max(min, n));
-const n0 = (v: UiWeightValue) => (v === "" ? 0 : Number(v));
-const sumWeights = (w: UiWeights) => n0(w.ww) + n0(w.pt) + n0(w.qa);
+  const [
+    searchQuery,
+    setSearchQuery,
+  ] = useState("");
 
-const toDecimal = (pct: number) => pct / 100;
-const toPct = (dec: number) => Math.round(Number(dec) * 100);
+  const [
+    showWeightModal,
+    setShowWeightModal,
+  ] = useState(false);
 
+  /*
+   * Subject information
+   */
+  const {
+    data: subject,
+    isLoading:
+      subjectLoading,
+  } =
+    useTeacherSubject(
+      subjectId
+    );
 
-export default function TeacherQuarterlyGrades() {
-  const navigate = useNavigate();
-  const {id} = useParams();
-  const subjectoffering_id = Number(id);
+  /*
+   * Semester grades
+   */
+  const {
+    data: grades = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } =
+    useSemesterGrades(
+      subjectId,
+      currentSemester
+    );
 
+  /*
+   * Mutations
+   */
+  const saveMutation =
+    useSaveSemesterGrade();
+
+  const deleteMutation =
+    useDeleteSemesterGrade();
+
+  const applyWeightsMutation =
+    useApplySemesterWeights();
+
+  /*
+   * Local row drafts
+   *
+   * React Query owns the actual
+   * server grades.
+   *
+   * This object only contains
+   * unsaved edits.
+   */
+  const [
+    draftGrades,
+    setDraftGrades,
+  ] = useState<
+    Record<
+      number,
+      Partial<SemesterGrade>
+    >
+  >({});
+
+  /*
+   * Determine the currently
+   * applied backend weights.
+   *
+   * Backend:
+   * 0.40 / 0.40 / 0.20
+   *
+   * UI:
+   * 40 / 40 / 20
+   */
+  const defaultWeights =
+    useMemo<WeightForm>(
+      () => {
+        const grade =
+          grades[0];
+
+        return {
+          ww_weight:
+            grade
+              ? decimalToPercent(
+                  grade.ww_weight
+                )
+              : 40,
+
+          pt_weight:
+            grade
+              ? decimalToPercent(
+                  grade.pt_weight
+                )
+              : 40,
+
+          sa_weight:
+            grade
+              ? decimalToPercent(
+                  grade.sa_weight
+                )
+              : 20,
+        };
+      },
+      [grades]
+    );
+
+  const [
+    weights,
+    setWeights,
+  ] =
+    useState<WeightForm>({
+      ww_weight: 40,
+      pt_weight: 40,
+      sa_weight: 20,
+    });
+
+  /*
+   * Load new weights whenever
+   * semester data changes.
+   */
   useEffect(() => {
-    if (!Number.isFinite(subjectoffering_id)) {
-      navigate("/teacher/grades"); // or wherever
-      return;
-    }
-  }, [subjectoffering_id, navigate]);
+    setWeights(
+      defaultWeights
+    );
 
-  const location = useLocation();
-  const [subjectName, setSubjectName] = useState<string>(
-    (location.state as any)?.subjectName || "Subject"
-  );
+    setDraftGrades({});
+  }, [
+    defaultWeights,
+    currentSemester,
+  ]);
 
-  
+  /*
+   * Invalid route protection.
+   */
   useEffect(() => {
-    const fromState = (location.state as any)?.subjectName;
-    if (fromState) {
-      setSubjectName(fromState);
-      return;
-    }
-
-    if (!Number.isFinite(subjectoffering_id)) return;
-
-    (async () => {
-      try {
-        const token = getToken();
-        const res = await axios.get(
-          `http://127.0.0.1:8000/api/subject-offerings/${subjectoffering_id}/`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        // adjust depending on your backend response shape
-        setSubjectName(res.data?.name ?? "Subject");
-      } catch (err) {
-        console.error("Error fetching subject name:", err);
-      }
-    })();
-  }, [subjectoffering_id, location.state]);
-
-
-  /** ---------------- State ---------------- */
-
-  const [students, setStudents] = useState<Student[]>([]);
-  const [grades, setGrades] = useState<QuarterlyGrade[]>([]);
-  const [selectedQuarter, setSelectedQuarter] = useState<string>("Q1");
-  const [loading, setLoading] = useState(false);
-
-  const [showModal, setShowModal] = useState(false);
-  const [editingGrade, setEditingGrade] = useState<QuarterlyGrade | null>(null);
-
-  // Draft weights (what user types)
-  const [uiWeights, setUiWeights] = useState<UiWeights>(DEFAULT_UI_WEIGHTS);
-  // Applied weights (USED in computations)
-  const [appliedWeights, setAppliedWeights] = useState<UiWeights>(DEFAULT_UI_WEIGHTS);
-
-  const [formData, setFormData] = useState<QuarterlyGrade>({
-    student: 0,
-    SubjectOffering: subjectoffering_id,
-    quarter: "Q1",
-
-    written_work_score: null,
-    written_work_total: 100,
-
-    performance_task_score: null,
-    performance_task_total: 100,
-
-    quarterly_assessment_score: null,
-    quarterly_assessment_total: 100,
-
-    ww_weight: toDecimal(n0(DEFAULT_UI_WEIGHTS.ww)),
-    pt_weight: toDecimal(n0(DEFAULT_UI_WEIGHTS.pt)),
-    qa_weight: toDecimal(n0(DEFAULT_UI_WEIGHTS.qa)),
-
-    remarks: "",
-  });
-
-  const weightsStorageKey = useMemo(
-    () => `weights:${subjectoffering_id}:${selectedQuarter}`,
-    [subjectoffering_id, selectedQuarter]
-  );
-
-  /** ---------------- Fetching ---------------- */
-
-  useEffect(() => {
-    fetchStudents();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subjectoffering_id]);
-
-  useEffect(() => {
-    fetchGrades();
-    loadWeightsForQuarter(); // loads BOTH draft + applied from storage
-    setFormData((prev) => ({ ...prev, quarter: selectedQuarter }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subjectoffering_id, selectedQuarter]);
-
-  const getToken = () => {
-    const savedUser = localStorage.getItem("user");
-    return savedUser ? JSON.parse(savedUser).token : null;
-  };
-
-  const fetchStudents = async () => {
-    try {
-      const token = getToken();
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/subject-offerings/${subjectoffering_id}/students/`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setStudents(Array.isArray(response.data) ? response.data : []);
-    } catch (error) {
-      console.error("Error fetching students:", error);
-      setStudents([]);
-    }
-  };
-
-
-  const fetchGrades = async () => {
-    try {
-      setLoading(true);
-      const token = getToken();
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/quarterly-grades/?SubjectOffering_id=${subjectoffering_id}&quarter=${selectedQuarter}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setGrades(Array.isArray(response.data) ? response.data : []);
-    } catch (error) {
-      console.error("Error fetching grades:", error);
-      setGrades([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const [quizzes, setQuizzes] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetchQuizData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subjectoffering_id]);
-
-  const fetchQuizData = async () => {
-    try {
-      const token = getToken();
-
-      const res = await axios.get(
-        `http://127.0.0.1:8000/api/teacher/quizzes/?SubjectOffering=${subjectoffering_id}`,
+    if (
+      !Number.isFinite(
+        subjectId
+      ) ||
+      subjectId <= 0
+    ) {
+      navigate(
+        "/teacher/grades/semester",
         {
-          headers: { Authorization: `Bearer ${token}` },
+          replace: true,
         }
       );
-
-      setQuizzes(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
-      console.error("Error fetching quizzes:", error);
-      setQuizzes([]);
     }
-  };
+  }, [
+    subjectId,
+    navigate,
+  ]);
 
-  console.log(quizzes)
+  /*
+   * Draft number input
+   */
+  function handleInputChange(
+    studentId: number,
+    field:
+      keyof SemesterGrade,
+    raw: string
+  ) {
+    setDraftGrades(
+      (previous) => ({
+        ...previous,
 
-  /** ---------------- Weights (per quarter) ---------------- */
+        [studentId]: {
+          ...previous[
+            studentId
+          ],
 
-  const loadWeightsForQuarter = () => {
-    const raw = localStorage.getItem(weightsStorageKey);
-    if (!raw) {
-      setUiWeights(DEFAULT_UI_WEIGHTS);
-      setAppliedWeights(DEFAULT_UI_WEIGHTS);
-      return;
-    }
+          [field]:
+            raw === ""
+              ? null
+              : Number(
+                  raw
+                ),
+        },
+      })
+    );
+  }
 
-    try {
-      const parsed = JSON.parse(raw) as { ww?: number; pt?: number; qa?: number };
+  /*
+   * Draft remarks
+   */
+  function handleRemarksChange(
+    studentId: number,
+    remarks: string
+  ) {
+    setDraftGrades(
+      (previous) => ({
+        ...previous,
 
-      const loaded: UiWeights = {
-        // use ?? so 0 doesn't get replaced
-        ww: clamp(Number(parsed.ww ?? DEFAULT_UI_WEIGHTS.ww)),
-        pt: clamp(Number(parsed.pt ?? DEFAULT_UI_WEIGHTS.pt)),
-        qa: clamp(Number(parsed.qa ?? DEFAULT_UI_WEIGHTS.qa)),
+        [studentId]: {
+          ...previous[
+            studentId
+          ],
+          remarks,
+        },
+      })
+    );
+  }
+
+  /*
+   * Save one grade row
+   */
+  async function handleSaveRow(
+    row: SemesterGrade
+  ) {
+    const draft =
+      draftGrades[
+        row.student
+      ] || {};
+
+    const payload: SaveSemesterGradePayload =
+      {
+        gradeId:
+          row.id,
+
+        student:
+          row.student,
+
+        SubjectOffering:
+          subjectId,
+
+        semester:
+          currentSemester,
+
+        written_work_score:
+          draft.written_work_score !==
+          undefined
+            ? draft.written_work_score
+            : row.written_work_score,
+
+        written_work_total:
+          draft.written_work_total !==
+          undefined
+            ? Number(
+                draft.written_work_total
+              )
+            : row.written_work_total,
+
+        performance_task_score:
+          draft.performance_task_score !==
+          undefined
+            ? draft.performance_task_score
+            : row.performance_task_score,
+
+        performance_task_total:
+          draft.performance_task_total !==
+          undefined
+            ? Number(
+                draft.performance_task_total
+              )
+            : row.performance_task_total,
+
+        semester_assessment_score:
+          draft.semester_assessment_score !==
+          undefined
+            ? draft.semester_assessment_score
+            : row.semester_assessment_score,
+
+        semester_assessment_total:
+          draft.semester_assessment_total !==
+          undefined
+            ? Number(
+                draft.semester_assessment_total
+              )
+            : row.semester_assessment_total,
+
+        /*
+         * Keep backend values
+         * as decimal weights.
+         */
+        ww_weight:
+          row.ww_weight,
+
+        pt_weight:
+          row.pt_weight,
+
+        sa_weight:
+          row.sa_weight,
+
+        remarks:
+          draft.remarks !==
+          undefined
+            ? draft.remarks
+            : row.remarks ||
+              "",
       };
 
-      setUiWeights(loaded);
-      setAppliedWeights(loaded);
-    } catch (e) {
-      console.error("Invalid stored weights:", e);
-      setUiWeights(DEFAULT_UI_WEIGHTS);
-      setAppliedWeights(DEFAULT_UI_WEIGHTS);
-    }
-  };
-
-  const saveWeightsForQuarter = (next: UiWeights) => {
-    localStorage.setItem(weightsStorageKey, JSON.stringify(next));
-  };
-
-  // Draft editing only (NO computation changes here)
-  const updateUiWeight = (field: keyof UiWeights, raw: string) => {
-    setUiWeights((prev) => {
-      if (raw === "") return { ...prev, [field]: "" };
-      return { ...prev, [field]: clamp(Number(raw)) };
-    });
-  };
-
-  // Apply = affects computations + persists + used for new grade form
-  const applyWeights = async () => {
-    const total = sumWeights(uiWeights);
-    const allFilled = uiWeights.ww !== "" && uiWeights.pt !== "" && uiWeights.qa !== "";
-
-    if (!allFilled) {
-      alert("Please fill in all weights.");
-      return;
-    }
-    if (total !== 100) {
-      alert("Weights must total 100%.");
-      return;
-    }
-
-    const ww = toDecimal(n0(uiWeights.ww));
-    const pt = toDecimal(n0(uiWeights.pt));
-    const qa = toDecimal(n0(uiWeights.qa));
-
     try {
-      const token = getToken();
-
-      // ✅ 1) Persist in backend so final_grade updates (affects Advisory)
-      await axios.post(
-        "http://127.0.0.1:8000/api/quarterly-grades/bulk-apply-weights/",
-        {
-          SubjectOffering: subjectoffering_id,
-          quarter: selectedQuarter,
-          ww_weight: ww,
-          pt_weight: pt,
-          qa_weight: qa,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await saveMutation.mutateAsync(
+        payload
       );
 
-      // ✅ 2) Keep local UI state (optional but fine)
-      setAppliedWeights(uiWeights);
-      saveWeightsForQuarter(uiWeights);
+      setDraftGrades(
+        (previous) => {
+          const next = {
+            ...previous,
+          };
 
-      // ✅ 3) Refresh grades from backend (now includes recomputed final_grade)
-      await fetchGrades();
+          delete next[
+            row.student
+          ];
 
-      // ✅ 4) Update add-form default weights
-      if (!editingGrade) {
-        setFormData((prev) => ({
-          ...prev,
-          ww_weight: ww,
-          pt_weight: pt,
-          qa_weight: qa,
-        }));
-      }
-
-      alert("Weights applied successfully!");
-    } catch (err: any) {
-      console.error("Failed to apply weights:", err?.response?.data || err);
-      alert("Failed to apply weights. Make sure the backend endpoint exists and you are authorized.");
-    }
-  };
-
-
-  const resetWeights = () => {
-    setUiWeights(DEFAULT_UI_WEIGHTS);
-    setAppliedWeights(DEFAULT_UI_WEIGHTS);
-    saveWeightsForQuarter(DEFAULT_UI_WEIGHTS);
-
-    if (!editingGrade) {
-      setFormData((prev) => ({
-        ...prev,
-        ww_weight: toDecimal(n0(DEFAULT_UI_WEIGHTS.ww)),
-        pt_weight: toDecimal(n0(DEFAULT_UI_WEIGHTS.pt)),
-        qa_weight: toDecimal(n0(DEFAULT_UI_WEIGHTS.qa)),
-      }));
-    }
-  };
-
-  // For computations only
-  const appliedDecimals = useMemo(() => {
-    return {
-      ww: toDecimal(n0(appliedWeights.ww)),
-      pt: toDecimal(n0(appliedWeights.pt)),
-      qa: toDecimal(n0(appliedWeights.qa)),
-    };
-  }, [appliedWeights]);
-
-  const weightChips = useMemo(() => {
-    return {
-      ww: uiWeights.ww,
-      pt: uiWeights.pt,
-      qa: uiWeights.qa,
-      total: sumWeights(uiWeights),
-    };
-  }, [uiWeights]);
-
-  const appliedChips = useMemo(() => {
-    return {
-      ww: n0(appliedWeights.ww),
-      pt: n0(appliedWeights.pt),
-      qa: n0(appliedWeights.qa),
-      total: sumWeights(appliedWeights),
-    };
-  }, [appliedWeights]);
-
-  /** ---------------- Modal helpers ---------------- */
-
-  const openAddModal = () => {
-    setEditingGrade(null);
-
-    // IMPORTANT: use APPLIED weights when adding a grade
-    const ww = toDecimal(n0(appliedWeights.ww));
-    const pt = toDecimal(n0(appliedWeights.pt));
-    const qa = toDecimal(n0(appliedWeights.qa));
-
-    setFormData({
-      student: 0,
-      SubjectOffering: subjectoffering_id,
-      quarter: selectedQuarter,
-
-      written_work_score: null,
-      written_work_total: 100,
-
-      performance_task_score: null,
-      performance_task_total: 100,
-
-      quarterly_assessment_score: null,
-      quarterly_assessment_total: 100,
-
-      ww_weight: ww,
-      pt_weight: pt,
-      qa_weight: qa,
-
-      remarks: "",
-    });
-
-    setShowModal(true);
-  };
-
-  const openEditModal = (grade: QuarterlyGrade) => {
-    setEditingGrade(grade);
-    setFormData({ ...grade });
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingGrade(null);
-  };
-
-  const handleInputChange = (field: keyof QuarterlyGrade, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  /** ---------------- Calculations ---------------- */
-
-  // This uses APPLIED weights, so list updates immediately when you click Apply
-  const calculateFinalGrade = (grade: QuarterlyGrade) => {
-    const wwPct = ((Number(grade.written_work_score) / Number(grade.written_work_total)) * 100) || 0;
-    const ptPct = ((Number(grade.performance_task_score) / Number(grade.performance_task_total)) * 100) || 0;
-    const qaPct = ((Number(grade.quarterly_assessment_score) / Number(grade.quarterly_assessment_total)) * 100) || 0;
-
-    const wwW = Number(grade.ww_weight) || 0;
-    const ptW = Number(grade.pt_weight) || 0;
-    const qaW = Number(grade.qa_weight) || 0;
-
-    return wwPct * wwW + ptPct * ptW + qaPct * qaW;
-  };
-
-
-  /** ---------------- Submit / Delete ---------------- */
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.student || formData.student === 0) {
-      alert("Please select a student");
-      return;
-    }
-
-    // For add: require applied weights total 100
-    if (!editingGrade) {
-      if (appliedChips.total !== 100) {
-        alert("Applied weights for this quarter must total 100%. Click Apply first.");
-        return;
-      }
-    } else {
-      // Editing grade keeps its stored weights (decimals) validation
-      const decSum = Number(formData.ww_weight) + Number(formData.pt_weight) + Number(formData.qa_weight);
-      if (Math.abs(decSum - 1) > 0.0001) {
-        alert("This grade has invalid weights. They must total 1.0 (100%).");
-        return;
-      }
-    }
-
-    if (!editingGrade) {
-      const existingGrade = grades.find(
-        (g) =>
-          g.student === formData.student &&
-          g.SubjectOffering === subjectoffering_id &&
-          g.quarter === selectedQuarter
-      );
-      if (existingGrade) {
-        alert(
-          `A grade already exists for this student in ${selectedQuarter}.\n\nPlease use the Edit button to update the existing grade instead.`
-        );
-        return;
-      }
-    }
-
-    const payload = {
-      student: formData.student,
-      SubjectOffering: subjectoffering_id,
-      quarter: selectedQuarter,
-
-      written_work_score: formData.written_work_score,
-      written_work_total: formData.written_work_total,
-
-      performance_task_score: formData.performance_task_score,
-      performance_task_total: formData.performance_task_total,
-
-      quarterly_assessment_score: formData.quarterly_assessment_score,
-      quarterly_assessment_total: formData.quarterly_assessment_total,
-
-      // IMPORTANT: when adding, formData already has applied weights
-      ww_weight: formData.ww_weight,
-      pt_weight: formData.pt_weight,
-      qa_weight: formData.qa_weight,
-
-      remarks: formData.remarks || "",
-    };
-
-    try {
-      const token = getToken();
-
-      if (editingGrade?.id) {
-        await axios.put(
-          `http://127.0.0.1:8000/api/quarterly-grades/${editingGrade.id}/`,
-          payload,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        alert("Grade updated successfully!");
-      } else {
-        await axios.post("http://127.0.0.1:8000/api/quarterly-grades/", payload, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        alert("Grade added successfully!");
-      }
-
-      fetchGrades();
-      closeModal();
-    } catch (error: any) {
-      console.error("Error saving grade:", error);
-
-      const errorMsg = error.response?.data;
-      let displayError = "Failed to save grade:\n\n";
-
-      if (typeof errorMsg === "object") {
-        for (const [field, messages] of Object.entries(errorMsg)) {
-          if (Array.isArray(messages)) displayError += `${field}: ${messages.join(", ")}\n`;
-          else displayError += `${field}: ${messages}\n`;
+          return next;
         }
-      } else {
-        displayError = errorMsg || "Unknown error occurred";
-      }
+      );
+    } catch (error) {
+      console.error(
+        "Failed to save row:",
+        error
+      );
 
-      alert(displayError);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to save grade."
+      );
     }
-  };
+  }
 
-  const handleDeleteGrade = async (gradeId: number) => {
-    if (!confirm("Delete this grade entry?")) return;
+  /*
+   * Delete grade
+   */
+  async function handleDeleteRow(
+    gradeId?: number
+  ) {
+    if (!gradeId) {
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        "Are you sure you want to delete this semester grade?"
+      );
+
+    if (!confirmed) {
+      return;
+    }
 
     try {
-      const token = getToken();
-      await axios.delete(`http://127.0.0.1:8000/api/quarterly-grades/${gradeId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      alert("Grade deleted successfully!");
-      fetchGrades();
-    } catch (error) {
-      console.error("Error deleting grade:", error);
-    }
-  };
+      await deleteMutation.mutateAsync(
+        {
+          subjectId,
 
-  /** ---------------- UI ---------------- */
+          semester:
+            currentSemester,
+
+          gradeId,
+        }
+      );
+    } catch (error) {
+      console.error(
+        "Failed to delete grade:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete grade."
+      );
+    }
+  }
+
+  /*
+   * Apply weights
+   */
+  async function handleSaveWeights() {
+    const total =
+      weights.ww_weight +
+      weights.pt_weight +
+      weights.sa_weight;
+
+    if (total !== 100) {
+      alert(
+        "Weights must total 100%."
+      );
+
+      return;
+    }
+
+    try {
+      await applyWeightsMutation.mutateAsync(
+        {
+          subjectId,
+
+          semester:
+            currentSemester,
+
+          /*
+           * Convert UI percentage
+           * back to backend decimal.
+           */
+          ww_weight:
+            percentToDecimal(
+              weights.ww_weight
+            ),
+
+          pt_weight:
+            percentToDecimal(
+              weights.pt_weight
+            ),
+
+          sa_weight:
+            percentToDecimal(
+              weights.sa_weight
+            ),
+        }
+      );
+
+      setShowWeightModal(
+        false
+      );
+    } catch (error) {
+      console.error(
+        "Failed to apply weights:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to apply weights."
+      );
+    }
+  }
+
+  /*
+   * Search
+   */
+  const filteredGrades =
+    useMemo(() => {
+      const query =
+        searchQuery
+          .trim()
+          .toLowerCase();
+
+      if (!query) {
+        return grades;
+      }
+
+      return grades.filter(
+        (grade) => {
+          const name =
+            grade.student_name
+              ?.toLowerCase() ||
+            "";
+
+          const code =
+            grade.student_id
+              ?.toLowerCase() ||
+            "";
+
+          return (
+            name.includes(
+              query
+            ) ||
+            code.includes(
+              query
+            )
+          );
+        }
+      );
+    }, [
+      grades,
+      searchQuery,
+    ]);
+
+  const totalWeight =
+    weights.ww_weight +
+    weights.pt_weight +
+    weights.sa_weight;
 
   return (
-    <div className="mx-auto  px-3 sm:px-4 md:px-6 py-4 space-y-4">
-      {/* ✅ Sticky mobile header */}
-      <div className="sticky top-0 z-20 bg-slate-50/80 backdrop-blur border-b border-slate-200 -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 py-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50  hover:text-indigo-800">
-              <ArrowLeft size={16} />
-                Back
+    <main className="min-h-screen bg-slate-50 text-slate-800">
+      <div className="flex flex-col space-y-6 p-6">
 
-            </button>
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-              Quarterly Grades
-            </div>
-            <h2 className="mt-1 text-base sm:text-lg font-black text-slate-900 truncate">{subjectName}</h2>
-            <p className="text-xs text-slate-500">Manage grades per quarter</p>
-          </div>
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
 
-          <div className="shrink-0 flex items-center gap-2">
-            <button
-              onClick={openAddModal}
-              className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 text-white px-3 py-2 text-xs sm:text-sm font-black hover:bg-emerald-700"
-            >
-              <Plus size={16} />
-              <span className="hidden sm:inline">Add Grade</span>
-              <span className="sm:hidden">Add</span>
-            </button>
-            <BookOpen size={22} className="text-indigo-600 hidden sm:block" />
-          </div>
-        </div>
-
-        {/* ✅ Quarter buttons: scrollable on mobile */}
-        <div className="mt-3 flex items-center justify-between">
-          {/* LEFT SIDE — Quarter Buttons */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            {["Q1", "Q2", "Q3", "Q4"].map((q) => (
-              <button
-                key={q}
-                onClick={() => setSelectedQuarter(q)}
-                className={`shrink-0 px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider transition ${
-                  selectedQuarter === q
-                    ? "bg-indigo-600 text-white"
-                    : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-
-          {/* RIGHT SIDE — Manual Input Button */}
-          <button
-            className="px-3 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-wider"
-
-          >
-            Manual Input
-          </button>
-
-        </div>
-        
-
-        
-      </div>
-
-      {/* ✅ Weights */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-black text-slate-900">Weights for {selectedQuarter}</p>
-            <p className="text-xs text-slate-500">
-              Draft weights won’t affect computation until you click <span className="font-black">Apply</span>.
-            </p>
-          </div>
-
-          <div className="shrink-0 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={resetWeights}
-              className="px-3 py-2 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-wider"
-              title="Reset to 40/40/20"
-            >
-              Reset
-            </button>
+          <div className="flex items-center gap-4">
 
             <button
               type="button"
-              onClick={applyWeights}
-              disabled={uiWeights.ww === "" || uiWeights.pt === "" || uiWeights.qa === "" || sumWeights(uiWeights) !== 100}
-              className={`px-3 py-2 rounded-2xl text-xs font-black uppercase tracking-wider ${
-                uiWeights.ww === "" || uiWeights.pt === "" || uiWeights.qa === "" || sumWeights(uiWeights) !== 100
-                  ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-                  : "bg-indigo-600 text-white hover:bg-indigo-700"
-              }`}
+              onClick={() =>
+                navigate(
+                  "/teacher/grades/semester"
+                )
+              }
+              className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition"
+              title="Return to Subjects"
             >
-              Apply
+              <ArrowLeft className="w-5 h-5" />
             </button>
-          </div>
-        </div>
 
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* WW */}
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-blue-700 uppercase tracking-wider">WW</span>
-              <span className="text-[11px] text-slate-500">%</span>
-            </div>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={uiWeights.ww}
-              onChange={(e) => updateUiWeight("ww", e.target.value)}
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
+            <div>
 
-          {/* PT */}
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-emerald-700 uppercase tracking-wider">PT</span>
-              <span className="text-[11px] text-slate-500">%</span>
-            </div>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={uiWeights.pt}
-              onChange={(e) => updateUiWeight("pt", e.target.value)}
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
+              <h1 className="text-xl font-bold text-slate-900">
+                {subjectLoading
+                  ? "Loading subject..."
+                  : subject?.name ||
+                    "Subject Grading Sheet"}
+              </h1>
 
-          {/* QA */}
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-purple-700 uppercase tracking-wider">QA</span>
-              <span className="text-[11px] text-slate-500">%</span>
-            </div>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={uiWeights.qa}
-              onChange={(e) => updateUiWeight("qa", e.target.value)}
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-        </div>
+              <p className="text-xs text-slate-500">
+                Manage student
+                scores, semester
+                weights, and
+                remarks
+              </p>
 
-        <div className="mt-3 flex items-center justify-between">
-          <div className="text-xs text-slate-600">
-            Draft total: <span className="font-black text-slate-900">{weightChips.total}%</span>
-          </div>
-          {weightChips.total !== 100 ? (
-            <span className="text-xs font-black text-rose-600">Must equal 100%</span>
-          ) : (
-            <span className="text-xs font-black text-emerald-600">OK</span>
-          )}
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-2 text-xs">
-          <span className="bg-slate-50 text-slate-700 border border-slate-200 px-3 py-1 rounded-2xl font-black">
-            Applied: WW {appliedChips.ww}% • PT {appliedChips.pt}% • QA {appliedChips.qa}%
-          </span>
-        </div>
-      </div>
-
-      {/* ✅ Mobile-first grade list (cards), table only on md+ */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Mobile cards */}
-        <div className="md:hidden divide-y divide-slate-100">
-          {loading ? (
-            <div className="p-6 text-center text-slate-600">Loading grades…</div>
-          ) : grades.length === 0 ? (
-            <div className="p-6 text-center text-slate-600">
-              No grades for <span className="font-black">{selectedQuarter}</span>. Tap “Add” to start.
-            </div>
-          ) : (
-            grades.map((g) => {
-              const final = Number(g.final_grade ?? 0).toFixed(2)
-
-              return (
-                <div key={g.id} className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="font-black text-slate-900 truncate">{g.student_name}</div>
-                      <div className="text-xs text-slate-500 truncate">{g.student_id}</div>
-                      <div className="mt-2 text-xs text-slate-600 space-y-1">
-                        <div>
-                          <span className="font-black text-blue-700">WW:</span> {g.written_work_score}/{g.written_work_total}
-                        </div>
-                        <div>
-                          <span className="font-black text-emerald-700">PT:</span> {g.performance_task_score}/{g.performance_task_total}
-                        </div>
-                        <div>
-                          <span className="font-black text-purple-700">QA:</span> {g.quarterly_assessment_score}/{g.quarterly_assessment_total}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 text-right">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Final</div>
-                      <div className="text-2xl font-black text-indigo-600">{final}</div>
-                      <div className="mt-1 text-[10px] text-slate-500 font-bold">
-                        W:{appliedChips.ww} P:{appliedChips.pt} Q:{appliedChips.qa}
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openEditModal(g)}
-                          className="p-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-indigo-600"
-                          title="Edit"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => g.id && handleDeleteGrade(g.id)}
-                          className="p-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-rose-600"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {g.remarks ? (
-                    <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        Remarks
-                      </div>
-                      <div className="mt-1">{g.remarks}</div>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Desktop table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-widest">
-                  Student
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-black text-slate-500 uppercase tracking-widest">
-                  WW
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-black text-slate-500 uppercase tracking-widest">
-                  PT
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-black text-slate-500 uppercase tracking-widest">
-                  QA
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-black text-slate-500 uppercase tracking-widest">
-                  Final
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-widest">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-slate-600">
-                    Loading grades…
-                  </td>
-                </tr>
-              ) : grades.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-slate-600">
-                    No grades entered for {selectedQuarter} yet.
-                  </td>
-                </tr>
-              ) : (
-                grades.map((g) => (
-                  <tr key={g.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3">
-                      <div className="font-black text-slate-900">{g.student_name}</div>
-                      <div className="text-xs text-slate-500">{g.student_id}</div>
-                    </td>
-
-                    <td className="px-4 py-3 text-center text-sm text-slate-700">
-                      {g.written_work_score}/{g.written_work_total}
-                      
-                    </td>
-                    <td className="px-4 py-3 text-center text-sm text-slate-700">
-                      {g.performance_task_score}/{g.performance_task_total}
-                    </td>
-                    <td className="px-4 py-3 text-center text-sm text-slate-700">
-                      {g.quarterly_assessment_score}/{g.quarterly_assessment_total}
-                    </td>
-
-                    <td className="px-4 py-3 text-center">
-                      <div className="text-lg font-black text-indigo-600">
-                        {Number(g.final_grade ?? 0).toFixed(2)}
-                      </div>
-                      <div className="text-[11px] text-slate-500 mt-1">
-                        Applied W:{appliedChips.ww} / P:{appliedChips.pt} / Q:{appliedChips.qa}
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3 text-right">
-                      <div className="inline-flex items-center gap-2">
-                        <button
-                          onClick={() => openEditModal(g)}
-                          className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-indigo-600"
-                          title="Edit"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => g.id && handleDeleteGrade(g.id)}
-                          className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-rose-600"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Modal for adding grade to another student */}
-      {/* i might delete this later, it seems its unnecessary */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-end sm:items-center justify-center">
-          <div className="bg-white w-full sm:max-w-2xl sm:rounded-3xl rounded-t-3xl border border-slate-200 shadow-xl max-h-[92vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-4 flex items-center justify-between">
-              <h3 className="text-base sm:text-xl font-black text-slate-900">
-                {editingGrade ? `Edit Grade (${selectedQuarter})` : `Add New Grade (${selectedQuarter})`}
-              </h3>
-              <button onClick={closeModal} className="p-2 rounded-2xl hover:bg-slate-100">
-                <X size={18} />
-              </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  Weights used in this entry
-                </div>
-                <div className="mt-1 font-bold">
-                  WW {toPct(formData.ww_weight)}% • PT {toPct(formData.pt_weight)}% • QA {toPct(formData.qa_weight)}%
-                </div>
-                {!editingGrade ? (
-                  <div className="text-xs text-slate-500 mt-1">
-                    (New grade uses the <span className="font-black">Applied</span> weights above)
-                  </div>
-                ) : null}
-              </div>
+          </div>
 
-              <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
-                  Student *
-                </label>
-                <select
-                  value={formData.student}
-                  onChange={(e) => handleInputChange("student", parseInt(e.target.value))}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
-                  required
-                  disabled={!!editingGrade}
-                >
-                  <option value={0}>Select a student</option>
-                  {students.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.first_name} {s.last_name} ({s.school_id})
-                    </option>
-                  ))}
-                </select>
-                {editingGrade ? (
-                  <p className="text-xs text-slate-500 mt-2">Cannot change student for existing grade</p>
-                ) : null}
-              </div>
+          {/* Semester tabs */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <ScoreBlock
-                  title={`Written Work (${toPct(formData.ww_weight)}%)`}
-                  theme="blue"
-                  score={formData.written_work_score}
-                  total={formData.written_work_total}
-                  onScore={(v) => handleInputChange("written_work_score", v)}
-                  onTotal={(v) => handleInputChange("written_work_total", v)}
-                />
-                <ScoreBlock
-                  title={`Performance Task (${toPct(formData.pt_weight)}%)`}
-                  theme="green"
-                  score={formData.performance_task_score}
-                  total={formData.performance_task_total}
-                  onScore={(v) => handleInputChange("performance_task_score", v)}
-                  onTotal={(v) => handleInputChange("performance_task_total", v)}
-                />
-                <ScoreBlock
-                  title={`Quarterly Assessment (${toPct(formData.qa_weight)}%)`}
-                  theme="purple"
-                  score={formData.quarterly_assessment_score}
-                  total={formData.quarterly_assessment_total}
-                  onScore={(v) => handleInputChange("quarterly_assessment_score", v)}
-                  onTotal={(v) => handleInputChange("quarterly_assessment_total", v)}
-                />
-              </div>
-
-              <div className="rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4">
-                <div className="text-xs font-black uppercase tracking-widest text-white/80">Final Grade</div>
-                <div className="mt-1 text-3xl font-black">{calculateFinalGrade(formData).toFixed(2)}%</div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">
-                  Remarks
-                </label>
-                <textarea
-                  value={formData.remarks}
-                  onChange={(e) => handleInputChange("remarks", e.target.value)}
-                  rows={3}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Optional comments..."
-                />
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                <button
-                  type="submit"
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 text-white px-4 py-3 text-sm font-black hover:bg-indigo-700"
-                >
-                  <Save size={18} />
-                  {editingGrade ? "Update Grade" : "Add Grade"}
-                </button>
+            {SEMESTER_OPTIONS.map(
+              (item) => (
 
                 <button
+                  key={
+                    item.value
+                  }
                   type="button"
-                  onClick={closeModal}
-                  className="sm:w-40 inline-flex items-center justify-center rounded-2xl bg-slate-100 text-slate-800 px-4 py-3 text-sm font-black hover:bg-slate-200"
+                  onClick={() =>
+                    setCurrentSemester(
+                      item.value
+                    )
+                  }
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                    currentSemester ===
+                    item.value
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-900"
+                  }`}
                 >
-                  Cancel
+                  {
+                    item.label
+                  }
                 </button>
+
+              )
+            )}
+
+          </div>
+
+        </div>
+
+        {/* Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+
+          <div className="relative w-full sm:w-72">
+
+            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+
+            <input
+              type="text"
+              placeholder="Search student or ID..."
+              value={
+                searchQuery
+              }
+              onChange={(
+                event
+              ) =>
+                setSearchQuery(
+                  event.target
+                    .value
+                )
+              }
+              className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+            />
+
+          </div>
+
+          <div className="flex items-center gap-3">
+
+            <button
+              type="button"
+              onClick={() =>
+                refetch()
+              }
+              disabled={
+                isFetching
+              }
+              className="p-2 text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-sm disabled:opacity-50"
+              title="Refresh Data"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${
+                  isFetching
+                    ? "animate-spin"
+                    : ""
+                }`}
+              />
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowWeightModal(
+                  true
+                )
+              }
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 shadow-sm"
+            >
+              <SlidersHorizontal className="w-4 h-4 text-slate-500" />
+
+              <span>
+                Grading Weights
+              </span>
+            </button>
+
+          </div>
+
+        </div>
+
+        {/* Grade table */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col">
+
+          {isLoading ? (
+
+            <div className="p-12 text-center text-slate-400 text-sm">
+              Loading student
+              records...
+            </div>
+
+          ) : isError ? (
+
+            <div className="p-12 text-center text-rose-500 text-sm">
+
+              <div className="flex items-center justify-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+
+                <span>
+                  Failed to load
+                  semester grades.
+                </span>
               </div>
 
-              <div className="pt-2 text-xs text-slate-500">
-                Tip: If you want different weights per quarter, set them above then click Apply.
-              </div>
-            </form>
-          </div>
+              {error instanceof
+                Error && (
+                <p className="mt-2 text-xs">
+                  {
+                    error.message
+                  }
+                </p>
+              )}
+
+            </div>
+
+          ) : filteredGrades.length ===
+            0 ? (
+
+            <div className="p-12 text-center text-slate-400 text-sm">
+              No records found
+              for this semester.
+            </div>
+
+          ) : (
+
+            <div className="overflow-x-auto">
+
+              <table className="w-full text-left text-sm border-collapse">
+
+                <thead>
+
+                  <tr className="bg-slate-50/75 border-b border-slate-200 text-xs font-semibold text-slate-600">
+
+                    <th className="py-3.5 px-4 sticky left-0 bg-slate-50 z-10 min-w-56">
+                      Student
+                    </th>
+
+                    <th className="py-3.5 px-4 text-center">
+                      Written Work (
+                      {
+                        defaultWeights.ww_weight
+                      }
+                      %)
+                    </th>
+
+                    <th className="py-3.5 px-4 text-center">
+                      Performance Task (
+                      {
+                        defaultWeights.pt_weight
+                      }
+                      %)
+                    </th>
+
+                    <th className="py-3.5 px-4 text-center">
+                      Semester Assessment (
+                      {
+                        defaultWeights.sa_weight
+                      }
+                      %)
+                    </th>
+
+                    <th className="py-3.5 px-4 text-center">
+                      Final Grade
+                    </th>
+
+                    <th className="py-3.5 px-4">
+                      Remarks
+                    </th>
+
+                    <th className="py-3.5 px-4 text-right">
+                      Actions
+                    </th>
+
+                  </tr>
+
+                </thead>
+
+                <tbody className="divide-y divide-slate-100">
+
+                  {filteredGrades.map(
+                    (row) => {
+
+                      const draft =
+                        draftGrades[
+                          row.student
+                        ] || {};
+
+                      const isModified =
+                        Object.keys(
+                          draft
+                        ).length >
+                        0;
+
+                      const isSavingThisRow =
+                        saveMutation.isPending &&
+                        saveMutation.variables
+                          ?.student ===
+                          row.student;
+
+                      const isDeletingThisRow =
+                        deleteMutation.isPending &&
+                        deleteMutation.variables
+                          ?.gradeId ===
+                          row.id;
+
+                      return (
+
+                        <tr
+                          key={
+                            row.id ??
+                            row.student
+                          }
+                          className="hover:bg-slate-50/50"
+                        >
+
+                          <td className="py-3 px-4 sticky left-0 bg-white z-10">
+
+                            <div className="font-medium text-slate-900">
+                              {row.student_name ||
+                                `Student #${row.student}`}
+                            </div>
+
+                            <div className="text-xs text-slate-400">
+                              {row.student_id ||
+                                "—"}
+                            </div>
+
+                          </td>
+
+                          {/* WW */}
+                          <td className="py-3 px-4">
+
+                            <ScorePair
+                              score={
+                                draft.written_work_score ??
+                                row.written_work_score
+                              }
+                              total={
+                                draft.written_work_total ??
+                                row.written_work_total
+                              }
+                              onScore={(
+                                value
+                              ) =>
+                                handleInputChange(
+                                  row.student,
+                                  "written_work_score",
+                                  value
+                                )
+                              }
+                              onTotal={(
+                                value
+                              ) =>
+                                handleInputChange(
+                                  row.student,
+                                  "written_work_total",
+                                  value
+                                )
+                              }
+                            />
+
+                          </td>
+
+                          {/* PT */}
+                          <td className="py-3 px-4">
+
+                            <ScorePair
+                              score={
+                                draft.performance_task_score ??
+                                row.performance_task_score
+                              }
+                              total={
+                                draft.performance_task_total ??
+                                row.performance_task_total
+                              }
+                              onScore={(
+                                value
+                              ) =>
+                                handleInputChange(
+                                  row.student,
+                                  "performance_task_score",
+                                  value
+                                )
+                              }
+                              onTotal={(
+                                value
+                              ) =>
+                                handleInputChange(
+                                  row.student,
+                                  "performance_task_total",
+                                  value
+                                )
+                              }
+                            />
+
+                          </td>
+
+                          {/* Semester assessment */}
+                          <td className="py-3 px-4">
+
+                            <ScorePair
+                              score={
+                                draft.semester_assessment_score ??
+                                row.semester_assessment_score
+                              }
+                              total={
+                                draft.semester_assessment_total ??
+                                row.semester_assessment_total
+                              }
+                              onScore={(
+                                value
+                              ) =>
+                                handleInputChange(
+                                  row.student,
+                                  "semester_assessment_score",
+                                  value
+                                )
+                              }
+                              onTotal={(
+                                value
+                              ) =>
+                                handleInputChange(
+                                  row.student,
+                                  "semester_assessment_total",
+                                  value
+                                )
+                              }
+                            />
+
+                          </td>
+
+                          {/* Final */}
+                          <td className="py-3 px-4 text-center">
+
+                            <span
+                              className={`font-semibold text-xs px-2.5 py-1 rounded-full ${
+                                (row.final_grade ??
+                                  0) >=
+                                75
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : row.final_grade !==
+                                    undefined &&
+                                    row.final_grade !==
+                                      null
+                                  ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                  : "bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              {row.final_grade !==
+                                undefined &&
+                              row.final_grade !==
+                                null
+                                ? Number(
+                                    row.final_grade
+                                  ).toFixed(
+                                    2
+                                  )
+                                : "—"}
+                            </span>
+
+                          </td>
+
+                          {/* Remarks */}
+                          <td className="py-3 px-4">
+
+                            <input
+                              type="text"
+                              value={
+                                draft.remarks !==
+                                undefined
+                                  ? draft.remarks
+                                  : row.remarks ||
+                                    ""
+                              }
+                              onChange={(
+                                event
+                              ) =>
+                                handleRemarksChange(
+                                  row.student,
+                                  event.target
+                                    .value
+                                )
+                              }
+                              placeholder="Add remark..."
+                              className="w-full min-w-36 px-2 py-1 text-xs bg-transparent border-b border-dashed border-slate-200 focus:outline-none focus:border-indigo-500"
+                            />
+
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-3 px-4 text-right">
+
+                            <div className="flex items-center justify-end gap-1">
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleSaveRow(
+                                    row
+                                  )
+                                }
+                                disabled={
+                                  !isModified ||
+                                  isSavingThisRow
+                                }
+                                className={`p-1.5 rounded-md ${
+                                  isModified
+                                    ? "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                                    : "text-slate-300 cursor-not-allowed"
+                                }`}
+                              >
+                                <Save className="w-4 h-4" />
+                              </button>
+
+                              {row.id && (
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleDeleteRow(
+                                      row.id
+                                    )
+                                  }
+                                  disabled={
+                                    isDeletingThisRow
+                                  }
+                                  className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+
+                              )}
+
+                            </div>
+
+                          </td>
+
+                        </tr>
+
+                      );
+                    }
+                  )}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          )}
+
         </div>
+
+      </div>
+
+      {/* Weight modal */}
+      {showWeightModal && (
+
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+
+          <div className="bg-white rounded-xl shadow-lg border border-slate-200 w-full max-w-sm p-6 space-y-4">
+
+            <h2 className="text-base font-bold text-slate-900">
+              Adjust Component
+              Weights
+            </h2>
+
+            <WeightField
+              label="Written Work (%)"
+              value={
+                weights.ww_weight
+              }
+              onChange={(
+                value
+              ) =>
+                setWeights(
+                  (
+                    previous
+                  ) => ({
+                    ...previous,
+
+                    ww_weight:
+                      value,
+                  })
+                )
+              }
+            />
+
+            <WeightField
+              label="Performance Task (%)"
+              value={
+                weights.pt_weight
+              }
+              onChange={(
+                value
+              ) =>
+                setWeights(
+                  (
+                    previous
+                  ) => ({
+                    ...previous,
+
+                    pt_weight:
+                      value,
+                  })
+                )
+              }
+            />
+
+            <WeightField
+              label="Semester Assessment (%)"
+              value={
+                weights.sa_weight
+              }
+              onChange={(
+                value
+              ) =>
+                setWeights(
+                  (
+                    previous
+                  ) => ({
+                    ...previous,
+
+                    sa_weight:
+                      value,
+                  })
+                )
+              }
+            />
+
+            <div className="text-xs text-slate-500">
+
+              Total:{" "}
+
+              <span
+                className={
+                  totalWeight ===
+                  100
+                    ? "text-emerald-600 font-semibold"
+                    : "text-rose-600 font-semibold"
+                }
+              >
+                {
+                  totalWeight
+                }
+                %
+              </span>
+
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowWeightModal(
+                    false
+                  )
+                }
+                disabled={
+                  applyWeightsMutation.isPending
+                }
+                className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={
+                  handleSaveWeights
+                }
+                disabled={
+                  totalWeight !==
+                    100 ||
+                  applyWeightsMutation.isPending
+                }
+                className="px-4 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {applyWeightsMutation.isPending
+                  ? "Applying..."
+                  : "Apply Weights"}
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
       )}
 
-      {/* Footer note */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
-        <div className="font-black text-slate-900">Note</div>
-        <p className="mt-1 text-sm text-slate-600">
-          This page lets you encode quarterly grades (Q1–Q4). For activity-based grading, check your analytics.
-        </p>
-        <button
-          type="button"
-          onClick={() => navigate(`/teacher/subject/${subjectoffering_id}/analytics`)}
-          className="mt-3 inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black uppercase tracking-wider text-indigo-600 hover:bg-indigo-50"
-        >
-          Open Analytics
-        </button>
-      </div>
+    </main>
+  );
+}
+
+function ScorePair({
+  score,
+  total,
+  onScore,
+  onTotal,
+}: {
+  score:
+    number | null;
+
+  total:
+    number | null;
+
+  onScore:
+    (
+      value: string
+    ) => void;
+
+  onTotal:
+    (
+      value: string
+    ) => void;
+}) {
+  return (
+    <div className="flex items-center justify-center gap-1.5">
+
+      <input
+        type="number"
+        min={0}
+        step="0.01"
+        value={
+          score ?? ""
+        }
+        onChange={(
+          event
+        ) =>
+          onScore(
+            event.target.value
+          )
+        }
+        className="w-16 px-2 py-1 text-center bg-slate-50 border border-slate-200 rounded text-xs"
+      />
+
+      <span className="text-slate-400">
+        /
+      </span>
+
+      <input
+        type="number"
+        min={1}
+        step="0.01"
+        value={
+          total ?? ""
+        }
+        onChange={(
+          event
+        ) =>
+          onTotal(
+            event.target.value
+          )
+        }
+        className="w-16 px-2 py-1 text-center bg-slate-50 border border-slate-200 rounded text-xs"
+      />
+
     </div>
   );
 }
 
-/** small reusable block for the modal */
-function ScoreBlock(props: {
-  title: string;
-  theme: "blue" | "green" | "purple";
-  score: number | null;
-  total: number;
-  onScore: (v: number | null) => void;
-  onTotal: (v: number) => void;
+function WeightField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+
+  onChange:
+    (
+      value: number
+    ) => void;
 }) {
-  const themeMap = {
-    blue: "border-blue-200 bg-blue-50 text-blue-900",
-    green: "border-emerald-200 bg-emerald-50 text-emerald-900",
-    purple: "border-purple-200 bg-purple-50 text-purple-900",
-  } as const;
-
   return (
-    <div className={`rounded-3xl border p-3 ${themeMap[props.theme]}`}>
-      <div className="text-xs font-black uppercase tracking-widest">{props.title}</div>
+    <div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <div>
-          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-600 mb-1">
-            Score
-          </label>
-          <input
-            type="number"
-            min={0}
-            step="0.01"
-            value={props.score ?? ""}
-            onChange={(e) => {
-              const raw = e.target.value;
-              props.onScore(raw === "" ? null : Number(raw));
-            }}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
+      <label className="block text-xs font-semibold text-slate-600 mb-1">
+        {label}
+      </label>
 
-        <div>
-          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-600 mb-1">
-            Total
-          </label>
-          <input
-            type="number"
-            min={1}
-            step="0.01"
-            value={props.total}
-            onChange={(e) => props.onTotal(Number(e.target.value) || 1)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
-            required
-          />
-        </div>
-      </div>
+      <input
+        type="number"
+        min={0}
+        max={100}
+        value={
+          value
+        }
+        onChange={(
+          event
+        ) =>
+          onChange(
+            Number(
+              event.target
+                .value
+            )
+          )
+        }
+        className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm"
+      />
 
-      <div className="mt-2 text-xs text-slate-700">
-        %: {(((Number(props.score) / props.total) * 100) || 0).toFixed(2)}%
-      </div>
     </div>
   );
 }

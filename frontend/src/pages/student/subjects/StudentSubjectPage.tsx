@@ -1,6 +1,4 @@
-'use client';
-
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {useMemo, useState } from 'react';
 import {
   ArrowLeft,
   Download,
@@ -9,44 +7,25 @@ import {
   ArrowUpDown,
   PlayCircle,
   RefreshCw,
-  GraduationCap,
   Layers,
   FolderOpen,
   CalendarClock,
+  BarChart,
+  Eye,
+  X,
 } from 'lucide-react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 
-type SubjectOfferingDetail = {
-  id: number;
-  subject_name: string;
-  teacher_name?: string;
-  average?: number;
-  final_grade?: number;
-};
+// STUDENT HOOKS
+import { useStudentSubject } from '../../../hooks/useStudentSubject';
+import { useStudentSubjectQuizzes } from '../../../hooks/useStudentSubjectQuizzes';
+import { useStudentSubjectFiles } from '../../../hooks/useStudentSubjectFiles';
+
+import type { StudentQuiz } from '../../../types/studentTypes';
 
 type QuizStatus = 'DRAFT' | 'SCHEDULED' | 'OPEN' | 'CLOSED';
 
-type Quiz = {
-  id: number;
-  title: string;
-  status?: QuizStatus;
-  open_time?: string | null;
-  close_time?: string | null;
-  time_limit?: number | null;
 
-  is_open?: boolean;
-  is_upcoming?: boolean;
-  is_closed?: boolean;
-};
-
-type OfferingFile = {
-  id: number;
-  title: string;
-  file_url: string;
-  file_size: number;
-  content_type: string;
-  created_at: string;
-};
 
 function formatDate(iso?: string | null) {
   if (!iso) return '—';
@@ -62,11 +41,11 @@ function formatDateTime(iso?: string | null) {
   return d.toLocaleString();
 }
 
-function getQuizStatus(q: Quiz): QuizStatus {
+function getQuizStatus(q: StudentQuiz): QuizStatus {
   if (q.is_open) return 'OPEN';
   if (q.is_upcoming) return 'SCHEDULED';
   if (q.is_closed) return 'CLOSED';
-  return q.status ?? 'SCHEDULED';
+  return 'SCHEDULED';
 }
 
 function statusMeta(s: QuizStatus) {
@@ -107,6 +86,26 @@ function formatBytes(bytes: number) {
   return `${num.toFixed(num >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
+function isPreviewable(contentType: string, url: string){
+  const lower = (url || "").toLowerCase();
+  if ((contentType || "").startsWith("image/")) {
+      return "image" as const;
+  }
+
+  if (
+    contentType === "application/pdf" ||
+    lower.endsWith(".pdf")
+  ) {
+    return "pdf" as const;
+  }
+
+  if (lower.match(/\.(png|jpg|jpeg|webp)$/)) {
+    return "image" as const;
+  }
+
+  return null; 
+}
+
 
 
 function SkeletonLine({ w = 'w-full' }: { w?: string }) {
@@ -138,7 +137,7 @@ function StatCard({
           </div>
         </div>
       </div>
-      <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-slate-100" />
+    
     </div>
   );
 }
@@ -195,92 +194,39 @@ export default function StudentSubjectpage() {
   const offeringId = Number(id || 0);
   const [activeTab, setActiveTab] = useState<'activities' | 'files'>('activities');
 
-  const [offering, setOffering] = useState<SubjectOfferingDetail | null>(null);
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [files, setFiles] = useState<OfferingFile[]>([]);
+  const [preview, setPreview] = useState<{
+    kind: "pdf" | "image";
+    url: string;
+    title: string;
+  } | null>(null);
 
-  const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const {
+    data: offering,
+    isLoading: subjectLoading,
+    error: subjectError,
+  } = useStudentSubject(offeringId);
+
+  const {
+    data: quizzes = [],
+    isLoading: quizzesLoading,
+    error: quizzesError,
+  } = useStudentSubjectQuizzes(offeringId);
+
+  const {
+    data: files = [],
+    isLoading: filesLoading,
+    error: filesError,
+    refetch: refetchFiles,
+    isFetching: filesFetching,
+  } = useStudentSubjectFiles(offeringId);
+
+  
 
   // files UI state
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<'newest' | 'oldest' | 'name'>('newest');
-  const [refreshingFiles, setRefreshingFiles] = useState(false);
 
-  const token = localStorage.getItem('access');
-  const base = 'http://127.0.0.1:8000/api';
-
-  useEffect(() => {
-    const run = async () => {
-      if (!token) {
-        setErrorMsg('Not authenticated. Please log in again.');
-        setLoading(false);
-        return;
-      }
-      if (!offeringId) {
-        setErrorMsg('Invalid subject offering id.');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setErrorMsg(null);
-
-        // 1) subject offering detail
-        const offeringRes = await fetch(`${base}/student/subject-offerings/${offeringId}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!offeringRes.ok) {
-          const err = await offeringRes.json().catch(() => ({}));
-          console.error('SubjectOffering load failed:', err);
-          setErrorMsg('Subject offering not found.');
-          setOffering(null);
-          setQuizzes([]);
-          setFiles([]);
-          return;
-        }
-
-        const offeringData = (await offeringRes.json()) as SubjectOfferingDetail;
-        setOffering(offeringData);
-
-        // 2) quizzes + files
-        const [qRes, fRes] = await Promise.all([
-          fetch(`${base}/student/subject-offerings/${offeringId}/quizzes/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }).catch(() => null),
-          fetch(`${base}/student/subject-offerings/${offeringId}/files/`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }).catch(() => null),
-        ]);
-
-        if (qRes && qRes.ok) {
-          const data = (await qRes.json()) as Quiz[];
-          setQuizzes(Array.isArray(data) ? data : []);
-        } else {
-          setQuizzes([]);
-        }
-
-        if (fRes && fRes.ok) {
-          const data = (await fRes.json()) as OfferingFile[];
-          setFiles(Array.isArray(data) ? data : []);
-        } else {
-          setFiles([]);
-        }
-      } catch (e) {
-        console.error(e);
-        setErrorMsg('Network error while loading subject offering.');
-        setOffering(null);
-        setQuizzes([]);
-        setFiles([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    run();
-  }, [offeringId, token]);
 
   const stats = useMemo(() => {
     const grade = typeof offering?.final_grade === 'number' ? Math.round(offering.final_grade) : null;
@@ -320,23 +266,9 @@ export default function StudentSubjectpage() {
     return arr;
   }, [files, q, sort]);
 
-  async function refreshFiles() {
-    if (!token) return;
-    try {
-      setRefreshingFiles(true);
-      const res = await fetch(`${base}/student/subject-offerings/${offeringId}/files/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json().catch(() => []);
-      setFiles(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setRefreshingFiles(false);
-    }
-  }
 
-  if (loading) {
+
+  if (filesLoading || subjectLoading || quizzesLoading) {
     return (
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 md:px-6 py-6 md:py-10">
@@ -394,7 +326,7 @@ export default function StudentSubjectpage() {
     );
   }
 
-  if (errorMsg || !offering) {
+  if (subjectError || quizzesError || filesError || !offering) {
     return (
       <main className="min-h-[70vh] bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 md:px-6 py-10">
@@ -408,7 +340,14 @@ export default function StudentSubjectpage() {
 
           <div className="mt-6 rounded-3xl border border-rose-200 bg-white p-6">
             <div className="text-sm font-black uppercase tracking-widest text-rose-500">Error</div>
-            <div className="mt-2 text-lg font-bold text-slate-900">{errorMsg ?? 'Not found'}</div>
+            <div className="mt-2 text-lg font-bold text-slate-900">{subjectError 
+                ? "Unable to load subject." 
+                : quizzesError 
+                ? "Unable to load subject activities."
+                : filesError
+                ? "Unable to load subject files."
+                :"Not found"}
+            </div>
             <div className="mt-1 text-sm text-slate-500">Try going back and selecting the subject again.</div>
           </div>
         </div>
@@ -417,9 +356,48 @@ export default function StudentSubjectpage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      {/* Preview modal (files) */}
-      
+    <main className=" bg-slate-50">
+      {/* preview for files */}
+      {preview && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm p-4 flex items-center justify-center">
+          <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden">
+
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+              <div className="font-black text-slate-900 truncate">
+                {preview.title}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPreview(null)}
+                className="p-2 rounded-lg hover:bg-slate-100 text-slate-600"
+                aria-label="Close preview"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="h-[70vh] bg-slate-50">
+              {preview.kind === "image" ? (
+                <div className="h-full flex items-center justify-center p-4">
+                  <img
+                    src={preview.url}
+                    alt={preview.title}
+                    className="max-h-full max-w-full rounded-xl object-contain"
+                  />
+                </div>
+              ) : (
+                <iframe
+                  title={preview.title}
+                  src={preview.url}
+                  className="w-full h-full"
+                />
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Sticky top bar */}
       <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/85 backdrop-blur">
@@ -427,7 +405,7 @@ export default function StudentSubjectpage() {
           <div className="flex items-center gap-3">
             <Link
               to="/student/subject"
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-500 hover:bg-slate-50"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
@@ -435,11 +413,11 @@ export default function StudentSubjectpage() {
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 min-w-0">
-                <h1 className="truncate text-xl md:text-2xl font-black tracking-tight text-slate-900">
+                <h1 className="truncate text-xl md:text-2xl font-black tracking-wide text-slate-950">
                   {offering.subject_name}
                 </h1>
               </div>
-              <div className="mt-0.5 text-xs font-bold uppercase tracking-[0.2em] text-slate-500">
+              <div className="mt-0.5 text-xs font-bold uppercase tracking-wide text-slate-500">
                 {offering.teacher_name ?? '—'}
               </div>
             </div>
@@ -449,14 +427,14 @@ export default function StudentSubjectpage() {
                 active={activeTab === 'activities'}
                 icon={<Layers size={16} />}
                 label="Activities"
-                count={stats.activityCount}
+                
                 onClick={() => setActiveTab('activities')}
               />
               <TabButton
                 active={activeTab === 'files'}
                 icon={<FolderOpen size={16} />}
                 label="Files"
-                count={stats.fileCount}
+                
                 onClick={() => setActiveTab('files')}
               />
             </div>
@@ -482,11 +460,11 @@ export default function StudentSubjectpage() {
         </div>
       </div>
 
-      <div className="mx-auto px-4 md:px-6 py-6 md:py-10">
+      <div className="mx-auto px-2 md:px-4 py-4 md:py-6">
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-3">
           <StatCard
-            icon={<GraduationCap size={18} />}
+            icon={<BarChart size={18} />}
             label="Current Grade"
             value={
               <div className="flex items-baseline gap-2">
@@ -552,7 +530,7 @@ export default function StudentSubjectpage() {
                   <div className="rounded-3xl border border-slate-200 overflow-hidden">
                     {/* Desktop table */}
                     <div className="hidden md:block">
-                      <div className="max-h-[560px] overflow-auto">
+                      <div className="max-h-140 overflow-auto">
                         <table className="w-full text-left">
                           <thead className="sticky top-0 z-10 bg-white">
                             <tr className="border-b border-slate-200">
@@ -715,17 +693,17 @@ export default function StudentSubjectpage() {
 
                     <button
                       type="button"
-                      onClick={refreshFiles}
-                      disabled={refreshingFiles}
+                      onClick={() => refetchFiles()}
+                      disabled={filesFetching}
                       className={[
                         'inline-flex items-center gap-2 px-4 py-3 rounded-2xl border text-sm font-black transition',
-                        refreshingFiles
+                        filesFetching
                           ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'
                           : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
                       ].join(' ')}
                       title="Refresh"
                     >
-                      <RefreshCw size={16} className={refreshingFiles ? 'animate-spin' : ''} />
+                      <RefreshCw size={16} className={filesFetching ? 'animate-spin' : ''} />
                       Refresh
                     </button>
                   </div>
@@ -748,6 +726,11 @@ export default function StudentSubjectpage() {
                   <div className="mt-6 rounded-3xl border border-slate-200 overflow-hidden">
                     <div className="max-h-[560px] overflow-auto divide-y divide-slate-100">
                       {visibleFiles.map((f) => {
+                        const previewKind = isPreviewable(
+                          f.content_type,
+                          f.file_url
+                        );
+
                         return (
                           <div
                             key={f.id}
@@ -768,6 +751,21 @@ export default function StudentSubjectpage() {
 
                             <div className="flex items-center gap-2 justify-end">
                               
+                              {previewKind && (
+                                <button
+                                  type='button'
+                                  onClick={() => setPreview({
+                                    kind: previewKind,
+                                    url: f.file_url,
+                                    title: f.title,
+                                  })
+                                }
+                                  className='inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50 transition'
+                                >
+                                  <Eye size={16} />
+                                  Preview
+                                </button>
+                              )}
 
                               <a
                                 href={f.file_url}

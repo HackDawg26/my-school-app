@@ -1,1 +1,6 @@
 @import 'tailwindcss';
+
+:root {
+  /* Color */
+  --ink: #16213e;
+}
