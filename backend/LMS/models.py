@@ -239,7 +239,7 @@ def create_semester(sender, instance, created, **kwargs):
 # ==================== QUARTERLY GRADES SYSTEM ====================
 
 class QuarterlyGrade(models.Model):
-    """Stores student grades per quarter with weighted components"""
+    """Semester grades, with legacy quarterly records preserved during migration."""
     QUARTER_CHOICES = [
         ('Q1', 'First Quarter'),
         ('Q2', 'Second Quarter'),
@@ -249,7 +249,13 @@ class QuarterlyGrade(models.Model):
     
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="quarterly_grades")
     SubjectOffering = models.ForeignKey(SubjectOffering, on_delete=models.CASCADE, related_name="quarterly_grades")
-    quarter = models.CharField(max_length=2, choices=QUARTER_CHOICES)
+    # Retained for existing quarterly records during migration.
+    quarter = models.CharField(max_length=2, choices=QUARTER_CHOICES, blank=True, default="")
+    semester = models.ForeignKey(
+        Semester, on_delete=models.PROTECT, related_name="grades",
+        null=True, blank=True,
+        help_text="Required for new semester grades; null only for legacy quarterly records.",
+    )
     
     # Component scores (raw scores, not weighted)
     written_work_score = models.FloatField(default=0.0, help_text="Total WW score")
@@ -275,7 +281,17 @@ class QuarterlyGrade(models.Model):
     remarks = models.TextField(blank=True, help_text="Teacher comments/remarks")
     
     class Meta:
-        unique_together = ['student', 'SubjectOffering', 'quarter']
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student", "SubjectOffering", "semester"],
+                name="unique_student_offering_semester",
+            ),
+            models.UniqueConstraint(
+                fields=["student", "SubjectOffering", "quarter"],
+                condition=models.Q(semester__isnull=True),
+                name="unique_legacy_student_offering_quarter",
+            ),
+        ]
         ordering = ['student', 'SubjectOffering', 'quarter']
     
     def calculate_final_grade(self):
@@ -295,7 +311,7 @@ class QuarterlyGrade(models.Model):
         super().save(*args, **kwargs)
     
     def __str__(self):
-        return f"{self.student.user.email} - {self.SubjectOffering.name} - {self.quarter}: {self.final_grade:.2f}%"
+        return f"{self.student.user.email} - {self.SubjectOffering.name} - {self.semester or self.quarter}: {self.final_grade:.2f}%"
     
 class Quiz(models.Model):
     STATUS_CHOICES = [
@@ -347,19 +363,35 @@ class Quiz(models.Model):
             self.quiz_id = f"QZ{uuid.uuid4().hex[:8].upper()}"
         super().save(*args, **kwargs)
     
-    def is_open(self):
-        from django.utils import timezone
+    def current_status(self, now=None):
+        # Drafts need publishing; an explicit early close remains closed.
+        if self.status in ("DRAFT", "CLOSED"):
+            return self.status
+        now = now or timezone.now()
+        if now >= self.close_time:
+            return "CLOSED"
+        if now < self.open_time:
+            return "SCHEDULED"
+        return "OPEN"
+
+    @classmethod
+    def sync_statuses(cls, queryset):
+        """Persist due transitions when quizzes are requested (no background worker)."""
         now = timezone.now()
-        return self.open_time <= now <= self.close_time
-    
+        active = queryset.filter(status__in=["SCHEDULED", "OPEN"])
+        active.filter(close_time__lte=now).update(status="CLOSED", updated_at=now)
+        active.filter(close_time__gt=now, open_time__gt=now).exclude(status="SCHEDULED").update(status="SCHEDULED", updated_at=now)
+        active.filter(close_time__gt=now, open_time__lte=now).exclude(status="OPEN").update(status="OPEN", updated_at=now)
+
+    def is_open(self):
+        return self.current_status() == "OPEN"
+
     def is_upcoming(self):
-        from django.utils import timezone
-        return timezone.now() < self.open_time
-    
+        return self.current_status() == "SCHEDULED"
+
     def is_closed(self):
-        from django.utils import timezone
-        return timezone.now() > self.close_time
-    
+        return self.current_status() == "CLOSED"
+
     def is_editable(self):
         now = timezone.now()
 

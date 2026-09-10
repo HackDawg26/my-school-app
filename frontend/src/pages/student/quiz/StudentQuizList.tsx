@@ -30,11 +30,6 @@ interface QuizAttempt {
   submitted_at?: string;
 }
 
-type SubjectOfferingCard = {
-  id: number;
-  subject_name: string;
-};
-
 type Tab = "ALL" | "OPEN" | "UPCOMING" | "CLOSED";
 
 function badge(status: Tab) {
@@ -66,9 +61,9 @@ function fmt(dt?: string) {
 
 export default function StudentQuizList() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [offerings, setOfferings] = useState<SubjectOfferingCard[]>([]);
   const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // UI state
   const [tab, setTab] = useState<Tab>("ALL");
@@ -79,9 +74,21 @@ export default function StudentQuizList() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await Promise.all([fetchOfferings(), fetchQuizzes(), fetchAttempts()]);
+      await Promise.all([fetchQuizzes(), fetchAttempts()]);
       setLoading(false);
     })();
+    let polling = false;
+    const refresh = async () => {
+      if (polling || document.hidden) return;
+      polling = true;
+      try { await fetchQuizzes(); } finally { polling = false; }
+    };
+    const timer = window.setInterval(() => void refresh(), 5000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+    };
   }, []);
 
   const getToken = () => {
@@ -91,28 +98,44 @@ export default function StudentQuizList() {
     return savedUser ? JSON.parse(savedUser).token : null;
   };
 
-  const fetchOfferings = async () => {
-    try {
-      const token = getToken();
-      const res = await axios.get(`${base}/student/subject-offerings/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setOfferings(Array.isArray(res.data) ? res.data : []);
-    } catch (e) {
-      console.error("Error fetching offerings:", e);
-      setOfferings([]);
-    }
-  };
-
   const fetchQuizzes = async () => {
+    setLoadError(null);
     try {
       const token = getToken();
       const res = await axios.get(`${base}/student/quizzes/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setQuizzes(Array.isArray(res.data) ? res.data : []);
+      let data = res.data;
+      const loaded: Quiz[] = [];
+      while (true) {
+        if (Array.isArray(data)) {
+          loaded.push(...data);
+          break;
+        }
+        if (!data || !Array.isArray(data.results)) {
+          throw new Error("Unexpected quiz response. Please try again.");
+        }
+        loaded.push(...data.results);
+        if (!data.next) break;
+        const next = new URL(data.next, `${base}/student/quizzes/`);
+        const api = new URL(base, window.location.origin);
+        if (next.origin !== api.origin || next.pathname !== `${api.pathname}/student/quizzes/`) {
+          throw new Error("Unexpected quiz pagination link.");
+        }
+        data = (await axios.get(next.toString(), {
+          headers: { Authorization: `Bearer ${token}` },
+        })).data;
+      }
+      setQuizzes(loaded);
     } catch (e) {
       console.error("Error fetching quizzes:", e);
+      setLoadError(
+        axios.isAxiosError(e) && e.response?.status === 401
+          ? "Your session has expired. Please sign in again."
+          : axios.isAxiosError(e) && e.response?.status === 403
+            ? "This account cannot access student quizzes."
+            : "Unable to load quizzes. Check your connection and try again."
+      );
       setQuizzes([]);
     }
   };
@@ -123,24 +146,12 @@ export default function StudentQuizList() {
       const res = await axios.get(`${base}/student/quiz-attempts/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setAttempts(Array.isArray(res.data) ? res.data : []);
+      setAttempts(Array.isArray(res.data) ? res.data : res.data?.results ?? []);
     } catch (e) {
       console.error("Error fetching attempts:", e);
       setAttempts([]);
     }
   };
-
-  const allowedSubjects = useMemo(() => {
-    return new Set(
-      offerings.map((o) => String(o.subject_name || "").trim().toLowerCase()).filter(Boolean)
-    );
-  }, [offerings]);
-
-  const visibleQuizzes = useMemo(() => {
-    return quizzes.filter((q) =>
-      allowedSubjects.has(String(q.subject_name || "").trim().toLowerCase())
-    );
-  }, [quizzes, allowedSubjects]);
 
   const latestAttemptByQuizId = useMemo(() => {
     const map = new Map<number, QuizAttempt>();
@@ -156,7 +167,7 @@ export default function StudentQuizList() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
 
-    let list = [...visibleQuizzes];
+    let list = [...quizzes];
 
     // tab filter
     if (tab !== "ALL") {
@@ -179,7 +190,7 @@ export default function StudentQuizList() {
     });
 
     return list;
-  }, [visibleQuizzes, tab, query]);
+  }, [quizzes, tab, query]);
 
   const canTakeQuiz = (quiz: Quiz) => {
     if (!quiz.is_open) return false;
@@ -260,11 +271,20 @@ export default function StudentQuizList() {
           ))}
         </div>
 
+        {loadError && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+            <p>{loadError}</p>
+            <button type="button" onClick={() => void fetchQuizzes()} className="mt-2 font-bold underline">
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* List */}
         <div className="grid gap-4">
-          {filtered.length === 0 ? (
+          {loadError ? null : filtered.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-slate-100 shadow-sm">
-              <p className="text-slate-500 font-bold">No quizzes match your filters.</p>
+              <p className="text-slate-500 font-bold">{quizzes.length === 0 ? "No published quizzes are available for your section yet." : "No quizzes match your filters."}</p>
             </div>
           ) : (
             filtered.map((quiz) => {

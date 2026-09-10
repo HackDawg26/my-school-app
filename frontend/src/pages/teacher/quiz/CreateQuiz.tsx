@@ -19,6 +19,24 @@ import type {
   Semester,
 } from "../../../types/teacherTypes";
 
+type QuestionKind = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER";
+type DraftQuestion = {
+  key: string;
+  question_text: string;
+  question_type: QuestionKind;
+  points: number;
+  choices: { choice_text: string; is_correct: boolean }[];
+};
+
+function newQuestion(kind: QuestionKind = "MULTIPLE_CHOICE"): DraftQuestion {
+  return {
+    key: crypto.randomUUID(), question_text: "", question_type: kind, points: 1,
+    choices: kind === "SHORT_ANSWER" ? [] : kind === "TRUE_FALSE"
+      ? [{ choice_text: "True", is_correct: true }, { choice_text: "False", is_correct: false }]
+      : Array.from({ length: 4 }, (_, i) => ({ choice_text: "", is_correct: i === 0 })),
+  };
+}
+
 type CreateQuizForm = {
   subject: string;
 
@@ -32,7 +50,6 @@ type CreateQuizForm = {
 
   semester: Semester;
 
-  total_points: number;
   passing_score: number;
 
   status: QuizStatus;
@@ -41,6 +58,28 @@ type CreateQuizForm = {
   shuffle_questions: boolean;
   allow_multiple_attempts: boolean;
 };
+
+// Preserve DRF's field errors instead of showing only "Request failed with status code 400".
+function quizCreateErrorMessage(error: unknown): string {
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const response = (error as { response?: { data?: unknown } }).response;
+    const data = response?.data;
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      const messages = Object.entries(data).map(([field, value]) => {
+        const message = Array.isArray(value)
+          ? value.map(String).join(" ")
+          : typeof value === "string"
+            ? value
+            : JSON.stringify(value);
+        return field === "detail" || field === "non_field_errors"
+          ? message
+          : `${field}: ${message}`;
+      });
+      if (messages.length) return messages.join("\n");
+    }
+  }
+  return error instanceof Error ? error.message : "Failed to create activity.";
+}
 
 export default function CreateQuiz() {
   const { id } =
@@ -82,8 +121,7 @@ export default function CreateQuiz() {
       semester:
         "SEMESTER_1",
 
-      total_points: 100,
-      passing_score: 60,
+      passing_score: 1,
 
       status:
         "SCHEDULED",
@@ -97,6 +135,21 @@ export default function CreateQuiz() {
       allow_multiple_attempts:
         false,
     });
+
+  const [questions, setQuestions] = useState<DraftQuestion[]>(() => [newQuestion()]);
+  const totalPoints = questions.reduce((sum, q) => sum + (Number.isFinite(q.points) ? q.points : 0), 0);
+  const updateQuestion = (key: string, patch: Partial<DraftQuestion>) => {
+    setQuestions((items) => items.map((q) => q.key === key ? { ...q, ...patch } : q));
+  };
+  const moveQuestion = (index: number, delta: number) => {
+    setQuestions((items) => {
+      const next = [...items];
+      const target = index + delta;
+      if (target < 0 || target >= next.length) return items;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
 
   const cancelPath =
     useMemo(() => {
@@ -154,6 +207,21 @@ export default function CreateQuiz() {
       event: React.FormEvent
     ) => {
       event.preventDefault();
+      if (createQuiz.isPending) return;
+      if (!questions.length) { alert("Add at least one question."); return; }
+      for (const [index, question] of questions.entries()) {
+        const prefix = `Question ${index + 1}: `;
+        if (!question.question_text.trim()) { alert(prefix + "Enter the question text."); return; }
+        if (!Number.isFinite(question.points) || question.points <= 0) { alert(prefix + "Enter points greater than zero."); return; }
+        if (question.question_type !== "SHORT_ANSWER") {
+          if (question.choices.length < 2 || question.choices.some((c) => !c.choice_text.trim())) {
+            alert(prefix + "Fill in every choice, or remove unused choices."); return;
+          }
+          if (question.choices.filter((c) => c.is_correct).length !== 1) {
+            alert(prefix + "Select one correct answer."); return;
+          }
+        }
+      }
 
       const subjectOfferingId =
         subjectIdFromRoute ??
@@ -234,7 +302,7 @@ export default function CreateQuiz() {
       }
 
       if (
-        formData.total_points <=
+        totalPoints <=
         0
       ) {
         alert(
@@ -247,7 +315,7 @@ export default function CreateQuiz() {
         formData.passing_score <
           0 ||
         formData.passing_score >
-          formData.total_points
+          totalPoints
       ) {
         alert(
           "Passing score must be between 0 and total points."
@@ -259,6 +327,15 @@ export default function CreateQuiz() {
         const result =
           await createQuiz.mutateAsync(
             {
+              ...{ questions: questions.map((question, order) => ({
+                question_text: question.question_text.trim(),
+                question_type: question.question_type,
+                points: question.points,
+                order,
+                choices: question.choices.map((choice, choiceOrder) => ({
+                  choice_text: choice.choice_text.trim(), is_correct: choice.is_correct, order: choiceOrder,
+                })),
+              })) },
               SubjectOffering:
                 subjectOfferingId,
 
@@ -281,7 +358,7 @@ export default function CreateQuiz() {
                 formData.semester,
 
               total_points:
-                formData.total_points,
+                totalPoints,
 
               passing_score:
                 formData.passing_score,
@@ -318,9 +395,7 @@ export default function CreateQuiz() {
         );
 
         alert(
-          error instanceof Error
-            ? error.message
-            : "Failed to create activity."
+          quizCreateErrorMessage(error)
         );
       }
     };
@@ -661,14 +736,14 @@ export default function CreateQuiz() {
 
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">
-              Passing Score
+              Passing Score (points)
             </label>
 
             <input
               type="number"
               min={0}
               max={
-                formData.total_points
+                totalPoints
               }
               value={
                 formData.passing_score
@@ -697,37 +772,9 @@ export default function CreateQuiz() {
         </div>
 
         {/* Total Points */}
-        <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">
-            Total Points
-          </label>
-
-          <input
-            type="number"
-            min={1}
-            value={
-              formData.total_points
-            }
-            onChange={(
-              event
-            ) =>
-              setFormData(
-                (
-                  prev
-                ) => ({
-                  ...prev,
-
-                  total_points:
-                    Number(
-                      event
-                        .target
-                        .value
-                    ),
-                })
-              )
-            }
-            className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+        <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+          <p className="text-sm font-bold text-indigo-900">Total points: {totalPoints}</p>
+          <p className="text-sm text-indigo-700">Calculated from your questions below.</p>
         </div>
 
         {/* Status */}
@@ -880,6 +927,83 @@ export default function CreateQuiz() {
             </span>
           </label>
         </div>
+
+        <fieldset disabled={createQuiz.isPending} className="space-y-5 min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-6">
+            <div>
+              <h2 className="text-xl font-black text-slate-900">Questions</h2>
+              <p className="text-sm text-slate-500">{questions.length} questions · {totalPoints} total points</p>
+            </div>
+            <button type="button" onClick={() => setQuestions((items) => [...items, newQuestion()])}
+              className="rounded-xl bg-indigo-600 px-4 py-2 font-bold text-white">+ Add question</button>
+          </div>
+          {questions.map((question, index) => (
+            <section key={question.key} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-black text-slate-800">Question {index + 1}</h3>
+                <div className="flex gap-3 text-sm font-bold">
+                  <button type="button" disabled={index === 0} onClick={() => moveQuestion(index, -1)} className="disabled:opacity-30" aria-label={`Move question ${index + 1} up`}>Move up</button>
+                  <button type="button" disabled={index === questions.length - 1} onClick={() => moveQuestion(index, 1)} className="disabled:opacity-30" aria-label={`Move question ${index + 1} down`}>Move down</button>
+                  <button type="button" className="text-red-600" onClick={() => {
+                    if (!question.question_text.trim() || window.confirm("Remove this question?")) {
+                      setQuestions((items) => items.filter((q) => q.key !== question.key));
+                    }
+                  }}>Remove</button>
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <label className="text-sm font-bold sm:col-span-2">Question type
+                  <select value={question.question_type} onChange={(event) => {
+                    const kind = event.target.value as QuestionKind;
+                    if (question.choices.some((c) => c.choice_text.trim()) && !window.confirm("Changing type resets the answer choices. Continue?")) return;
+                    updateQuestion(question.key, { question_type: kind, choices: newQuestion(kind).choices });
+                  }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3">
+                    <option value="MULTIPLE_CHOICE">Multiple choice</option>
+                    <option value="TRUE_FALSE">True / False</option>
+                    <option value="SHORT_ANSWER">Short answer</option>
+                  </select>
+                </label>
+                <label className="text-sm font-bold">Points
+                  <input type="number" min="0.01" step="any" required value={question.points}
+                    onChange={(event) => updateQuestion(question.key, { points: Number(event.target.value) })}
+                    className="mt-2 w-full rounded-xl border border-slate-200 p-3" />
+                </label>
+              </div>
+              <label className="block text-sm font-bold">Question text
+                <textarea required rows={3} value={question.question_text} placeholder="Enter your question"
+                  onChange={(event) => updateQuestion(question.key, { question_text: event.target.value })}
+                  className="mt-2 w-full rounded-xl border border-slate-200 p-3" />
+              </label>
+              {question.question_type === "SHORT_ANSWER" ? (
+                <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">Short answers are graded manually after submission.</p>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-slate-600">Select the correct answer</p>
+                  {question.choices.map((choice, choiceIndex) => (
+                    <div key={choiceIndex} className="flex items-center gap-3">
+                      <input type="radio" name={`correct-${question.key}`} checked={choice.is_correct}
+                        aria-label={`Choice ${choiceIndex + 1} is correct for question ${index + 1}`}
+                        onChange={() => updateQuestion(question.key, { choices: question.choices.map((c, ci) => ({ ...c, is_correct: ci === choiceIndex })) })} />
+                      <input type="text" required readOnly={question.question_type === "TRUE_FALSE"}
+                        aria-label={`Question ${index + 1}, choice ${choiceIndex + 1}`} value={choice.choice_text}
+                        placeholder={`Choice ${choiceIndex + 1}`} className="min-w-0 flex-1 rounded-xl border border-slate-200 p-3"
+                        onChange={(event) => updateQuestion(question.key, { choices: question.choices.map((c, ci) => ci === choiceIndex ? { ...c, choice_text: event.target.value } : c) })} />
+                      {question.question_type === "MULTIPLE_CHOICE" && (
+                        <button type="button" disabled={question.choices.length <= 2} className="text-sm text-red-600 disabled:opacity-30"
+                          onClick={() => updateQuestion(question.key, { choices: question.choices.filter((_, ci) => ci !== choiceIndex) })}>Remove</button>
+                      )}
+                    </div>
+                  ))}
+                  {question.question_type === "MULTIPLE_CHOICE" && (
+                    <button type="button" className="text-sm font-bold text-indigo-600"
+                      onClick={() => updateQuestion(question.key, { choices: [...question.choices, { choice_text: "", is_correct: false }] })}>+ Add choice</button>
+                  )}
+                </div>
+              )}
+            </section>
+          ))}
+          {!questions.length && <p className="text-sm text-slate-500">Add a question to get started.</p>}
+        </fieldset>
 
         {/* Actions */}
         <div className="flex flex-wrap gap-3 pt-2">

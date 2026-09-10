@@ -273,6 +273,21 @@ export default function ManageQuiz() {
     refetch: refetchQuiz,
   } = useTeacherQuiz(quizId);
 
+  useEffect(() => {
+    let pending = false;
+    const refresh = async () => {
+      if (pending || document.hidden) return;
+      pending = true;
+      try { await refetchQuiz(); } finally { pending = false; }
+    };
+    const timer = window.setInterval(() => void refresh(), 5000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [refetchQuiz]);
+
   const {
     data: questions = [],
     isLoading: questionsLoading,
@@ -357,7 +372,7 @@ export default function ManageQuiz() {
 
   // Sync server quiz -> local form fields
   useEffect(() => {
-    if (!quiz) {
+    if (!quiz || editingStatus || editingTimes) {
       return;
     }
 
@@ -385,7 +400,7 @@ export default function ManageQuiz() {
           ),
       });
     }
-  }, [quiz]);
+  }, [quiz, editingStatus, editingTimes]);
 
   // ---------------------------
   // Derived data
@@ -562,6 +577,10 @@ export default function ManageQuiz() {
 
   const handleUpdateStatus =
     async () => {
+      if (newStatus === 'DRAFT' && quiz?.status !== 'DRAFT') {
+        alert('Published quizzes cannot return to Draft. Choose Closed to stop access.');
+        return;
+      }
       try {
         await updateStatusMutation.mutateAsync(
           {
@@ -1605,14 +1624,10 @@ export default function ManageQuiz() {
                     {!editingStatus ? (
                       <button
                         type="button"
-                        onClick={() =>
-                          setEditingStatus(
-                            true
-                          )
-                        }
-                        disabled={
-                          !isEditable
-                        }
+                        onClick={() => {
+                          setNewStatus(quiz.status);
+                          setEditingStatus(true);
+                        }}
                         className="ml-auto inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                       >
                         <Pencil
@@ -1628,17 +1643,9 @@ export default function ManageQuiz() {
 
                   {!editingStatus ? (
                     <div className="mt-3 text-sm text-slate-600">
-                      DRAFT
-                      hides it
-                      from
-                      students.
-                      SCHEDULED
-                      shows it.
-                      OPEN
-                      forces
-                      it open.
-                      CLOSED
-                      locks it.
+                      Drafts stay hidden until published. Choose Scheduled to publish;
+                      the opening and closing times then control the status automatically.
+                      Closed locks the quiz immediately.
                     </div>
                   ) : (
                     <div className="mt-4 space-y-3">
@@ -1656,7 +1663,7 @@ export default function ManageQuiz() {
                         }
                         className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
                       >
-                        <option value="DRAFT">
+                        <option value="DRAFT" disabled={quiz.status !== "DRAFT"}>
                           Draft
                           (Hidden
                           from
@@ -1671,10 +1678,7 @@ export default function ManageQuiz() {
                         </option>
 
                         <option value="OPEN">
-                          Open
-                          (Force
-                          open
-                          now)
+                          Open (Respects scheduled times)
                         </option>
 
                         <option value="CLOSED">

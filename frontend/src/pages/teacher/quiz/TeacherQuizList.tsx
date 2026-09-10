@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import {
@@ -157,6 +157,21 @@ export default function TeacherQuizList() {
     refetch,
     isFetching,
   } = useTeacherQuizzes();
+
+  useEffect(() => {
+    let pending = false;
+    const refresh = async () => {
+      if (pending || document.hidden) return;
+      pending = true;
+      try { await refetch(); } finally { pending = false; }
+    };
+    const timer = window.setInterval(() => void refresh(), 5000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [refetch]);
 
   const deleteQuiz = useDeleteTeacherQuiz();
 

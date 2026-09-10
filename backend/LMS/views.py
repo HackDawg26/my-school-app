@@ -27,7 +27,7 @@ from .serializers import (LoginSerializer, StudentQuizQuestionSerializer, Studen
     QuizQuestionSerializer, StudentQuizSerializer, QuizAttemptSerializer,
     QuizSubmissionSerializer, QuizChoiceSerializer, QuizAnswerSerializer,
     GradeForecastSerializer, QuizTopicPerformanceSerializer,
-    QuarterlyGradeSerializer, QuarterlyGradeCreateUpdateSerializer, GradeChangeLogSerializer, SubjectOfferingFileSerializer
+    SemesterReferenceField, QuarterlyGradeSerializer, QuarterlyGradeCreateUpdateSerializer, GradeChangeLogSerializer, SubjectOfferingFileSerializer
 )
 from .grade_analytics import GradeAnalyticsService
 
@@ -48,16 +48,15 @@ ALLOWED_EXTS = {
     ".txt", ".csv",
 }
 
-def recalc_quarterly_component(*, student, offering, quarter, grade_type, title):
+def recalc_quarterly_component(*, student, offering, semester, grade_type):
     """
-    Recompute QuarterlyGrade component totals based on BEST attempt per quiz for the quarter.
+    Recompute QuarterlyGrade component totals based on BEST attempt per quiz for the semester.
     Prevents adding totals when multiple attempts exist.
     """
     quizzes = Quiz.objects.filter(
         SubjectOffering=offering,
-        quarter=quarter,
+        semester=semester,
         grade_type=grade_type,
-        quiz_title=title,
     )
 
     attempts_qs = QuizAttempt.objects.filter(
@@ -79,7 +78,7 @@ def recalc_quarterly_component(*, student, offering, quarter, grade_type, title)
     grade, _ = QuarterlyGrade.objects.get_or_create(
         student=student,
         SubjectOffering=offering,
-        quarter=quarter,
+        semester=semester,
         defaults={}
     )
 
@@ -89,7 +88,7 @@ def recalc_quarterly_component(*, student, offering, quarter, grade_type, title)
     elif grade_type == "PERFORMANCE_TASK":
         grade.performance_task_score = float(total_score)
         grade.performance_task_total = float(total_points)
-    elif grade_type == "QUARTERLY_EXAM":
+    elif grade_type == "FINAL_EXAM":
         grade.quarterly_assessment_score = float(total_score)
         grade.quarterly_assessment_total = float(total_points)
 
@@ -397,7 +396,7 @@ class StudentSubjectOfferingViewSet(viewsets.ReadOnlyModelViewSet):
 
         grades = (
             QuarterlyGrade.objects
-            .filter(student=student, SubjectOffering__in=qs)
+            .filter(student=student, SubjectOffering__in=qs, semester__school_year__is_active=True)
             .select_related("SubjectOffering")
         )
 
@@ -409,8 +408,8 @@ class StudentSubjectOfferingViewSet(viewsets.ReadOnlyModelViewSet):
             gs = by_offering.get(o.id, [])
             o._student_quarterly_grades = gs
 
-            # progress = quarters encoded / 4 * 100
-            progress = int((len({g.quarter for g in gs}) / 4) * 100) if gs else 0
+            # Progress across the three semesters in the active school year.
+            progress = int((len({g.semester_id for g in gs}) / 3) * 100) if gs else 0
             o.progress = progress
 
             # average = mean of available quarters (or 0)
@@ -437,7 +436,7 @@ class StudentSubjectOfferingViewSet(viewsets.ReadOnlyModelViewSet):
         except Student.DoesNotExist:
             return Response({"detail": "Student profile not found"}, status=404)
 
-        qs = QuarterlyGrade.objects.filter(student=student, Subject_Offering_id=pk).order_by("quarter")
+        qs = filter_grade_semester(QuarterlyGrade.objects.filter(student=student, SubjectOffering_id=pk), request).order_by("semester__school_year_id", "semester__name", "quarter")
         return Response(QuarterlyGradeSerializer(qs, many=True).data)
     
     @action(detail=True, methods=["get"], url_path="quizzes")
@@ -451,12 +450,12 @@ class StudentSubjectOfferingViewSet(viewsets.ReadOnlyModelViewSet):
 
         student = getattr(request.user, "student_profile", None)
         if student:
-            grades = QuarterlyGrade.objects.filter(student=student, SubjectOffering=obj).order_by("quarter")
+            grades = QuarterlyGrade.objects.filter(student=student, SubjectOffering=obj, semester__school_year__is_active=True).select_related("semester").order_by("semester__name")
             obj._student_quarterly_grades = list(grades)
 
         # optional: compute average + progress for detail view too
             gs = obj._student_quarterly_grades
-            obj.progress = int((len({g.quarter for g in gs}) / 4) * 100) if gs else 0
+            obj.progress = int((len({g.semester_id for g in gs}) / 3) * 100) if gs else 0
             obj.average = round(sum(float(g.final_grade) for g in gs) / len(gs), 2) if gs else 0
 
         serializer = self.get_serializer(obj)
@@ -716,13 +715,32 @@ class StudentViewSet(ModelViewSet):
             queryset = queryset.filter(section__isnull=True)
 
         return queryset
+    @action(detail=True, methods=["get"], url_path="semester-summary")
+    def semester_summary(self, request, pk=None):
+        student = self.get_object()
+        grades = QuarterlyGrade.objects.filter(
+            student=student, semester__school_year__is_active=True,
+        ).select_related("SubjectOffering", "semester")
+        by_offering = {}
+        for grade in grades:
+            item = by_offering.setdefault(grade.SubjectOffering_id, {
+                "subject_offering_id": grade.SubjectOffering_id,
+                "subject": grade.SubjectOffering.name,
+                "sem1": None, "sem2": None, "sem3": None, "final": None,
+            })
+            item[grade.semester.name.lower()] = grade.final_grade
+        for item in by_offering.values():
+            values = [item[key] for key in ("sem1", "sem2", "sem3") if item[key] is not None]
+            item["final"] = round(sum(values) / len(values), 2) if values else None
+        return Response(list(by_offering.values()))
+
     @action(detail=True, methods=["get"], url_path="quarterly-summary")
     def quarterly_summary(self, request, pk=None):
         student = self.get_object()
 
         grades = (
             QuarterlyGrade.objects
-            .filter(student=student)
+            .filter(student=student, semester__isnull=True)
             .select_related("SubjectOffering")
             .order_by("SubjectOffering_id", "quarter")
         )
@@ -810,7 +828,9 @@ class TeacherQuizViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         if self.request.user.role == 'TEACHER':
-            return Quiz.objects.filter(teacher=self.request.user).order_by('-created_at')
+            quizzes = Quiz.objects.filter(teacher=self.request.user)
+            Quiz.sync_statuses(quizzes)
+            return quizzes.order_by('-created_at')
         return Quiz.objects.none()
     
     def get_serializer_class(self):
@@ -823,35 +843,30 @@ class TeacherQuizViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         quiz = self.get_object()
-
+        # Publishing/closing is separate from editing quiz content.
+        if set(request.data) == {"status"}:
+            new_status = request.data["status"]
+            if new_status not in dict(Quiz.STATUS_CHOICES):
+                return Response({"status": ["Invalid status."]}, status=400)
+            if new_status == "DRAFT" and quiz.status != "DRAFT":
+                return Response({"detail": "Published quizzes cannot revert to draft."}, status=400)
+            if new_status in ("SCHEDULED", "OPEN"):
+                if quiz.close_time <= quiz.open_time:
+                    return Response({"detail": "Closing time must be after opening time."}, status=400)
+                if quiz.close_time <= timezone.now():
+                    return Response({"detail": "This quiz's closing time has passed."}, status=400)
+            quiz.status = new_status
+            quiz.status = quiz.current_status()
+            quiz.save(update_fields=["status", "updated_at"])
+            return Response(QuizSerializer(quiz, context=self.get_serializer_context()).data)
         if not quiz.is_editable():
-            return Response(
-                {'error': 'Quiz can no longer be edited once it is open.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
+            return Response({"detail": "Only an editable draft can have its content changed."}, status=400)
         return super().update(request, *args, **kwargs)
 
-
     def partial_update(self, request, *args, **kwargs):
-        quiz = self.get_object()
-        new_status = request.data.get('status')
+        kwargs["partial"] = True
+        return self.update(request, *args, **kwargs)
 
-        # Prevent reverting to DRAFT after open
-        if quiz.status in ['OPEN', 'CLOSED'] and new_status == 'DRAFT':
-            return Response(
-                {'error': 'Cannot revert quiz to draft once it is open.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if not quiz.is_editable():
-            return Response(
-                {'error': 'Quiz can no longer be edited once it is open.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        return super().partial_update(request, *args, **kwargs)
-    
     def create(self, request, *args, **kwargs):
         """Override create to return full quiz data with ID"""
         serializer = self.get_serializer(data=request.data)
@@ -1061,6 +1076,15 @@ def manage_quiz_question(request, question_id):
 
 # ==================== STUDENT QUIZ VIEWS ====================
 
+def published_quizzes_for_student(student):
+    """Enrollment is enforced by offering/section IDs, never display names."""
+    if student.section_id is None:
+        return Quiz.objects.none()
+    quizzes = Quiz.objects.filter(SubjectOffering__section_id=student.section_id)
+    Quiz.sync_statuses(quizzes)
+    return quizzes.exclude(status="DRAFT").select_related("SubjectOffering", "teacher", "semester")
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def student_quizzes(request):
@@ -1070,7 +1094,7 @@ def student_quizzes(request):
     
     # Get all quizzes except DRAFT (include SCHEDULED, OPEN, and CLOSED for history)
     # Students should see all published quizzes regardless of status
-    quizzes = Quiz.objects.exclude(status='DRAFT').order_by('open_time')
+    quizzes = published_quizzes_for_student(request.user.student_profile).order_by('open_time')
     serializer = StudentQuizSerializer(quizzes, many=True, context={'request': request})
     return Response(serializer.data)
 
@@ -1083,7 +1107,7 @@ def student_quiz_detail(request, quiz_id):
         return Response({'error': 'Not a student'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
-        quiz = Quiz.objects.get(id=quiz_id)
+        quiz = published_quizzes_for_student(request.user.student_profile).get(id=quiz_id)
     except Quiz.DoesNotExist:
         return Response({'error': 'Quiz not found'}, status=status.HTTP_404_NOT_FOUND)
     
@@ -1099,7 +1123,7 @@ def start_quiz(request, quiz_id):
         return Response({'error': 'Not a student'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
-        quiz = Quiz.objects.get(id=quiz_id)
+        quiz = published_quizzes_for_student(request.user.student_profile).get(id=quiz_id)
     except Quiz.DoesNotExist:
         return Response({'error': 'Quiz not found'}, status=status.HTTP_404_NOT_FOUND)
     
@@ -1469,6 +1493,15 @@ def student_grade_analytics(request):
 
 # ==================== QUARTERLY GRADES VIEWS ====================
 
+def filter_grade_semester(queryset, request):
+    value = request.query_params.get("semester")
+    if value:
+        return queryset.filter(semester=SemesterReferenceField().run_validation(value))
+    if "semester-grades" in request.path:
+        return queryset.filter(semester__school_year__is_active=True)
+    return queryset
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def quarterly_grades(request):
@@ -1490,6 +1523,7 @@ def quarterly_grades(request):
             if quarter:
                 grades_query = grades_query.filter(quarter=quarter)
             
+            grades_query = filter_grade_semester(grades_query, request)
             grades = grades_query.select_related('student__user', 'SubjectOffering').order_by('student__user__last_name', 'student__user__first_name')
             serializer = QuarterlyGradeSerializer(grades, many=True)
             return Response(serializer.data)
@@ -1506,6 +1540,7 @@ def quarterly_grades(request):
             if quarter:
                 grades_query = grades_query.filter(quarter=quarter)
             
+            grades_query = filter_grade_semester(grades_query, request)
             grades = grades_query.select_related('SubjectOffering').order_by('quarter')
             serializer = QuarterlyGradeSerializer(grades, many=True)
             return Response(serializer.data)
@@ -1536,7 +1571,8 @@ def quarterly_grade_detail(request, grade_id):
     
     # Permission check
     if request.user.role == 'TEACHER':
-        pass  # Teachers can access all grades
+        if grade.SubjectOffering.teacher_id != request.user.pk:
+            return Response({"error": "Not authorized for this subject offering"}, status=403)
     elif hasattr(request.user, 'student_profile') and grade.student == request.user.student_profile:
         pass  # Students can access their own grades
     else:
@@ -1572,13 +1608,13 @@ def quarterly_grades_bulk_apply_weights(request):
         return Response({"error": "Only teachers can apply weights"}, status=403)
 
     SubjectOffering_id = request.data.get("SubjectOffering")
-    quarter = request.data.get("quarter")
+    semester = SemesterReferenceField().run_validation(request.data.get("semester"))
     ww = request.data.get("ww_weight")
     pt = request.data.get("pt_weight")
-    qa = request.data.get("qa_weight")
+    qa = request.data.get("sa_weight", request.data.get("qa_weight"))
 
-    if not SubjectOffering_id or not quarter:
-        return Response({"detail": "SubjectOffering and quarter are required."}, status=400)
+    if not SubjectOffering_id or not semester:
+        return Response({"detail": "SubjectOffering and semester are required."}, status=400)
 
     try:
         ww = float(ww)
@@ -1587,6 +1623,9 @@ def quarterly_grades_bulk_apply_weights(request):
     except (TypeError, ValueError):
         return Response({"detail": "Weights must be numbers."}, status=400)
 
+    import math
+    if any(not math.isfinite(w) or not 0 <= w <= 1 for w in (ww, pt, qa)):
+        return Response({"detail": "Weights must be between 0 and 1."}, status=400)
     total = ww + pt + qa
     if abs(total - 1.0) > 0.01:
         return Response({"detail": f"Weights must sum to 1.0. Got {total}"}, status=400)
@@ -1599,7 +1638,7 @@ def quarterly_grades_bulk_apply_weights(request):
 
     grades = QuarterlyGrade.objects.filter(
         SubjectOffering_id=SubjectOffering_id,
-        quarter=quarter
+        semester=semester
     )
 
     updated = 0
