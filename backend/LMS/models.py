@@ -333,6 +333,13 @@ class Quiz(models.Model):
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_quizzes", null=True, blank=True)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    ACTIVITY_MODE_CHOICES = [
+        ('INDIVIDUAL', 'Individual'),
+        ('GROUP', 'By Group'),
+    ]
+    activity_mode = models.CharField(
+        max_length=10, choices=ACTIVITY_MODE_CHOICES, default='INDIVIDUAL'
+    )
     grade_type = models.CharField(max_length=20, choices=GRADE_TYPE_CHOICES, default='WRITTEN_WORK')
     
     # Time management

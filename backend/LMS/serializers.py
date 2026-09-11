@@ -577,6 +577,7 @@ class QuizSerializer(serializers.ModelSerializer):
     class Meta:
         model = Quiz
         fields = [
+            'activity_mode',
             'id', 'quiz_id', 'SubjectOffering', 'subject_name', 'teacher', 'teacher_name',
             'title', 'description', 'posted_at', 'open_time', 'close_time',
             'time_limit', 'semester', 'semester_id', 'total_points', 'passing_score', 'status',
@@ -614,6 +615,7 @@ class QuizCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Quiz
         fields = [
+            'activity_mode',
             'id', 'SubjectOffering', 'title', 'description', 'open_time', 'close_time',
             'time_limit', 'semester', 'total_points', 'passing_score', 'status',
             'show_correct_answers', 'shuffle_questions', 'allow_multiple_attempts',
@@ -679,6 +681,7 @@ class StudentQuizSerializer(serializers.ModelSerializer):
     class Meta:
         model = Quiz
         fields = [
+            'activity_mode',
             'id', 'quiz_id', 'status', 'SubjectOffering', 'subject_name', 'teacher_name', 'title',
             'description', 'open_time', 'close_time', 'time_limit',
             'total_points', 'allow_multiple_attempts', 'question_count',
