@@ -182,6 +182,8 @@ export default function CreateQuiz() {
         false,
     });
 
+  const requiresSchedule = !["DRAFT", "OPEN"].includes(formData.status);
+
   const [timeLimitText, setTimeLimitText] = useState("01:00");
 
   const [questions, setQuestions] = useState<DraftQuestion[]>(() => [newQuestion()]);
@@ -297,48 +299,21 @@ export default function CreateQuiz() {
         return;
       }
 
-      if (
-        !formData.open_time ||
-        !formData.close_time
-      ) {
-        alert(
-          "Open and close times are required."
-        );
-        return;
-      }
-
-      const openDate =
-        new Date(
-          formData.open_time
-        );
-
-      const closeDate =
-        new Date(
-          formData.close_time
-        );
-
-      if (
-        Number.isNaN(
-          openDate.getTime()
-        ) ||
-        Number.isNaN(
-          closeDate.getTime()
-        )
-      ) {
-        alert(
-          "Invalid quiz schedule."
-        );
-        return;
-      }
-
-      if (
-        closeDate <=
-        openDate
-      ) {
-        alert(
-          "Close time must be after open time."
-        );
-        return;
+      const openDate = requiresSchedule ? new Date(formData.open_time) : null;
+      const closeDate = requiresSchedule ? new Date(formData.close_time) : null;
+      if (requiresSchedule) {
+        if (!formData.open_time || !formData.close_time) {
+          alert("Open and close times are required for this status.");
+          return;
+        }
+        if (!openDate || !closeDate || Number.isNaN(openDate.getTime()) || Number.isNaN(closeDate.getTime())) {
+          alert("Invalid quiz schedule.");
+          return;
+        }
+        if (closeDate <= openDate) {
+          alert("Close time must be after open time.");
+          return;
+        }
       }
 
       if (
@@ -379,10 +354,10 @@ export default function CreateQuiz() {
             {
               ...{ activity_mode: formData.activity_mode, grade_type: formData.grade_type, questions: questions.map((question, order) => ({
                 question_text: question.question_text.trim(),
-                question_type: question.question_type,
+                question_type: formData.activity_mode === "GROUP" ? "SHORT_ANSWER" : question.question_type,
                 points: question.points,
                 order,
-                choices: question.choices.map((choice, choiceOrder) => ({
+                choices: (formData.activity_mode === "GROUP" ? [] : question.choices).map((choice, choiceOrder) => ({
                   choice_text: choice.choice_text.trim(), is_correct: choice.is_correct, order: choiceOrder,
                 })),
               })) },
@@ -396,10 +371,10 @@ export default function CreateQuiz() {
                 formData.description.trim(),
 
               open_time:
-                openDate.toISOString(),
+                openDate?.toISOString() ?? null,
 
               close_time:
-                closeDate.toISOString(),
+                closeDate?.toISOString() ?? null,
 
               time_limit:
                 formData.time_limit,
@@ -762,7 +737,7 @@ export default function CreateQuiz() {
           </label>
 
           <select
-            title="Scheduled quizzes follow the open and close times you set."
+            title="Scheduled uses dates. Open starts immediately until manually closed. Draft stays unpublished."
             value={
               formData.status
             }
@@ -815,9 +790,17 @@ export default function CreateQuiz() {
             <select
               required
               value={formData.activity_mode}
-              onChange={(event) => setFormData((prev) => ({
-                ...prev, activity_mode: event.target.value as CreateQuizForm["activity_mode"],
-              }))}
+              onChange={(event) => {
+                const mode = event.target.value as CreateQuizForm["activity_mode"];
+                setFormData((prev) => ({ ...prev, activity_mode: mode }));
+                if (mode === "GROUP") {
+                  setQuestions((items) => items.map((question) => ({
+                    ...question,
+                    question_type: "SHORT_ANSWER",
+                    choices: [],
+                  })));
+                }
+              }}
               className="mt-1 w-full rounded-lg border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="INDIVIDUAL">Individual</option>
@@ -840,7 +823,8 @@ export default function CreateQuiz() {
           </label>
         </div>
 
-        {/* Times */}
+        {/* Only scheduled/closed activities need date controls. */}
+        {requiresSchedule && (
         <div className="quiz-times grid gap-4 md:grid-cols-2">
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">
@@ -904,6 +888,8 @@ export default function CreateQuiz() {
             />
           </div>
         </div>
+
+        )}
 
         {/* Settings */}
         <div className="quiz-grading grid gap-4 md:grid-cols-3">
@@ -1116,7 +1102,7 @@ export default function CreateQuiz() {
               <p className="text-sm text-slate-500">{questions.length} questions · {totalPoints} total points</p>
             </div>
             <button type="button" onClick={() => {
-                const question = newQuestion();
+                const question = newQuestion(formData.activity_mode === "GROUP" ? "SHORT_ANSWER" : "MULTIPLE_CHOICE");
                 setQuestions((items) => [...items, question]);
                 setExpandedQuestionKey(question.key);
               }}
@@ -1143,12 +1129,16 @@ export default function CreateQuiz() {
               <div className="quiz-card-toolbar">
                 <h3 className="font-black text-slate-800">Q{index + 1}</h3>
                 <label className="quiz-kind text-sm font-bold"><span className="sr-only">Question type</span>
-                  <select value={question.question_type} onChange={(event) => {
+                  <select value={question.question_type} disabled={formData.activity_mode === "GROUP"} onChange={(event) => {
                     const kind = event.target.value as QuestionKind;
                     updateQuestion(question.key, { question_type: kind, choices: newQuestion(kind).choices });
                   }} className="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3">
-                    <option value="MULTIPLE_CHOICE">Multiple choice</option>
-                    <option value="TRUE_FALSE">True / False</option>
+                    {formData.activity_mode !== "GROUP" && (
+                      <>
+                        <option value="MULTIPLE_CHOICE">Multiple choice</option>
+                        <option value="TRUE_FALSE">True / False</option>
+                      </>
+                    )}
                     <option value="SHORT_ANSWER">Short answer</option>
                   </select>
                 </label>
