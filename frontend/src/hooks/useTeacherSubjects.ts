@@ -1,12 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { addQuizQuestion, applySemesterWeights, batchRecordQuizScores, createTeacherQuiz, deleteQuizQuestion, deleteSemesterGrade, deleteSubjectFile, deleteTeacherQuiz, deleteTeacherQuizActivity, deleteTeacherSubject, generateQuizAIAnalysis, getAdvisoryStudents, getQuizItemAnalysis, getQuizQuestions, getQuizStudentSubmissions, getRecentQuizGrades, getSemesterGrades, getStudentDetail, getStudentSemesterSummary, getSubjectFiles, getTeacherAdvisoryDetail, getTeacherPendingGrading, getTeacherQuiz, getTeacherQuizAttempts, getTeacherQuizzes, getTeacherSubject, getTeacherSubjectActivities, getTeacherSubjectGrades, getTeacherSubjectQuizzes, getTeacherSubjects, getTeacherSubjectStudents, getTeacherSubjectSubmissionDetail, getTeacherSubmissionsSummary, gradeQuizAnswer, saveSemesterGrade, updateQuizQuestion, updateQuizStatus, updateQuizTimes, uploadSubjectFile } from "../api/teacherApi";
+import { addQuizQuestion, applySemesterWeights, batchRecordQuizScores, createTeacherQuiz, createTeacherSubjectOffering, deleteQuizQuestion, deleteSemesterGrade, deleteSubjectFile, deleteTeacherQuiz, deleteTeacherQuizActivity, deleteTeacherSubject, generateQuizAIAnalysis, getAdvisoryStudents, getQuizItemAnalysis, getQuizQuestions, getQuizStudentSubmissions, getRecentQuizGrades, getSemesterGrades, getStudentDetail, getStudentSemesterSummary, getSubjectFiles, getTeacherAdvisoryDetail, getTeacherPendingGrading, getTeacherQuiz, getTeacherQuizAttempts, getTeacherQuizzes, getTeacherSubject, getTeacherSubjectActivities, getTeacherSubjectGrades, getTeacherSubjectQuizzes, getTeacherSubjects, getTeacherSubjectStudents, getTeacherSubjectSubmissionDetail, getTeacherSubmissionsSummary, gradeQuizAnswer, saveSemesterGrade, updateQuizQuestion, updateQuizStatus, updateQuizTimes, uploadSubjectFile } from "../api/teacherApi";
 import { Semester, TeacherQuiz } from "../types/teacherTypes";
 
 export function useTeacherSubjects() {
   return useQuery({
     queryKey: ["teacher", "subjects"],
     queryFn: getTeacherSubjects,
-    staleTime: 10 * 60 * 1000,
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useCreateSubjectOffering() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createTeacherSubjectOffering,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["teacher", "subjects"],
+      });
+    },
   });
 }
 

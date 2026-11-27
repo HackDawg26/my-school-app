@@ -19,6 +19,37 @@ export async function getTeacherSubjects(): Promise<TeacherSubjectOffering[]> {
     : data.results ?? [];
 }
 
+export interface CreateSubjectOfferingPayload {
+  name: string;
+  section_id: number;
+  room_number: string;
+  schedule: string;
+}
+
+export async function createTeacherSubjectOffering(
+  payload: CreateSubjectOfferingPayload
+): Promise<TeacherSubjectOffering> {
+  const response = await authFetch("/subject-offerings/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.detail ||
+      errorData.message ||
+      (typeof errorData === "object" ? JSON.stringify(errorData) : null) ||
+      `Failed to create subject offering: ${response.status}`
+    );
+  }
+
+  return response.json();
+}
+
 export async function deleteTeacherSubject(
   subjectId: number
 ): Promise<void> {

@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "../../../api/config";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useCreateSubjectOffering } from "../../../hooks/useTeacherSubjects";
 
 /* ---------- Types ---------- */
 interface Section {
@@ -19,6 +20,7 @@ interface SubjectOfferingFormData {
 /* ---------- Component ---------- */
 export default function AssignSubjectOffering() {
   const navigate = useNavigate();
+  const createOffering = useCreateSubjectOffering();
   const [sections, setSections] = useState<Section[]>([]);
   const [formData, setFormData] = useState<SubjectOfferingFormData>({
     name: "",
@@ -37,7 +39,9 @@ export default function AssignSubjectOffering() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
-      .then(setSections)
+      .then((data) => {
+        setSections(Array.isArray(data) ? data : data.results ?? []);
+      })
       .catch(console.error);
   }, [token]);
 
@@ -48,35 +52,23 @@ export default function AssignSubjectOffering() {
     if (!formData.section) return alert("Please select a section");
     if (!formData.room_number) return alert("Please enter a room number");
     if (!formData.schedule) return alert("Please enter a schedule");
-    if (!token) return alert("Not authenticated");
 
-    const payload = {
-      name: formData.name,
-      section_id: formData.section, // Must match serializer field
-      room_number: formData.room_number,
-      schedule: formData.schedule,
-    };
+    try {
+      await createOffering.mutateAsync({
+        name: formData.name,
+        section_id: Number(formData.section),
+        room_number: formData.room_number,
+        schedule: formData.schedule,
+      });
 
-    const res = await fetch(`${API_BASE_URL}/subject-offerings/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
+      alert("Subject offering created successfully");
+      navigate("/teacher/subject");
+      setFormData({ name: "", section: "", room_number: "", schedule: "" });
+    } catch (err: unknown) {
       console.error(err);
-      alert("Failed to create subject offering");
-      return;
+      const msg = err instanceof Error ? err.message : "Failed to create subject offering";
+      alert(msg);
     }
-
-    alert("Subject offering created successfully");
-    navigate("/teacher/subject");
-    setFormData({ name: "", section: "", room_number: "", schedule: "" });
-    
   };
 
   const selectedSection = sections.find(
@@ -186,10 +178,12 @@ export default function AssignSubjectOffering() {
           {/* Submit */}
           <button
             type="submit"
-            onClick={handleSubmit}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg"
+            disabled={createOffering.isPending}
+            className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors ${
+              createOffering.isPending ? "opacity-60 cursor-not-allowed" : ""
+            }`}
           >
-            Assign Subject Offering
+            {createOffering.isPending ? "Assigning Subject Offering..." : "Assign Subject Offering"}
           </button>
 
 

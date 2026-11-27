@@ -291,11 +291,18 @@ class SubjectOfferingSerializer(serializers.ModelSerializer):
             section=section,
             name=validated_data["name"],
             defaults={
-            "room_number": validated_data.get("room_number", "TBA"),
-            "schedule": validated_data.get("schedule", "TBA"),
-            "teacher": teacher,  # ✅ set teacher on create
-        },
-    )
+                "room_number": validated_data.get("room_number", "TBA"),
+                "schedule": validated_data.get("schedule", "TBA"),
+                "teacher": teacher,
+            },
+        )
+        if not created:
+            offering.teacher = teacher
+            if "room_number" in validated_data:
+                offering.room_number = validated_data["room_number"]
+            if "schedule" in validated_data:
+                offering.schedule = validated_data["schedule"]
+            offering.save(update_fields=["teacher", "room_number", "schedule"])
         return offering
     def get_students(self, obj):
         return obj.section.students.count()
