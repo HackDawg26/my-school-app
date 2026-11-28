@@ -2352,8 +2352,12 @@ def student_grade_analytics(request):
 
 def filter_grade_semester(queryset, request):
     value = request.query_params.get("semester")
-    if value:
-        return queryset.filter(semester=SemesterReferenceField().run_validation(value))
+    if value and value != "ALL":
+        try:
+            sem_obj = SemesterReferenceField().run_validation(value)
+            return queryset.filter(semester=sem_obj)
+        except Exception:
+            pass
     if "semester-grades" in request.path:
         return queryset.filter(semester__school_year__is_active=True)
     return queryset
@@ -2405,15 +2409,37 @@ def quarterly_grades(request):
         return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
     
     elif request.method == 'POST':
-        # Only teachers can create grades
+        # Only teachers can create or update grades
         if request.user.role != 'TEACHER':
             return Response({'error': 'Only teachers can create grades'}, status=status.HTTP_403_FORBIDDEN)
-        
-        serializer = QuarterlyGradeCreateUpdateSerializer(data=request.data,context={"request": request})
+
+        # Check if a grade for this student, offering, and semester already exists.
+        # If so, perform an upsert (update existing instance) rather than failing with a unique constraint error.
+        student_id = request.data.get('student')
+        offering_id = request.data.get('SubjectOffering')
+        semester_val = request.data.get('semester')
+
+        existing_grade = None
+        if student_id and offering_id and semester_val:
+            try:
+                sem_obj = SemesterReferenceField().run_validation(semester_val)
+                existing_grade = QuarterlyGrade.objects.filter(
+                    student_id=student_id,
+                    SubjectOffering_id=offering_id,
+                    semester=sem_obj
+                ).first()
+            except Exception:
+                pass
+
+        if existing_grade:
+            serializer = QuarterlyGradeCreateUpdateSerializer(existing_grade, data=request.data, partial=True, context={"request": request})
+        else:
+            serializer = QuarterlyGradeCreateUpdateSerializer(data=request.data, context={"request": request})
+
         if serializer.is_valid():
             grade = serializer.save()
             output_serializer = QuarterlyGradeSerializer(grade)
-            return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+            return Response(output_serializer.data, status=status.HTTP_200_OK if existing_grade else status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
