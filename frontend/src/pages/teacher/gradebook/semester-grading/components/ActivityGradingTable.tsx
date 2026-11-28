@@ -163,7 +163,7 @@ export const ActivityGradingTable: React.FC<ActivityGradingTableProps> = ({
             }`}
           >
             <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
-            <span>Written Works</span>
+            <span>WRITTEN / ORAL WORKS</span>
             <span className="text-[11px] font-mono text-slate-500">({metrics.ww_weight}%)</span>
             <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-700 font-mono">
               {wwActivities.length}
@@ -181,7 +181,7 @@ export const ActivityGradingTable: React.FC<ActivityGradingTableProps> = ({
             }`}
           >
             <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-            <span>Performance Tasks</span>
+            <span>PRODUCT / PERFORMANCE TASK</span>
             <span className="text-[11px] font-mono text-slate-500">({metrics.pt_weight}%)</span>
             <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-700 font-mono">
               {ptActivities.length}
@@ -199,7 +199,7 @@ export const ActivityGradingTable: React.FC<ActivityGradingTableProps> = ({
             }`}
           >
             <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
-            <span>Quarterly Assessment</span>
+            <span>SUMMATIVE TESTS AND TERM EXAMINATIONS</span>
             <span className="text-[11px] font-mono text-slate-500">({metrics.sa_weight}%)</span>
             <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-700 font-mono">
               {feActivities.length}
@@ -320,7 +320,7 @@ export const ActivityGradingTable: React.FC<ActivityGradingTableProps> = ({
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
             <span>
-              No digital assessment found under <strong>Final Exam / Assessment</strong> for this semester. You can input manual scores below or create an Exam.
+              No digital assessment found under <strong>SUMMATIVE TESTS AND TERM EXAMINATIONS</strong> for this semester. You can input manual scores below or create a Term Exam.
             </span>
           </div>
           {onOpenAddActivity ? (
@@ -330,7 +330,7 @@ export const ActivityGradingTable: React.FC<ActivityGradingTableProps> = ({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white rounded-lg font-bold text-xs hover:bg-amber-700 transition shadow-xs shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Add Final Exam</span>
+              <span>Add Term Exam</span>
             </button>
           ) : subjectId ? (
             <Link
@@ -338,7 +338,7 @@ export const ActivityGradingTable: React.FC<ActivityGradingTableProps> = ({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white rounded-lg font-bold text-xs hover:bg-amber-700 transition shadow-xs shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Create Final Exam</span>
+              <span>Create Term Exam</span>
             </Link>
           ) : null}
         </div>
@@ -368,7 +368,7 @@ export const ActivityGradingTable: React.FC<ActivityGradingTableProps> = ({
                 >
                   <div className="flex items-center justify-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
-                    <span>Written Works</span>
+                    <span>WRITTEN / ORAL WORKS</span>
                     <span className="text-slate-500 font-normal font-mono">({metrics.ww_weight}%)</span>
                   </div>
                 </th>
@@ -384,7 +384,7 @@ export const ActivityGradingTable: React.FC<ActivityGradingTableProps> = ({
                 >
                   <div className="flex items-center justify-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-                    <span>Performance Tasks</span>
+                    <span>PRODUCT / PERFORMANCE TASK</span>
                     <span className="text-slate-500 font-normal font-mono">({metrics.pt_weight}%)</span>
                   </div>
                 </th>
@@ -400,7 +400,7 @@ export const ActivityGradingTable: React.FC<ActivityGradingTableProps> = ({
                 >
                   <div className="flex items-center justify-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
-                    <span>Quarterly Assessment</span>
+                    <span>SUMMATIVE TESTS AND TERM EXAMINATIONS</span>
                     <span className="text-slate-500 font-normal font-mono">({metrics.sa_weight}%)</span>
                   </div>
                 </th>

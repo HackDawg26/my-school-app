@@ -139,7 +139,7 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
                 }`}
               >
                 <FileText className="w-4 h-4 text-blue-600" />
-                <span>Written Work</span>
+                <span>Written / Oral Work</span>
               </button>
 
               <button
@@ -155,7 +155,7 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
                 }`}
               >
                 <Briefcase className="w-4 h-4 text-emerald-600" />
-                <span>Performance Task</span>
+                <span>Product / PT</span>
               </button>
 
               <button
@@ -171,7 +171,7 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
                 }`}
               >
                 <Award className="w-4 h-4 text-amber-600" />
-                <span>Final Exam</span>
+                <span>Term Exam</span>
               </button>
             </div>
           </div>
@@ -191,7 +191,7 @@ export const AddActivityModal: React.FC<AddActivityModalProps> = ({
                   ? "e.g. Seatwork 1: Algebra Expressions"
                   : gradeType === "PERFORMANCE_TASK"
                   ? "e.g. Group Presentation & Lab Demo"
-                  : "e.g. 1st Semester Final Examination"
+                  : "e.g. 1st Term Examination"
               }
               className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />

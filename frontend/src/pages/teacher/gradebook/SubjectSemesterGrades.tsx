@@ -19,6 +19,7 @@ import {
   useBatchRecordQuizScores,
   useDeleteTeacherQuizActivity,
 } from "../../../hooks/useTeacherSubjects";
+import { useActiveAcademicTerm } from "../../../hooks/useAdminData";
 import { useToast } from "../../../hooks/use-toast";
 
 import type {
@@ -48,10 +49,18 @@ import { GradingMetricsModal } from "./semester-grading/components/GradingMetric
 import { AddActivityModal } from "./semester-grading/components/AddActivityModal";
 
 const SEMESTER_OPTIONS: { label: string; value: Semester }[] = [
-  { label: "1st Semester", value: "SEMESTER_1" },
-  { label: "2nd Semester", value: "SEMESTER_2" },
-  { label: "3rd Semester", value: "SEMESTER_3" },
+  { label: "1st Term", value: "SEMESTER_1" },
+  { label: "2nd Term", value: "SEMESTER_2" },
+  { label: "3rd Term", value: "SEMESTER_3" },
 ];
+
+function mapActiveSemester(name?: string): Semester {
+  if (!name) return "SEMESTER_1";
+  const upper = name.toUpperCase();
+  if (upper.includes("3") || upper === "SEM3") return "SEMESTER_3";
+  if (upper.includes("2") || upper === "SEM2") return "SEMESTER_2";
+  return "SEMESTER_1";
+}
 
 interface StudentDraft {
   activity_scores?: Record<number, number | null>;
@@ -69,7 +78,11 @@ export default function SubjectSemesterGrades() {
   const { id } = useParams<{ id: string }>();
   const subjectId = Number(id || 0);
 
-  // Active state
+  // Active term from admin setup
+  const { data: activeAcademicTerm } = useActiveAcademicTerm();
+  const [hasUserSelectedSemester, setHasUserSelectedSemester] = useState(false);
+
+  // Active state - initialized and synced to admin active term
   const [currentSemester, setCurrentSemester] = useState<Semester>("SEMESTER_1");
   const [searchQuery, setSearchQuery] = useState("");
   const [showWeightModal, setShowWeightModal] = useState(false);
@@ -79,6 +92,14 @@ export default function SubjectSemesterGrades() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSavingAll, setIsSavingAll] = useState(false);
   const [savingStudentId, setSavingStudentId] = useState<number | null>(null);
+
+  // Sync to admin active semester automatically unless teacher manually toggled terms
+  useEffect(() => {
+    if (!hasUserSelectedSemester && activeAcademicTerm?.active_semester?.name) {
+      const activeSem = mapActiveSemester(activeAcademicTerm.active_semester.name);
+      setCurrentSemester(activeSem);
+    }
+  }, [activeAcademicTerm, hasUserSelectedSemester]);
 
   // Local draft edits per student id
   const [draftGrades, setDraftGrades] = useState<Record<number, StudentDraft>>(
@@ -109,11 +130,11 @@ export default function SubjectSemesterGrades() {
   const { data: enrolledStudents = [] } =
     useTeacherSubjectStudents(subjectId);
 
-  // Fetch real student attempt scores for all quizzes in this subject
+  // Fetch real student attempt scores in a single bulk query for the whole subject
   const {
     data: attemptScores = {},
     refetch: refetchAttempts,
-  } = useTeacherSubjectQuizAttempts(quizzes);
+  } = useTeacherSubjectQuizAttempts(subjectId);
 
   /*
    * Mutations
@@ -274,8 +295,10 @@ export default function SubjectSemesterGrades() {
 
       if (wwActivities.length > 0) {
         const wwTotals = calculateCategoryTotals(activityScores, wwActivities);
-        wwScore = wwTotals.earned;
-        wwTotal = wwTotals.total > 0 ? wwTotals.total : wwTotal;
+        if (wwTotals.earned !== null || draft.written_work_score !== undefined || draft.activity_scores) {
+          wwScore = wwTotals.earned;
+          wwTotal = wwTotals.total > 0 ? wwTotals.total : wwTotal;
+        }
       }
       if (draft.written_work_score !== undefined) {
         wwScore = draft.written_work_score;
@@ -291,8 +314,10 @@ export default function SubjectSemesterGrades() {
 
       if (ptActivities.length > 0) {
         const ptTotals = calculateCategoryTotals(activityScores, ptActivities);
-        ptScore = ptTotals.earned;
-        ptTotal = ptTotals.total > 0 ? ptTotals.total : ptTotal;
+        if (ptTotals.earned !== null || draft.performance_task_score !== undefined || draft.activity_scores) {
+          ptScore = ptTotals.earned;
+          ptTotal = ptTotals.total > 0 ? ptTotals.total : ptTotal;
+        }
       }
       if (draft.performance_task_score !== undefined) {
         ptScore = draft.performance_task_score;
@@ -308,8 +333,10 @@ export default function SubjectSemesterGrades() {
 
       if (feActivities.length > 0) {
         const feTotals = calculateCategoryTotals(activityScores, feActivities);
-        feScore = feTotals.earned;
-        feTotal = feTotals.total > 0 ? feTotals.total : feTotal;
+        if (feTotals.earned !== null || draft.final_exam_score !== undefined || draft.activity_scores) {
+          feScore = feTotals.earned;
+          feTotal = feTotals.total > 0 ? feTotals.total : feTotal;
+        }
       }
       if (draft.final_exam_score !== undefined) {
         feScore = draft.final_exam_score;
@@ -755,6 +782,7 @@ export default function SubjectSemesterGrades() {
           gradeLevel={subject?.grade}
           roomNumber={subject?.room_number}
           currentSemester={currentSemester}
+          activeSemester={mapActiveSemester(activeAcademicTerm?.active_semester?.name)}
           semesterOptions={SEMESTER_OPTIONS}
           searchQuery={searchQuery}
           isFetching={gradesFetching || quizzesFetching}
@@ -762,9 +790,11 @@ export default function SubjectSemesterGrades() {
           isEditing={isEditing}
           isSavingAll={isSavingAll}
           onBack={() => navigate("/teacher/grades/semester")}
-          onSemesterChange={setCurrentSemester}
+          onSemesterChange={(sem) => {
+            setHasUserSelectedSemester(true);
+            setCurrentSemester(sem);
+          }}
           onSearchChange={setSearchQuery}
-          onRefresh={() => refetchGrades()}
           onOpenWeightsModal={() => setShowWeightModal(true)}
           onToggleEdit={() => setIsEditing((prev) => !prev)}
           onOpenAddActivity={() => {

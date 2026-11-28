@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Search, RefreshCw, SlidersHorizontal, Save, Pencil, Plus, Check } from "lucide-react";
+import { ArrowLeft, Search, SlidersHorizontal, Save, Pencil, Plus, Check } from "lucide-react";
 import type { Semester } from "../../../../../types/teacherTypes";
 
 interface GradingSheetHeaderProps {
@@ -8,6 +8,7 @@ interface GradingSheetHeaderProps {
   gradeLevel?: string;
   roomNumber?: string;
   currentSemester: Semester;
+  activeSemester?: Semester;
   semesterOptions: { label: string; value: Semester }[];
   searchQuery: string;
   isFetching: boolean;
@@ -17,7 +18,6 @@ interface GradingSheetHeaderProps {
   onBack: () => void;
   onSemesterChange: (semester: Semester) => void;
   onSearchChange: (query: string) => void;
-  onRefresh: () => void;
   onOpenWeightsModal: () => void;
   onToggleEdit: () => void;
   onOpenAddActivity: () => void;
@@ -30,6 +30,7 @@ export const GradingSheetHeader: React.FC<GradingSheetHeaderProps> = ({
   gradeLevel,
   roomNumber,
   currentSemester,
+  activeSemester,
   semesterOptions,
   searchQuery,
   isFetching,
@@ -39,7 +40,6 @@ export const GradingSheetHeader: React.FC<GradingSheetHeaderProps> = ({
   onBack,
   onSemesterChange,
   onSearchChange,
-  onRefresh,
   onOpenWeightsModal,
   onToggleEdit,
   onOpenAddActivity,
@@ -73,7 +73,7 @@ export const GradingSheetHeader: React.FC<GradingSheetHeaderProps> = ({
             </div>
 
             <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
-              <span>Class Record & Activities Grading Sheet</span>
+              <span>Tri-Semester Class Record & Activities Grading Sheet</span>
               {gradeLevel && (
                 <>
                   <span>•</span>
@@ -97,13 +97,18 @@ export const GradingSheetHeader: React.FC<GradingSheetHeaderProps> = ({
               key={item.value}
               type="button"
               onClick={() => onSemesterChange(item.value)}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
                 currentSemester === item.value
                   ? "bg-white text-slate-900 shadow-sm"
                   : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              {item.label}
+              <span>{item.label}</span>
+              {activeSemester === item.value && (
+                <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Active
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -174,18 +179,6 @@ export const GradingSheetHeader: React.FC<GradingSheetHeaderProps> = ({
               </span>
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={isFetching}
-            className="p-2.5 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm transition disabled:opacity-50"
-            title="Refresh Data"
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${isFetching ? "animate-spin text-indigo-600" : ""}`}
-            />
-          </button>
 
           <button
             type="button"

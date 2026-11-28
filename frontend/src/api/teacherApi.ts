@@ -351,6 +351,24 @@ export async function getTeacherQuizAttempts(
   return Array.isArray(data) ? data : data.results ?? [];
 }
 
+export async function getSubjectActivityScores(
+  subjectId: number
+): Promise<Record<number, Record<number, number | null>>> {
+  const response = await authFetch(
+    `/teacher/quizzes/attempts-summary/?subject_id=${subjectId}`,
+    {
+      method: "GET",
+    }
+  );
+
+  if (!response.ok) {
+    return {};
+  }
+
+  const data = await response.json();
+  return data && typeof data === "object" ? data : {};
+}
+
 export async function deleteTeacherQuiz(
   quizId: number
 ): Promise<void> {

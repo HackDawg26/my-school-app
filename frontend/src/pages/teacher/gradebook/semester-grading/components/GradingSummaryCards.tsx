@@ -108,9 +108,9 @@ export const GradingSummaryCards: React.FC<GradingSummaryCardsProps> = ({
             Recorded Activities
           </div>
           <div className="text-xs font-semibold text-slate-700 mt-1 flex items-center gap-1.5 font-mono">
-            <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">WW: {wwCount}</span>
-            <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">PT: {ptCount}</span>
-            <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">Exam: {feCount}</span>
+            <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700" title="Written / Oral Works">WW: {wwCount}</span>
+            <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700" title="Product / Performance Task">PT: {ptCount}</span>
+            <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700" title="Summative Tests and Term Examinations">Term Exam: {feCount}</span>
           </div>
         </div>
         <div className="p-2 rounded-lg bg-slate-100 text-slate-600">

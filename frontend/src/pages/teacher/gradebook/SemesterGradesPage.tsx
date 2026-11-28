@@ -76,10 +76,10 @@ export default function SemesterGradesPage() {
           </div> */}
 
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Semester Gradebooks
+            Subject Gradebooks
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Select a subject offering to record, edit, and review semester grade matrices.
+            Select a subject offering to record, edit, and review term grade matrices.
           </p>
         </div>
 

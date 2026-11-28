@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { addQuizQuestion, applySemesterWeights, batchRecordQuizScores, createTeacherQuiz, createTeacherSubjectOffering, deleteQuizQuestion, deleteSemesterGrade, deleteSubjectFile, deleteTeacherQuiz, deleteTeacherQuizActivity, deleteTeacherSubject, generateQuizAIAnalysis, getAdvisoryStudents, getQuizItemAnalysis, getQuizQuestions, getQuizStudentSubmissions, getRecentQuizGrades, getSemesterGrades, getStudentDetail, getStudentSemesterSummary, getSubjectFiles, getTeacherAdvisoryDetail, getTeacherPendingGrading, getTeacherQuiz, getTeacherQuizAttempts, getTeacherQuizzes, getTeacherSubject, getTeacherSubjectActivities, getTeacherSubjectGrades, getTeacherSubjectQuizzes, getTeacherSubjects, getTeacherSubjectStudents, getTeacherSubjectSubmissionDetail, getTeacherSubmissionsSummary, gradeQuizAnswer, saveSemesterGrade, updateQuizQuestion, updateQuizStatus, updateQuizTimes, uploadSubjectFile } from "../api/teacherApi";
+import { addQuizQuestion, applySemesterWeights, batchRecordQuizScores, createTeacherQuiz, createTeacherSubjectOffering, deleteQuizQuestion, deleteSemesterGrade, deleteSubjectFile, deleteTeacherQuiz, deleteTeacherQuizActivity, deleteTeacherSubject, generateQuizAIAnalysis, getAdvisoryStudents, getQuizItemAnalysis, getQuizQuestions, getQuizStudentSubmissions, getRecentQuizGrades, getSemesterGrades, getStudentDetail, getStudentSemesterSummary, getSubjectActivityScores, getSubjectFiles, getTeacherAdvisoryDetail, getTeacherPendingGrading, getTeacherQuiz, getTeacherQuizAttempts, getTeacherQuizzes, getTeacherSubject, getTeacherSubjectActivities, getTeacherSubjectGrades, getTeacherSubjectQuizzes, getTeacherSubjects, getTeacherSubjectStudents, getTeacherSubjectSubmissionDetail, getTeacherSubmissionsSummary, gradeQuizAnswer, saveSemesterGrade, updateQuizQuestion, updateQuizStatus, updateQuizTimes, uploadSubjectFile } from "../api/teacherApi";
 import { Semester, TeacherQuiz } from "../types/teacherTypes";
 
 export function useTeacherSubjects() {
@@ -61,11 +61,19 @@ export function useTeacherSubjectQuizzes(subjectId: number) {
   });
 }
 
-export function useTeacherSubjectQuizAttempts(quizzes: TeacherQuiz[]) {
-  const quizIds = quizzes.map((q) => q.id).sort().join(",");
+export function useTeacherSubjectQuizAttempts(subjectOrQuizzes: number | TeacherQuiz[]) {
+  const subjectId = typeof subjectOrQuizzes === "number" ? subjectOrQuizzes : 0;
+  const quizIds = Array.isArray(subjectOrQuizzes)
+    ? subjectOrQuizzes.map((q) => q.id).sort().join(",")
+    : "";
+
   return useQuery({
-    queryKey: ["teacher", "quizzes", "attempts-map", quizIds],
+    queryKey: ["teacher", "quizzes", "attempts-map", subjectId > 0 ? subjectId : quizIds],
     queryFn: async () => {
+      if (subjectId > 0) {
+        return getSubjectActivityScores(subjectId);
+      }
+      const quizzes = subjectOrQuizzes as TeacherQuiz[];
       const map: Record<number, Record<number, number | null>> = {};
       await Promise.all(
         quizzes.map(async (quiz) => {
@@ -89,7 +97,7 @@ export function useTeacherSubjectQuizAttempts(quizzes: TeacherQuiz[]) {
       );
       return map;
     },
-    enabled: quizzes.length > 0,
+    enabled: typeof subjectOrQuizzes === "number" ? subjectOrQuizzes > 0 : subjectOrQuizzes.length > 0,
     staleTime: 5 * 1000,
   });
 }
@@ -683,6 +691,9 @@ export function useBatchRecordQuizScores() {
       });
       queryClient.invalidateQueries({
         queryKey: ["teacher", "quiz-attempts"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["teacher", "quizzes", "attempts-map"],
       });
     },
   });

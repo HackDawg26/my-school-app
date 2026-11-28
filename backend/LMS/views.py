@@ -1483,6 +1483,49 @@ class TeacherQuizViewSet(QuizDuplicateMixin, QuizGroupsMixin, viewsets.ModelView
         serializer = QuizAttemptSerializer(attempts, many=True, context={"request": request})
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'], url_path='attempts-summary')
+    def attempts_summary(self, request):
+        """
+        Get all student attempts/scores for a subject offering in a single fast query.
+        Returns a map: { [student_id]: { [quiz_id]: score } }
+        """
+        subject_id = request.query_params.get('subject_id')
+        if not subject_id:
+            return Response({'detail': 'subject_id parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            subject_id = int(subject_id)
+        except (ValueError, TypeError):
+            return Response({'detail': 'Invalid subject_id.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if getattr(request.user, 'role', None) == 'TEACHER':
+            if not SubjectOffering.objects.filter(id=subject_id, teacher=request.user).exists():
+                return Response({'detail': 'Unauthorized for this subject offering.'}, status=status.HTTP_403_FORBIDDEN)
+        elif getattr(request.user, 'role', None) != 'ADMIN':
+            return Response({'detail': 'Unauthorized.'}, status=status.HTTP_403_FORBIDDEN)
+
+        attempts = (
+            QuizAttempt.objects.filter(
+                quiz__SubjectOffering_id=subject_id,
+                status__in=['SUBMITTED', 'GRADED'],
+            )
+            .values('student_id', 'quiz_id', 'score')
+            .order_by('started_at')
+        )
+
+        scores_map = {}
+        for att in attempts:
+            s_id = att['student_id']
+            q_id = att['quiz_id']
+            sc = att['score']
+            if s_id not in scores_map:
+                scores_map[s_id] = {}
+            prev = scores_map[s_id].get(q_id)
+            if prev is None or (sc is not None and sc > prev):
+                scores_map[s_id][q_id] = sc
+
+        return Response(scores_map)
+
     @action(detail=False, methods=['post'], url_path='batch-record-scores')
     def batch_record_scores(self, request):
         """

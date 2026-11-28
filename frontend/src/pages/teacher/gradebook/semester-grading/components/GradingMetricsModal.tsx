@@ -130,7 +130,7 @@ export const GradingMetricsModal: React.FC<GradingMetricsModalProps> = ({
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-xs font-bold text-slate-700">
-                  Written Works (WW)
+                  WRITTEN / ORAL WORKS (WW)
                 </label>
                 <span className="text-xs text-slate-400 font-mono">
                   {metrics.ww_weight}%
@@ -159,7 +159,7 @@ export const GradingMetricsModal: React.FC<GradingMetricsModalProps> = ({
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-xs font-bold text-slate-700">
-                  Performance Tasks (PT)
+                  PRODUCT / PERFORMANCE TASK (PT)
                 </label>
                 <span className="text-xs text-slate-400 font-mono">
                   {metrics.pt_weight}%
@@ -188,7 +188,7 @@ export const GradingMetricsModal: React.FC<GradingMetricsModalProps> = ({
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-xs font-bold text-slate-700">
-                  Final Exam / Assessment
+                  SUMMATIVE TESTS AND TERM EXAMINATIONS
                 </label>
                 <span className="text-xs text-slate-400 font-mono">
                   {metrics.sa_weight}%

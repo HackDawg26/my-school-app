@@ -5,6 +5,7 @@ import { Sparkles, Search, CheckCircle2, AlertTriangle, ArrowRight, BookOpen } f
 import {
   useTeacherSubjectGrades,
 } from "../../../hooks/useTeacherSubjects";
+import { useActiveAcademicTerm } from "../../../hooks/useAdminData";
 
 import type {
   Semester,
@@ -15,17 +16,25 @@ function semesterLabel(
 ) {
   switch (semester) {
     case "SEMESTER_1":
-      return "1st Semester";
+      return "1st Term";
 
     case "SEMESTER_2":
-      return "2nd Semester";
+      return "2nd Term";
 
     case "SEMESTER_3":
-      return "3rd Semester";
+      return "3rd Term";
 
     default:
       return semester;
   }
+}
+
+function mapActiveSemester(name?: string): Semester {
+  if (!name) return "SEMESTER_1";
+  const upper = name.toUpperCase();
+  if (upper.includes("3") || upper === "SEM3") return "SEMESTER_3";
+  if (upper.includes("2") || upper === "SEM2") return "SEMESTER_2";
+  return "SEMESTER_1";
 }
 
 export default function SubjectGradesTab() {
@@ -34,9 +43,17 @@ export default function SubjectGradesTab() {
 
   const subjectId = Number(id || 0);
 
+  const { data: activeAcademicTerm } = useActiveAcademicTerm();
+  const [hasUserSelectedSemester, setHasUserSelectedSemester] = useState(false);
   const [selectedSemester, setSelectedSemester] =
     useState<Semester | "ALL">("SEMESTER_1");
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (!hasUserSelectedSemester && activeAcademicTerm?.active_semester?.name) {
+      setSelectedSemester(mapActiveSemester(activeAcademicTerm.active_semester.name));
+    }
+  }, [activeAcademicTerm, hasUserSelectedSemester]);
 
   const {
     data: grades = [],
@@ -197,7 +214,10 @@ export default function SubjectGradesTab() {
           <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/80">
             <button
               type="button"
-              onClick={() => setSelectedSemester("SEMESTER_1")}
+              onClick={() => {
+                setHasUserSelectedSemester(true);
+                setSelectedSemester("SEMESTER_1");
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 selectedSemester === "SEMESTER_1"
                   ? "bg-white text-indigo-700 shadow-xs border border-slate-200/60"
@@ -208,7 +228,10 @@ export default function SubjectGradesTab() {
             </button>
             <button
               type="button"
-              onClick={() => setSelectedSemester("SEMESTER_2")}
+              onClick={() => {
+                setHasUserSelectedSemester(true);
+                setSelectedSemester("SEMESTER_2");
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 selectedSemester === "SEMESTER_2"
                   ? "bg-white text-indigo-700 shadow-xs border border-slate-200/60"
@@ -219,7 +242,10 @@ export default function SubjectGradesTab() {
             </button>
             <button
               type="button"
-              onClick={() => setSelectedSemester("SEMESTER_3")}
+              onClick={() => {
+                setHasUserSelectedSemester(true);
+                setSelectedSemester("SEMESTER_3");
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 selectedSemester === "SEMESTER_3"
                   ? "bg-white text-indigo-700 shadow-xs border border-slate-200/60"
@@ -230,7 +256,10 @@ export default function SubjectGradesTab() {
             </button>
             <button
               type="button"
-              onClick={() => setSelectedSemester("ALL")}
+              onClick={() => {
+                setHasUserSelectedSemester(true);
+                setSelectedSemester("ALL");
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 selectedSemester === "ALL"
                   ? "bg-white text-indigo-700 shadow-xs border border-slate-200/60"
